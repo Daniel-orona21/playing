@@ -1,0 +1,55 @@
+<div class="cuerpo">
+    <div class="side continuacion">
+        <h2>A continuación...</h2>
+        <div class="canciones">
+            <div 
+                *ngFor="let cancion of aContinuacion; let i = index" 
+                class="cancion"
+                [class.menu-abierto]="menuAbierto === i">
+                <div class="portada">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div class="infoCancion">
+                    <p class="nombre">{{ cancion.nombre }}</p>
+                    <p class="artista">{{ cancion.artista }}</p>
+                </div>
+                <div class="acciones">
+                    <button 
+                        class="mas"
+                        (click)="abrirMenu(i, $event)">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                    <div 
+                        *ngIf="menuAbierto === i" 
+                        class="menu-flotante"
+                        (click)="$event.stopPropagation()">
+                        <button 
+                            class="opcion eliminar" 
+                            (click)="eliminarCancion(i)">
+                            <span class="material-symbols-outlined">
+                                close
+                                </span>
+                            <span>Eliminar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="side historial">
+        <h2>Historial</h2>
+        <div class="canciones">
+            <div 
+                *ngFor="let cancion of historial; let i = index" 
+                class="cancion">
+                <div class="portada">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div class="infoCancion">
+                    <p class="nombre">{{ cancion.nombre }}</p>
+                    <p class="artista">{{ cancion.artista }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

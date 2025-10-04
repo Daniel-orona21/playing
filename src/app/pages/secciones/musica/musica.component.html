@@ -1,0 +1,28 @@
+<div class="cuerpo">
+    <div class="nav">
+        <button 
+            (click)="selectTab('lista')"
+            [class.seleccionado]="selectedTab === 'lista'">
+            <span class="material-symbols-outlined">
+                playlist_play
+            </span>
+        </button>
+        <button 
+            (click)="selectTab('busqueda')"
+            [class.seleccionado]="selectedTab === 'busqueda'">
+            <span class="material-symbols-outlined">
+                search
+            </span>
+        </button>
+        <button 
+            (click)="selectTab('filtro')"
+            [class.seleccionado]="selectedTab === 'filtro'">
+            <span class="material-symbols-outlined">
+                filter_alt
+            </span>
+        </button>
+    </div>
+    <div class="tab">
+        <router-outlet></router-outlet>
+    </div>
+</div>
