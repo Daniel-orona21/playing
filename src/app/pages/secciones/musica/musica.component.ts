@@ -1,13 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-musica',
   standalone: true,
   imports: [RouterOutlet],
   templateUrl: './musica.component.html',
-  styleUrl: './musica.component.scss'
+  styleUrl: './musica.component.scss',
+  animations: [
+    trigger('routeAnimations', [
+      transition('* <=> *', [
+        style({ opacity: 0 }),
+        animate('300ms ease-in-out', style({ opacity: 1 }))
+      ])
+    ])
+  ]
 })
 export class MusicaComponent implements OnInit {
   selectedTab: string = 'lista';
@@ -40,5 +49,9 @@ export class MusicaComponent implements OnInit {
   selectTab(tab: string) {
     this.selectedTab = tab;
     this.router.navigate(['/layout/music', tab]);
+  }
+
+  prepareRoute(outlet: RouterOutlet) {
+    return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
   }
 }

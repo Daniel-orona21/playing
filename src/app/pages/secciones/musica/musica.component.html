@@ -22,7 +22,7 @@
             </span>
         </button>
     </div>
-    <div class="tab">
-        <router-outlet></router-outlet>
+    <div class="tab" [@routeAnimations]="prepareRoute(outlet)">
+        <router-outlet #outlet="outlet"></router-outlet>
     </div>
 </div>

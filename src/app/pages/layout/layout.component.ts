@@ -2,12 +2,21 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-layout',
   imports: [CommonModule, RouterOutlet],
   templateUrl: './layout.component.html',
-  styleUrl: './layout.component.scss'
+  styleUrl: './layout.component.scss',
+  animations: [
+    trigger('routeAnimations', [
+      transition('* <=> *', [
+        style({ opacity: 0 }),
+        animate('300ms ease-in-out', style({ opacity: 1 }))
+      ])
+    ])
+  ]
 })
 export class LayoutComponent implements OnInit {
   public pause = false;
@@ -17,10 +26,8 @@ export class LayoutComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-    // Establecer la ruta inicial basada en la URL actual
     this.updateSelectedNavFromUrl();
     
-    // Detectar cambios en la ruta para actualizar el botón seleccionado
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
@@ -54,5 +61,9 @@ export class LayoutComponent implements OnInit {
   selectNavItem(item: string) {
     this.selectedNavItem = item;
     this.router.navigate(['/layout', item]);
+  }
+
+  prepareRoute(outlet: RouterOutlet) {
+    return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
   }
 }

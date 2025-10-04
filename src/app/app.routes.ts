@@ -19,16 +19,17 @@ export const routes: Routes = [
       { 
         path: 'music', 
         component: MusicaComponent,
+        data: { animation: 'MusicPage' },
         children: [
           { path: '', redirectTo: 'lista', pathMatch: 'full' },
-          { path: 'lista', component: ListaComponent },
-          { path: 'busqueda', component: BusquedaComponent },
-          { path: 'filtro', component: FiltroComponent }
+          { path: 'lista', component: ListaComponent, data: { animation: 'ListaPage' } },
+          { path: 'busqueda', component: BusquedaComponent, data: { animation: 'BusquedaPage' } },
+          { path: 'filtro', component: FiltroComponent, data: { animation: 'FiltroPage' } }
         ]
       },
-      { path: 'playlist', component: OrdenesComponent },
-      { path: 'games', component: JuegoComponent },
-      { path: 'settings', component: AjustesComponent }
+      { path: 'playlist', component: OrdenesComponent, data: { animation: 'PlaylistPage' } },
+      { path: 'games', component: JuegoComponent, data: { animation: 'GamesPage' } },
+      { path: 'settings', component: AjustesComponent, data: { animation: 'SettingsPage' } }
     ]
   },
   { path: '**', component: LoginComponent },
