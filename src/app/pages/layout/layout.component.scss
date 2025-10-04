@@ -1,0 +1,199 @@
+@use '../../../colores.scss' as *;
+
+.cuerpo {
+    background-color: $fondo;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    color: white;
+}
+
+header {
+    background-color: black;
+    display: flex;
+    width: 100%;
+    min-height: 4.5rem;
+    align-items: center;
+    max-height: 20px;
+    justify-content: space-around;
+
+    img {
+        object-fit: contain;
+        height: 40px;
+    }
+
+    .controles {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+
+        button {
+            width: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .play {
+            i {
+                font-size: 32px;
+            }
+        }
+        
+        
+        i {
+            font-size: 28px;
+            color: white;
+
+
+            &:hover {
+                color: darken(white, 30%) !important;
+            }
+
+            &:active {
+                transform: scale(.7);
+            }
+        }
+
+        .play {
+            align-items: center;
+            justify-content: center;
+            display: flex;
+        }
+    }
+
+    .cancion {
+        background-color: $contenedor;
+        display: flex;
+        height: 100%;
+        position: relative;
+        min-width: 330px;
+
+        .portada {
+            background-color: $contenedorOscuro;
+            aspect-ratio: 1/1 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0; 
+        }
+
+        .infoCancion {
+            padding: 0 10px;
+            min-width: 0;
+            flex: 1 1 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            p {
+                text-align: center;
+                white-space: nowrap;      
+                overflow: hidden;        
+                text-overflow: ellipsis; 
+            }
+
+            .artista {
+                color: $textoSecundario;
+            }
+        }
+    }
+
+    .volumen {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        i {
+            opacity: .7;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 150px;
+            height: 3px;
+            background: linear-gradient(to right, white 0%, white var(--value, 50%), #555 var(--value, 50%), #555 100%);
+            border-radius: 2px;
+            outline: none;
+          }
+          
+          /* Thumb */
+          input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            cursor: grab;
+            position: relative;
+          }
+          
+          input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+          }
+          
+          /* Firefox */
+          input[type="range"]::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            cursor: grab;
+          }
+          
+          /* Firefox track */
+          input[type="range"]::-moz-range-progress {
+            background-color: white;
+            height: 3px;
+          }
+          
+          input[type="range"]::-moz-range-track {
+            background-color: #555;
+            height: 3px;
+          }
+    }
+
+    .nav {
+        background-color: $nav;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        border-radius: 99px;
+        padding: 5px;
+        margin: 5px;
+        gap: 5px;    
+
+        button {
+            background-color: transparent;
+            border-radius: 100%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1/1;
+            height: 40px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+
+            &.seleccionado {
+                background-color: $navSeleccionado;
+            }
+
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+
+            i {
+                color: white;
+                font-size: 16px;
+            }
+        }
+    }
+}
+

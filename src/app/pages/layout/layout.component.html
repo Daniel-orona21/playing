@@ -1,1 +1,69 @@
-<p>layout works!</p>
+<div class="cuerpo">
+    <header>
+        <img src="images/wings.png" alt="" class="logo">
+
+        <div class="controles">
+            <button>
+                <i class="fa-solid fa-backward"></i>
+            </button>
+
+            <div class="play">
+                <button (click)="play()">
+                    <i *ngIf="pause" class="fa-solid fa-play"></i>
+                    <i  *ngIf="!pause" class="fa-solid fa-pause"></i>
+                </button>
+            </div>
+            <button>
+                <i  class="fa-solid fa-forward"></i>
+            </button>
+        </div>
+
+        <div class="cancion">
+            <div class="portada">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="infoCancion">
+                <p class="nombre">Cancion 23</p>
+                <p class="artista">Artista de prueba ft. artista 21</p>
+            </div>
+        </div>
+
+        <div class="volumen">
+            <i class="fa-solid fa-volume-low"></i>
+            <input
+                type="range"
+                min="0"
+                max="100"
+                [value]="value"
+                (input)="updateValue($event)"
+                />
+            <i class="fa-solid fa-volume-high"></i>
+        </div>
+
+        <div class="nav">
+            <button 
+                (click)="selectNavItem('music')"
+                [class.seleccionado]="selectedNavItem === 'music'">
+                <i class="fa-solid fa-music"></i>
+            </button>
+
+            <button 
+                (click)="selectNavItem('playlist')"
+                [class.seleccionado]="selectedNavItem === 'playlist'">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </button>
+
+            <button 
+                (click)="selectNavItem('games')"
+                [class.seleccionado]="selectedNavItem === 'games'">
+                <i class="fa-solid fa-gamepad"></i>
+            </button>
+
+            <button 
+                (click)="selectNavItem('settings')"
+                [class.seleccionado]="selectedNavItem === 'settings'">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+</div>
