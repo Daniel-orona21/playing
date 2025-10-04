@@ -1,0 +1,94 @@
+@use '../../../colores.scss' as *;
+
+
+.contenido {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    padding: 0 2rem;
+    background-color: black;
+}
+
+.side {
+    width: 50%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .contenedor {
+        display: flex;
+        flex-direction: column;
+        height: 40%;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 3;
+        
+        h1, h2 {
+            font-family: "Michroma", sans-serif;
+            font-weight: 100;
+        }
+
+        h1 {
+            color: $textoPrincipal;
+            font-size: 48px;
+        }
+
+        h2 {
+            color: $textoSecundario;
+            font-size: 36px;
+        }
+
+        button {
+            background-color: $btnPrincipal;
+            border: none;
+            border-radius: 99px;
+            display: flex;
+            padding: 20px 55px 20px 40px;
+            gap: 25px;
+            align-items: center;
+            cursor: pointer;
+            transition: all .3s ease;
+
+            &:hover{
+                background-color: lighten($btnPrincipal, 10%);
+            }
+
+            &:active {
+                background-color: black;
+                transition: none;
+            }
+            
+            i, p {
+                color: white;
+            }
+
+            i {
+                font-size: 28px;
+            }
+
+            p {
+                font-weight: 100;
+                font-size: 18px;
+            }
+        }
+    }
+
+    img {
+        z-index: 1;
+        margin-top: 5rem;
+    }
+}
+
+.blur {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    background-color: rgba(34, 34, 34, 0.4);
+    backdrop-filter: blur(10px);
+}
