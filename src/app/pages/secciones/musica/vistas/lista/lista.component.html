@@ -4,7 +4,7 @@
         <div class="canciones">
             <div 
                 *ngFor="let cancion of aContinuacion; let i = index" 
-                class="cancion"
+                class="cancion cancionLista"
                 [class.menu-abierto]="menuAbierto === i">
                 <div class="portada">
                     <i class="fa-solid fa-music"></i>
@@ -41,7 +41,7 @@
         <div class="canciones">
             <div 
                 *ngFor="let cancion of historial; let i = index" 
-                class="cancion">
+                class="cancion cancionLista">
                 <div class="portada">
                     <i class="fa-solid fa-music"></i>
                 </div>

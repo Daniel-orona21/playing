@@ -1,5 +1,7 @@
-import { Component, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 interface Cancion {
   id: number;
@@ -16,7 +18,78 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent {
+export class ListaComponent implements AfterViewInit{
+
+  ngAfterViewInit(): void {
+    gsap.registerPlugin(ScrollTrigger);
+
+    if (isPlatformBrowser(this.platformId)) {
+      gsap.set(".cancion", {
+        opacity: 0,
+        y: 0,
+        scale: 0.65
+      });
+      this._setupContinuacionAnimations();
+      this._setupHistorialAnimations();
+    }
+  }
+
+  private _setupContinuacionAnimations(): void {
+    const scroller = document.querySelector(".side.continuacion .canciones");
+    if (!scroller) return;
+
+    gsap.utils.toArray(".side.continuacion .canciones .cancion").forEach((element: any) => {
+      gsap.to(element,
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: element, // Cada canción es su propio trigger
+            scroller: scroller, // El scroller es el contenedor de canciones interno
+            start: "top bottom", // Inicia cuando la parte superior de la canción entra por la parte inferior del viewport del scroller
+            toggleActions: "play none none reverse", // Reproducir al entrar, revertir al salir
+          }
+        }
+      );
+    });
+  }
+
+  private _setupHistorialAnimations(): void {
+    const scroller = document.querySelector(".side.historial .canciones");
+    if (!scroller) return;
+
+    gsap.utils.toArray(".side.historial .canciones .cancion").forEach((element: any) => {
+      gsap.to(element,
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: element, // Cada canción es su propio trigger
+            scroller: scroller, // El scroller es el contenedor de canciones interno
+            start: "top bottom",
+            toggleActions: "play none none reverse",
+          }
+        }
+      );
+    });
+  }
+
+  private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {
+    const scrollerRect = scroller.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+
+    return (
+      elementRect.top >= scrollerRect.top - (scrollerRect.height * threshold) &&
+      elementRect.left >= scrollerRect.left - (scrollerRect.width * threshold) &&
+      elementRect.bottom <= scrollerRect.bottom + (scrollerRect.height * threshold) &&
+      elementRect.right <= scrollerRect.right + (scrollerRect.width * threshold)
+    );
+  }
+
   // Lista de canciones "A continuación"
   aContinuacion: Cancion[] = [
     { id: 1, nombre: 'Cancion 24', artista: 'Artista de prueba', duracion: '3:45', album: 'Album 1', year: 2024 },
@@ -26,8 +99,11 @@ export class ListaComponent {
     { id: 5, nombre: 'Cancion 28', artista: 'Artista de prueba', duracion: '3:15', album: 'Album 3', year: 2024 },
     { id: 6, nombre: 'Cancion 29', artista: 'Artista de prueba', duracion: '4:01', album: 'Album 3', year: 2024 },
     { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 8, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 9, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 }
+    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
+    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
+    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
+    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
+    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 }
   ];
 
   // Lista de canciones del historial
@@ -44,10 +120,34 @@ export class ListaComponent {
   // Índice de la canción con menú abierto en "A continuación"
   menuAbierto: number | null = null;
 
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
   eliminarCancion(index: number) {
-    this.aContinuacion.splice(index, 1);
-    // Cerrar el menú después de eliminar
-    this.menuAbierto = null;
+    const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion:nth-child(${index + 1})`) as HTMLElement;
+    if (cancionElement) {
+      gsap.to(cancionElement, {
+        opacity: 0,
+        height: 0,
+        marginTop: 0,
+        marginBottom: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        duration: 0.3,
+        ease: "power1.out",
+        onComplete: () => {
+          this.aContinuacion.splice(index, 1);
+          this.menuAbierto = null;
+          ScrollTrigger.refresh();
+          console.log('ScrollTrigger refreshed after animated deletion.');
+        }
+      });
+    } else {
+      // Si por alguna razón el elemento no se encuentra, hacer la eliminación directa
+      this.aContinuacion.splice(index, 1);
+      this.menuAbierto = null;
+      ScrollTrigger.refresh();
+      console.log('ScrollTrigger refreshed after direct deletion (element not found).');
+    }
   }
 
   abrirMenu(index: number, event: Event) {
