@@ -24,11 +24,6 @@ export class ListaComponent implements AfterViewInit{
     gsap.registerPlugin(ScrollTrigger);
 
     if (isPlatformBrowser(this.platformId)) {
-      gsap.set(".cancion", {
-        opacity: 0,
-        y: 0,
-        scale: 0.65
-      });
       this._setupContinuacionAnimations();
       this._setupHistorialAnimations();
     }
@@ -39,6 +34,9 @@ export class ListaComponent implements AfterViewInit{
     if (!scroller) return;
 
     gsap.utils.toArray(".side.continuacion .canciones .cancion").forEach((element: any) => {
+      if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
+        gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+      }
       gsap.to(element,
         {
           opacity: 1,
@@ -46,10 +44,10 @@ export class ListaComponent implements AfterViewInit{
           scale: 1,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: element, // Cada canción es su propio trigger
-            scroller: scroller, // El scroller es el contenedor de canciones interno
-            start: "top bottom", // Inicia cuando la parte superior de la canción entra por la parte inferior del viewport del scroller
-            toggleActions: "play none none reverse", // Reproducir al entrar, revertir al salir
+            trigger: element,
+            scroller: scroller,
+            start: "top 95%",
+            toggleActions: "play none none reverse",
           }
         }
       );
@@ -61,6 +59,9 @@ export class ListaComponent implements AfterViewInit{
     if (!scroller) return;
 
     gsap.utils.toArray(".side.historial .canciones .cancion").forEach((element: any) => {
+      if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
+        gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+      }
       gsap.to(element,
         {
           opacity: 1,
@@ -68,9 +69,9 @@ export class ListaComponent implements AfterViewInit{
           scale: 1,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: element, // Cada canción es su propio trigger
-            scroller: scroller, // El scroller es el contenedor de canciones interno
-            start: "top bottom",
+            trigger: element,
+            scroller: scroller,
+            start: "top 95%",
             toggleActions: "play none none reverse",
           }
         }
@@ -90,7 +91,6 @@ export class ListaComponent implements AfterViewInit{
     );
   }
 
-  // Lista de canciones "A continuación"
   aContinuacion: Cancion[] = [
     { id: 1, nombre: 'Cancion 24', artista: 'Artista de prueba', duracion: '3:45', album: 'Album 1', year: 2024 },
     { id: 2, nombre: 'Cancion 25', artista: 'Artista de prueba', duracion: '4:12', album: 'Album 1', year: 2024 },
@@ -106,7 +106,6 @@ export class ListaComponent implements AfterViewInit{
     { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 }
   ];
 
-  // Lista de canciones del historial
   historial: Cancion[] = [
     { id: 8, nombre: 'Cancion 17', artista: 'Artista de prueba', duracion: '3:20', album: 'Album 1', year: 2024 },
     { id: 9, nombre: 'Cancion 18', artista: 'Artista de prueba', duracion: '4:05', album: 'Album 1', year: 2024 },
@@ -117,7 +116,6 @@ export class ListaComponent implements AfterViewInit{
     { id: 14, nombre: 'Cancion 23', artista: 'Artista de prueba', duracion: '3:55', album: 'Album 4', year: 2024 }
   ];
 
-  // Índice de la canción con menú abierto en "A continuación"
   menuAbierto: number | null = null;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
@@ -142,7 +140,6 @@ export class ListaComponent implements AfterViewInit{
         }
       });
     } else {
-      // Si por alguna razón el elemento no se encuentra, hacer la eliminación directa
       this.aContinuacion.splice(index, 1);
       this.menuAbierto = null;
       ScrollTrigger.refresh();
@@ -161,7 +158,6 @@ export class ListaComponent implements AfterViewInit{
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event) {
-    // Cerrar el menú si se hace click fuera de él
     if (this.menuAbierto !== null) {
       this.cerrarMenu();
     }
