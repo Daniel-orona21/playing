@@ -119,7 +119,7 @@ header {
             appearance: none;
             width: 150px;
             height: 3px;
-            background: linear-gradient(to right, white 0%, white var(--value, 50%), #555 var(--value, 50%), #555 100%);
+            background: linear-gradient(to right, $colorSecundario 0%, $colorSecundario var(--value, 50%), #555 var(--value, 50%), #555 100%);
             border-radius: 2px;
             outline: none;
           }
@@ -131,7 +131,7 @@ header {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: white;
+            background: $colorSecundario;
             cursor: grab;
             position: relative;
           }
@@ -145,7 +145,7 @@ header {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: white;
+            background: $colorSecundario;
             cursor: grab;
           }
           
@@ -185,6 +185,10 @@ header {
 
             &.seleccionado {
                 background-color: $navSeleccionado;
+
+                i {
+                    color: $colorSecundario;
+                }
             }
 
             &:hover {

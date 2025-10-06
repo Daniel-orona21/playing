@@ -29,6 +29,10 @@
 
         &.seleccionado {
             background-color: $navSeleccionado;
+
+            span {
+                color: $colorSecundario;
+            }
         }
 
         &:hover {
