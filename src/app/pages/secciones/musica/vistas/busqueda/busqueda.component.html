@@ -2,14 +2,17 @@
     <div class="buscador">
     <!-- vista de selector de categoria -->
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" placeholder="Buscar...">
+        <input type="text" placeholder="Buscar..." [(ngModel)]="searchTerm" (input)="onSearchChange()">
     </div>
     <div class="scroll">
-        <div class="parent" *ngIf="!selectedCategory">
+        <div class="parent" *ngIf="!selectedCategory && !searchTerm">
             <div class="celda" *ngFor="let genero of generosMusicales" [ngStyle]="{'background-color': genero.backgroundColor}" (click)="selectCategory(genero.nombre)"><h3 class="nombre">{{genero.nombre}}</h3></div>
         </div>
         
         <!-- vista de canciones por categoria -->
         <app-canciones-categoria *ngIf="selectedCategory" [categoryName]="selectedCategory" (backToCategories)="clearCategory()"></app-canciones-categoria>
+
+        <!-- Nueva vista para resultados de búsqueda -->
+        <app-search-results *ngIf="searchTerm && !selectedCategory" [searchTerm]="searchTerm"></app-search-results>
     </div>
 </div>

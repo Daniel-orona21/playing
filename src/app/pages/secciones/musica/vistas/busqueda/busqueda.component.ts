@@ -3,17 +3,21 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { CancionesCategoriaComponent } from "./canciones-categoria/canciones-categoria.component";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { SearchResultsComponent } from './search-results/search-results.component'; // Import SearchResultsComponent
 
 gsap.registerPlugin(ScrollTrigger);
 
 @Component({
   selector: 'app-busqueda',
   standalone: true,
-  imports: [CommonModule, CancionesCategoriaComponent],
+  imports: [CommonModule, CancionesCategoriaComponent, FormsModule, SearchResultsComponent], // Add FormsModule here
   templateUrl: './busqueda.component.html',
   styleUrl: './busqueda.component.scss'
 })
 export class BusquedaComponent implements AfterViewInit {
+
+  searchTerm: string = ''; // Property to hold the search term
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
@@ -111,6 +115,14 @@ export class BusquedaComponent implements AfterViewInit {
         this._setupCategoryAnimations();
       }, 0);
     }
+  }
+
+  onSearchChange() {
+    // This method will be called whenever the search input changes
+    // You can add logic here to filter results or trigger a search service
+    console.log('Search term changed:', this.searchTerm);
+    // For now, we are just controlling the view based on searchTerm presence
+    // Later, you might call a service to fetch search results
   }
 
   private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {

@@ -21,15 +21,16 @@
 
         .clear-filters {
             background-color: transparent;
-            border: 1px solid $colorSecundario;
-            color: $colorSecundario;
+            border: 1px solid color.adjust($colorSecundario, $lightness: -20%) !important;
+            color: color.adjust($colorSecundario, $lightness: -20%) !important;
             padding: 8px 15px;
             border-radius: 99px;
             cursor: pointer;
             font-size: 14px;
 
             &:hover {
-                background-color: $nav;
+                border: 1px solid color.adjust($colorSecundario, $lightness: 0%) !important;
+                color: color.adjust($colorSecundario, $lightness: 0%) !important;
             }
         }
     }
