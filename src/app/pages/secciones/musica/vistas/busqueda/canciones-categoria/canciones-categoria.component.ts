@@ -16,13 +16,12 @@ export class CancionesCategoriaComponent implements AfterViewInit {
   @Input() categoryName: string | null = null;
   @Output() backToCategories = new EventEmitter<void>();
 
-  menuAbierto: number | null = null; // Property to track the opened menu
+  menuAbierto: number | null = null;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   @HostListener('document:click', ['$event']) onDocumentClick(event: Event) {
     if (this.menuAbierto !== null) {
-      // Check if the click occurred outside the menu button and menu itself
       const clickedElement = event.target as HTMLElement;
       const menuButton = clickedElement.closest('.mas');
       const menuFlotante = clickedElement.closest('.menu-flotante');
@@ -44,7 +43,7 @@ export class CancionesCategoriaComponent implements AfterViewInit {
 
         gsap.utils.toArray(".songs-grid .cancion").forEach((element: any) => {
           if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-            gsap.set(element, { opacity: 0, scale: 0.65 }); // Set initial state only if not in viewport
+            gsap.set(element, { opacity: 0, scale: 0.65 });
           }
           gsap.to(element,
             {
@@ -115,7 +114,6 @@ export class CancionesCategoriaComponent implements AfterViewInit {
 
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
-    // Implement actual deletion logic here
     this.menuAbierto = null; // Close the menu after action
   }
 

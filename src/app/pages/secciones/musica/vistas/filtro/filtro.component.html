@@ -1,1 +1,143 @@
-<p>filtro works!</p>
+<div class="filtro-container">
+    <div class="header">
+        <h2>Filtros</h2>
+        <button class="clear-filters" (click)="clearAllFilters()">Eliminar filtros</button>
+    </div>
+
+    <div class="limites">
+        <div class="filter-section">
+            <h3>Límite máximo de reproducción de canciónes</h3>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="playLimit" value="1_hour" [(ngModel)]="playLimit">
+                    1 vez por hora
+                </label>
+                <label>
+                    <input type="radio" name="playLimit" value="2_hours" [(ngModel)]="playLimit">
+                    1 vez cada 2 horas
+                </label>
+                <label>
+                    <input type="radio" name="playLimit" value="no_limit" [(ngModel)]="playLimit">
+                    Sin límite
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-section derecho">
+            <div class="textos">
+                <h3>Límite de canciones por usuario por hora</h3>
+            </div>
+            <div class="inputContainer">
+                <button (click)="decrementUserSongLimit()">
+                    <span class="material-symbols-outlined">
+                        remove
+                    </span>
+                </button>
+                    <input [(ngModel)]="userSongLimit" type="number" placeholder="0">
+                    <button (click)="incrementUserSongLimit()">
+                        <span class="material-symbols-outlined">
+                            add
+                        </span>
+                    </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="filtros">
+        <div class="filter-section">
+            <h3 *ngIf="songs.length > 0">Canciones</h3>
+            <div class="filtro-grid" *ngIf="songs.length > 0">
+                <div class="item cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto.song === i">
+                    <div class="portada">
+                        <i class="fa-solid fa-music"></i>
+                    </div>
+                    <div class="infoCancion">
+                        <p class="nombreCancion">{{song.title}}</p>
+                        <p class="artista">{{song.artist}}</p>
+                    </div>
+                    <button class="mas" (click)="abrirMenu(i, $event, 'song')"><i class="fa-solid fa-ellipsis"></i></button>
+                    <div 
+                        *ngIf="menuAbierto.song === i" 
+                        class="menu-flotante"
+                        (click)="$event.stopPropagation()">
+                        <button 
+                            class="opcion eliminar" 
+                            (click)="eliminarItem(i, 'cancion')">
+                            <span class="material-symbols-outlined">
+                                block
+                            </span>
+                            <span>Desbloquear</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="filter-section">
+            <h3 *ngIf="genres.length > 0">Géneros</h3>
+            <div class="filtro-grid" *ngIf="genres.length > 0">
+                <div class="item genero" *ngFor="let genre of genres; let i = index" [class.menu-abierto]="menuAbierto.genre === i">
+                    <p>{{genre.name}}</p>
+                    <button class="mas" (click)="abrirMenu(i, $event, 'genre')"><i class="fa-solid fa-ellipsis"></i></button>
+                    <div 
+                        *ngIf="menuAbierto.genre === i" 
+                        class="menu-flotante"
+                        (click)="$event.stopPropagation()">
+                        <button 
+                            class="opcion eliminar" 
+                            (click)="eliminarItem(i, 'genero')">
+                            <span class="material-symbols-outlined">
+                                block
+                            </span>
+                            <span>Desbloquear</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="filter-section">
+            <h3 *ngIf="artists.length > 0">Artistas</h3>
+            <div class="filtro-grid" *ngIf="artists.length > 0">
+                <div class="item artista" *ngFor="let artist of artists; let i = index" [class.menu-abierto]="menuAbierto.artist === i">
+                    <i class="fa-solid fa-music"></i>
+                    <p>{{artist.name}}</p>
+                    <button class="mas" (click)="abrirMenu(i, $event, 'artist')"><i class="fa-solid fa-ellipsis"></i></button>
+                    <div 
+                        *ngIf="menuAbierto.artist === i" 
+                        class="menu-flotante"
+                        (click)="$event.stopPropagation()">
+                        <button 
+                            class="opcion eliminar" 
+                            (click)="eliminarItem(i, 'artista')">
+                            <span class="material-symbols-outlined">
+                                block
+                            </span>
+                            <span>Desbloquear</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="no-filtros" *ngIf="songs.length === 0 && genres.length === 0 && artists.length === 0">
+        <span class="material-symbols-outlined">
+            filter_alt_off
+        </span>
+        <div class="h1">
+            No hay filtros activos
+        </div>
+    </div>
+</div>
+
+<div class="confirmation-modal-overlay" *ngIf="showConfirmModal">
+    <div class="confirmation-modal">
+        <h2>Restablecer filtros</h2>
+        <p>¿Quieres restablecer todos los filtros activos?</p>
+        <div class="modal-actions">
+            <button class="cancel-button" (click)="cancelClearFilters()">Cancelar</button>
+            <button class="confirm-button" (click)="confirmClearFilters()">Eliminar</button>
+        </div>
+    </div>
+</div>
