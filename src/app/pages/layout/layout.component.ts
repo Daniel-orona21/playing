@@ -20,7 +20,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 })
 export class LayoutComponent implements OnInit {
   public pause = false;
-  value = 50;
+  value = 75;
   selectedNavItem: string = 'music';
 
   constructor(private router: Router) {}

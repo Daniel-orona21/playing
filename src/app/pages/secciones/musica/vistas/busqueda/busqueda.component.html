@@ -1,17 +1,15 @@
 <div class="cuerpo">
     <div class="buscador">
+    <!-- vista de selector de categoria -->
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" placeholder="Buscar...">
     </div>
-    <div class="parent">
-        <div class="celda div1"><h3 class="nombre">Hip-Hop/Rap</h3></div>
-        <div class="celda div2"><h3 class="nombre">Dance</h3></div>
-        <div class="celda div3"><h3 class="nombre">Rock</h3></div>
-        <div class="celda div4"><h3 class="nombre">Pop</h3></div>
-        <div class="celda div5"><h3 class="nombre">House</h3></div>
-        <div class="celda div6"><h3 class="nombre">Reggaeton</h3></div>
-        <div class="celda div7"><h3 class="nombre">Regional</h3></div>
-        <div class="celda div8"><h3 class="nombre">Electronic</h3></div>
-        <div class="celda div9"><h3 class="nombre">Jazz</h3></div>
+    <div class="scroll">
+        <div class="parent" *ngIf="!selectedCategory">
+            <div class="celda" *ngFor="let genero of generosMusicales" [ngStyle]="{'background-color': genero.backgroundColor}" (click)="selectCategory(genero.nombre)"><h3 class="nombre">{{genero.nombre}}</h3></div>
+        </div>
+        
+        <!-- vista de canciones por categoria -->
+        <app-canciones-categoria *ngIf="selectedCategory" [categoryName]="selectedCategory" (backToCategories)="clearCategory()"></app-canciones-categoria>
     </div>
 </div>

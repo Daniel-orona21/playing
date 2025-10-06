@@ -1,0 +1,40 @@
+<div class="categoria-container">
+    <div class="header">
+        <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
+        <h2>{{ categoryName }}</h2>
+    </div>
+
+    <div class="songs-grid">
+        <div class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i">
+            <div class="portada">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="infoCancion">
+                <p class="nombreCancion">{{song.title}}</p>
+                <p class="artista">{{song.artist}}</p>
+            </div>
+            <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
+            <div 
+                *ngIf="menuAbierto === i" 
+                class="menu-flotante"
+                (click)="$event.stopPropagation()">
+                <button 
+                    class="opcion eliminar" 
+                    (click)="eliminarCancion(i)">
+                    <span class="material-symbols-outlined">
+                        playlist_play
+                        </span>
+                    <span>Agregar a la fila</span>
+                </button>
+                <button 
+                    class="opcion eliminar" 
+                    (click)="eliminarCancion(i)">
+                    <span class="material-symbols-outlined">
+                        block
+                        </span>
+                    <span>Bloquear</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
