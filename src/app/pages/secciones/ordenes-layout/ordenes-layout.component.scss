@@ -1,0 +1,51 @@
+@use '../../../../colores.scss' as *;
+
+.cuerpo {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    margin-top: -1.5rem;
+
+    .header {
+        height: min-content;
+        width: 100%;
+        align-items: center;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        .selectorContainer {
+            background-color: $contenedor;
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+            border-radius: 99px;
+
+            button {
+                background-color: transparent;
+                flex: 1;
+                border-radius: 99px;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 18px;
+                padding: 10px 40px;
+                transition: all .2s ease;
+
+                &:hover {
+                    background-color: $navSeleccionado;
+                }
+
+                &.active {
+                    background-color: $navSeleccionado;
+                }
+
+                // .seleccionado {
+                //     background-color: $navSeleccionado;
+                // }
+            }
+        }
+    }
+}

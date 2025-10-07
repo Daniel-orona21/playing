@@ -1,0 +1,16 @@
+<div class="cuerpo">
+    <div class="header">
+        <h1>{{ selectedTab | titlecase }}</h1>
+        <div class="selectorContainer">
+            <button class="tab" [class.active]="selectedTab === 'ordenes'" (click)="selectTab('ordenes')">
+                <h3>Ordenes</h3>
+            </button>
+            <button class="tab" [class.active]="selectedTab === 'usuarios'" (click)="selectTab('usuarios')">
+                <h3>Usuarios</h3>
+            </button>
+        </div>
+    </div>
+    <div class="tab" [@routeAnimations]="prepareRoute(outlet)">
+        <router-outlet #outlet="outlet"></router-outlet>
+    </div>
+</div>

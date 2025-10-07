@@ -39,8 +39,8 @@ export class LayoutComponent implements OnInit {
     const url = this.router.url;
     if (url.includes('/layout/music') || url === '/layout') {
       this.selectedNavItem = 'music';
-    } else if (url.includes('/layout/playlist')) {
-      this.selectedNavItem = 'playlist';
+    } else if (url.includes('/layout/ordenes')) {
+      this.selectedNavItem = 'ordenes';
     } else if (url.includes('/layout/games')) {
       this.selectedNavItem = 'games';
     } else if (url.includes('/layout/settings')) {
