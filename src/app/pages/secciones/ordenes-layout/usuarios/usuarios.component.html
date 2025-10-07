@@ -1,1 +1,86 @@
-<p>usuarios works!</p>
+<div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <div class="time-controls">
+          <div class="time-periods">
+            <button *ngFor="let estatus of estatus" 
+                    [class.active]="estatus.active"
+                    (click)="selectEstatus(estatus)">
+              {{estatus.label}}
+            </button>
+          </div>
+        </div>
+        <div class="contenedor-filtros">
+            <div class="eliminacionContenedor" *ngIf="deletionMode">
+              <div class="tooltip-container">
+                <button aria-describedby="cancel-tooltip" class="btnPequeño cancelar" (click)="cancelDeletion()">
+                  <span class="material-symbols-outlined">close</span>  
+                </button>
+                <div role="tooltip" id="cancel-tooltip" class="tooltip">
+                  <strong>Cancelar</strong>
+                </div>
+              </div>
+              <div class="tooltip-container">
+                <button aria-describedby="delete-tooltip" class="btnPequeño" (click)="confirmDeletion()">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+                <div role="tooltip" id="delete-tooltip" class="tooltip">
+                  <strong>Confirmar</strong>
+                </div>
+              </div>
+            </div>
+            <button class="btn-primary" [class.botonEliminarActivo]="deletionMode" (click)="toggleDeletionMode()">
+              <span class="material-symbols-outlined">remove</span>
+              Eliminar
+            </button>
+            <div class="contenedor-buscador">
+                <input type="text" class="buscador" placeholder="Buscar..." [(ngModel)]="searchTerm">
+                <span class="material-symbols-outlined">search</span>
+            </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="alertas">
+            <h3>LLamando a la mesa</h3>
+            <div class="noAlertas">
+                <img src="images/alerta.png" alt="">
+                <h3>Sin alertas</h3>
+            </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th (click)="sortUsers('nombre')">Nombre <span class="material-symbols-outlined" *ngIf="sortBy === 'nombre'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortUsers('mesa')">Mesa <span class="material-symbols-outlined" *ngIf="sortBy === 'mesa'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortUsers('estado')">Estado de orden <span class="material-symbols-outlined" *ngIf="sortBy === 'estado'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of filteredUsers" 
+                  [class.selected-for-deletion]="isUserSelected(user)"
+                  [class.deletion-hover]="deletionMode"
+                  (click)="selectUser(user)">
+                <td>{{ user.nombre }}</td>
+                <td>{{ user.mesa }}</td>
+                <td>
+                  <span>
+                    {{ user.estado }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="filteredUsers.length === 0">
+                <td colspan="3" class="no-results">
+                  <div class="no-results-content">
+                    <span class="material-symbols-outlined">search_off</span>
+                    <p>No se encontraron coincidencias</p>
+                    <small>Intenta ajustar los filtros o términos de búsqueda</small>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -56,12 +56,12 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Orden <span class="material-symbols-outlined">arrow_upward</span></th>
-                <th>Mesa <span class="material-symbols-outlined">arrow_upward</span></th>
-                <th>Usuario <span class="material-symbols-outlined">arrow_upward</span></th>
-                <th>Estado</th>
-                <th>Monto <span class="material-symbols-outlined">arrow_upward</span></th>
-                <th>Tiempo de espera (min) <span class="material-symbols-outlined">arrow_upward</span></th>
+                <th (click)="sortOrders('numeroOrden')">Orden <span class="material-symbols-outlined" *ngIf="sortBy === 'numeroOrden'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortOrders('mesa')">Mesa <span class="material-symbols-outlined" *ngIf="sortBy === 'mesa'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortOrders('usuario')">Usuario <span class="material-symbols-outlined" *ngIf="sortBy === 'usuario'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortOrders('estado')">Estado <span class="material-symbols-outlined" *ngIf="sortBy === 'estado'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortOrders('monto')">Monto <span class="material-symbols-outlined" *ngIf="sortBy === 'monto'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
+                <th (click)="sortOrders('tiempoEspera')">Tiempo de espera (min) <span class="material-symbols-outlined" *ngIf="sortBy === 'tiempoEspera'">{{ sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span></th>
               </tr>
             </thead>
             <tbody>
