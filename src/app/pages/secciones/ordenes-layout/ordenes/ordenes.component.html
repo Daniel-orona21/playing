@@ -41,7 +41,7 @@
               <span class="material-symbols-outlined">remove</span>
               Eliminar
             </button>
-            <button class="btn-primary" (click)="openNewUserModal()">
+            <button class="btn-primary" (click)="openUserSelectionModal()">
               <span class="material-symbols-outlined">add</span>
               Agregar
             </button>
@@ -69,15 +69,20 @@
                   [class.selected-for-deletion]="isOrderSelected(order)"
                   [class.deletion-hover]="deletionMode"
                   (click)="selectOrder(order)">
-                <td>{{ order.id }}</td>
+                <td>{{ order.numeroOrden }}</td>
                 <td>{{ order.mesa }}</td>
                 <td>{{ order.usuario }}</td>
                 <td>
                   <span class="badge" [class.entregada]="order.estado === 'Entregada'">
                     {{ order.estado }}
-                    <span class="material-symbols-outlined" (click)="toggleOrderStatus(order)">
-                      check
-                    </span>
+                    <div class="tooltip-container">
+                      <span aria-describedby="mark-delivered-tooltip" class="material-symbols-outlined" (click)="toggleOrderStatus(order)">
+                        check
+                      </span>
+                      <div role="tooltip" id="mark-delivered-tooltip" class="tooltip" *ngIf="order.estado !== 'Entregada'">
+                        <strong>Marcar entregada</strong>
+                      </div>
+                    </div>
                   </span>
                 </td>
                 <td>${{ order.monto }}</td>
@@ -126,113 +131,51 @@
     </div>
   </div>
   
-  <div class="modal-overlay" *ngIf="isModalVisible">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 *ngIf="modalAction === 'view'">Ver Usuario</h2>
-      <h2 *ngIf="modalAction === 'edit'">Editar Usuario</h2>
-      <h2 *ngIf="modalAction === 'new'">Nuevo Usuario</h2>
-      <h2 *ngIf="modalAction === 'delete'">Eliminar Usuario</h2>
-      <button class="btn-icon" (click)="closeModal()">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-body" *ngIf="selectedUser">
-      <div class="ver-usuario" *ngIf="modalAction === 'view'">
-        <div class="info-grid">
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">badge</span>
+  <div class="modal-overlay" *ngIf="isUserSelectionModalVisible">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 *ngIf="currentStep === 1">Agregar orden</h2>
+        <h2 *ngIf="currentStep === 2">Agregar orden</h2>
+        <button class="cerrarmodal" (click)="closeModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Step 1: Select User -->
+        <div *ngIf="currentStep === 1">
+          <p class="modal-subtitle">Selecciona un usuario</p>
+          <div class="user-selection-list">
+            <div class="user-selection-item header">
+              <span class="user-name">Usuario <span class="material-symbols-outlined">arrow_upward</span></span>
+              <span class="user-mesa">Mesa <span class="material-symbols-outlined">arrow_upward</span></span>
             </div>
-            <div class="info-content">
-              <span class="info-label">ID</span>
-              <span class="info-value">{{ selectedUser.id }}</span>
-            </div>
-          </div>
-          
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">person</span>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Nombre</span>
-              <span class="info-value">{{ selectedUser.nombre }}</span>
+            <div *ngFor="let user of users" class="user-selection-item" (click)="selectUserForOrder(user)">
+              <span class="user-name">{{ user.nombre }}</span>
+              <span class="user-mesa">{{ user.mesa }}</span>
             </div>
           </div>
-          
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">business</span>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Sucursal</span>
-              <span class="info-value">{{ selectedUser.sucursal }}</span>
-            </div>
+        </div>
+  
+        <!-- Step 2: Order Details -->
+        <div *ngIf="currentStep === 2">
+          <p class="modal-subtitle">Completa la orden de: <strong>{{ selectedUser?.nombre }} Mesa {{ selectedUser?.mesa }}</strong></p>
+          <div class="input-group">
+            <input required="" type="text" id="numeroOrden" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.numeroOrden">
+            <label class="user-label" for="numeroOrden">Número de orden</label>
           </div>
-          
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">work</span>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Área de trabajo</span>
-              <span class="info-value">{{ selectedUser.area }}</span>
-            </div>
+          <div class="input-group">
+            <input required="" type="number" id="total" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.total">
+            <label class="user-label" for="total">Total $</label>
           </div>
-          
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">admin_panel_settings</span>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Rol</span>
-              <span class="info-value">{{ selectedUser.rol }}</span>
-            </div>
-          </div>
-          
-          <div class="info-card">
-            <div class="info-icon">
-              <span class="material-symbols-outlined">verified</span>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Estatus</span>
-              <span class="info-value status" [class.active]="selectedUser.estatus === 'Activo'">
-                {{ selectedUser.estatus }}
-              </span>
-            </div>
+          <div class="input-group">
+            <input required="" type="number" id="tiempoEspera" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.tiempoEspera">
+            <label class="user-label" for="tiempoEspera">Tiempo de espera aprox. (min)</label>
           </div>
         </div>
       </div>
-      <div *ngIf="modalAction === 'edit' || modalAction === 'new'">
-        <div class="input-container">
-          <input type="text" id="nombre" class="styled_input_bar" placeholder="" [(ngModel)]="selectedUser.nombre">
-          <label class="input-label" for="nombre">Nombre</label>
-        </div>
-        <div class="input-container">
-          <input type="text" id="correo" class="styled_input_bar" placeholder="" [(ngModel)]="selectedUser.correo">
-          <label class="input-label" for="correo">Correo electrónico</label>
-        </div>
-        <div class="input-container">
-          <input type="text" id="sucursal" class="styled_input_bar" placeholder="" [(ngModel)]="selectedUser.sucursal">
-          <label class="input-label" for="sucursal">Sucursal</label>
-        </div>
-        <div class="input-container">
-          <input type="text" id="area" class="styled_input_bar" placeholder="" [(ngModel)]="selectedUser.area">
-          <label class="input-label" for="area">Área de trabajo</label>
-        </div>
-        <div class="input-container">
-          <input type="text" id="rol" class="styled_input_bar" placeholder="" [(ngModel)]="selectedUser.rol">
-          <label class="input-label" for="rol">Rol</label>
-        </div>
-      </div>
-      <div class="delete-usuario" *ngIf="modalAction === 'delete'">
-        <p>¿Estás seguro de que deseas eliminar al usuario <strong>{{ selectedUser.nombre }}</strong>?</p>
+      <div class="modal-footer">
+        <button class="btn-secondary" *ngIf="currentStep === 2" (click)="goBackToUserSelection()">Volver</button>
+        <button class="btn-primary" *ngIf="currentStep === 2" (click)="createOrder()">Crear</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
-      <button class="btn-primary" *ngIf="modalAction === 'edit' || modalAction === 'new'" (click)="saveUser()">Guardar Cambios</button>
-      <button class="btn-danger" *ngIf="modalAction === 'delete'" (click)="deleteUser()">Eliminar</button>
-    </div>
-  </div>
   </div>
