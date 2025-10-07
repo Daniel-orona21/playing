@@ -1,1 +1,19 @@
-<p>juego works!</p>
+<div class="cuerpo">
+    <div class="header">
+        <h1>Sala de juego</h1>
+        <button (click)="toggleJuego()">
+            <span [class.iniciado]="!juegoIniciado" class="material-symbols-outlined">
+                power_settings_new
+            </span>
+            <p *ngIf="!juegoIniciado">Iniciar</p>
+            <p *ngIf="juegoIniciado">Detener</p>
+        </button>
+    </div>
+    <div class="juego">
+        <div class="leyenda">
+            <i [class.juegoInicado]="juegoIniciado" class="fa-solid fa-gamepad"></i>
+            <h3 *ngIf="!juegoIniciado">No hay un juego activo</h3>
+            <h3 *ngIf="juegoIniciado" >Juego en curso</h3>
+        </div>
+    </div>
+</div>

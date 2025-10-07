@@ -1,0 +1,72 @@
+@use '../../../../colores.scss' as *;
+@use 'sass:color';
+
+.cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: $contenedor;
+            color: white;
+            border: none;
+            border-radius: 99px;
+            padding: 10px 15px;
+            gap: 1rem;
+            font-size: 20px;
+            
+            span {
+                transition: all .3s ease;
+                color: $colorSecundario;
+                
+                &.iniciado {
+                    opacity: .5;
+                  }
+            }
+
+            &:hover {
+                background-color: color.adjust($contenedor, $lightness: +20%) !important;
+            }
+        }
+    }
+
+    .juego {
+        background-color: $contenedor;
+        border-radius: 30px;
+        display: flex;
+        flex: 1;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+
+        .leyenda {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 2rem;
+
+            h3 {
+                font-weight: 200;
+            }
+
+            i {
+                transition: all .3s ease;
+                font-size: 112px;
+                opacity: .5;
+
+                &.juegoInicado {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+}
