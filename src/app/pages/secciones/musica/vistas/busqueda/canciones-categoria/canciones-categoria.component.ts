@@ -15,21 +15,26 @@ gsap.registerPlugin(ScrollTrigger);
 export class CancionesCategoriaComponent implements AfterViewInit {
   @Input() categoryName: string | null = null;
   @Output() backToCategories = new EventEmitter<void>();
+  bloqueado = false;
 
+  
   menuAbierto: number | null = null;
-
+  
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
-
+  
   @HostListener('document:click', ['$event']) onDocumentClick(event: Event) {
     if (this.menuAbierto !== null) {
       const clickedElement = event.target as HTMLElement;
       const menuButton = clickedElement.closest('.mas');
       const menuFlotante = clickedElement.closest('.menu-flotante');
-
+      
       if (!menuButton && !menuFlotante) {
         this.menuAbierto = null;
       }
     }
+  }
+  toggleBloqueo() {
+    this.bloqueado = !this.bloqueado;
   }
 
   ngAfterViewInit(): void {
