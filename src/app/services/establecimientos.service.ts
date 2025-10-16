@@ -10,6 +10,7 @@ export interface Establecimiento {
   nombre: string;
   url_menu?: string | null;
   ubicacion?: string | null;
+  nombre_admin?: string | null;
 }
 
 export interface Mesa {

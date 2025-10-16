@@ -1,15 +1,17 @@
 <div class="ajustes-container">
   <h1>Preferencias</h1>
 
-  <div class="user-profile">
-    <div class="avatar"><h1>W</h1></div>
-    <div class="username"><h1>Full wings!</h1></div>
-    <span class="material-symbols-outlined">
-        edit_square
-    </span>
+  <div class="user-profile" *ngIf="establecimiento">
+    <div class="avatar">
+      <h1>{{ getInitials() }}</h1>
+    </div>
+    <div class="username">
+      <h1>{{ getDisplayName() }}</h1>
+    </div>
+    
   </div>
 
-  <h2>Vista</h2>
+  <!-- <h2>Vista</h2>
   <div class="contenedor">
     <div class="theme-setting">
         <span>Tema oscuro</span>
@@ -19,10 +21,45 @@
         </label>
       </div>
     
-  </div>
+  </div> -->
   
-  <h2>Cuenta</h2>
+  <div class="header">
+    <h1>Cuenta</h1>
+    <div class="botonera">
+      <div class="eliminacionContenedor" *ngIf="isEditingEst">
+              <div class="tooltip-container">
+                <button aria-describedby="cancel-tooltip" class="btnPequeño cancelar" (click)="cancelarEdicion()">
+                  <span class="material-symbols-outlined">close</span>  
+                </button>
+                <div role="tooltip" id="cancel-tooltip" class="tooltip">
+                  <strong>Cancelar</strong>
+                </div>
+              </div>
+              <div class="tooltip-container">
+                <button [disabled]="!isFormValid()" aria-describedby="delete-tooltip" class="btnPequeño" (click)="guardarEstablecimiento()">
+                  <span class="material-symbols-outlined">check</span>
+                </button>
+                <div role="tooltip" id="delete-tooltip" class="tooltip">
+                  <strong>Confirmar</strong>
+                </div>
+              </div>
+            </div>
+              <button class="btn-primary" [class.botonEliminarActivo]="isEditingEst" (click)="editarEstablecimiento()">
+              <span class="material-symbols-outlined">edit_square</span>
+              Editar
+            </button>
+    </div>
+  </div>
   <div class="contenedor">
+    <!-- Mensaje de completar cuenta cuando no hay establecimiento -->
+    <div *ngIf="!establecimiento" class="completar-cuenta">
+      <div class="completar-cuenta-header">
+        <span class="material-symbols-outlined">account_circle</span>
+        <h3>¡Completa tu cuenta!</h3>
+      </div>
+      <p>Para comenzar a usar el sistema, necesitas configurar tu establecimiento y tus datos personales.</p>
+    </div>
+
     <ng-container *ngIf="establecimiento && !isEditingEst; else crearEstablecimiento">
       <div class="theme-setting">
         <span>Establecimiento</span>
@@ -36,24 +73,39 @@
         <span>URL menú</span>
         <span>{{ establecimiento.url_menu || '-' }}</span>
       </div>
-      <div class="action-row" (click)="editarEstablecimiento()">
-        <span>Editar establecimiento</span>
-        <span class="material-symbols-outlined">chevron_right</span>
-      </div>
     </ng-container>
     <ng-template #crearEstablecimiento>
       <div class="form-establecimiento">
-        <input type="text" placeholder="Nombre" [(ngModel)]="form.nombre">
-        <input type="text" placeholder="Ubicación" [(ngModel)]="form.ubicacion">
-        <input type="text" placeholder="URL del menú" [(ngModel)]="form.url_menu">
-        <div class="form-actions">
-          <button (click)="guardarEstablecimiento()">Guardar</button>
-          <button class="secondary" *ngIf="establecimiento" (click)="cancelarEdicion()">Cancelar</button>
-        </div>
+        <div class="input-group">
+            <input required="" type="text" id="nombreEstablecimiento" class="input" autocomplete="off" placeholder="" [(ngModel)]="form.nombre">
+            <label class="user-label" for="nombreEstablecimiento">Nombre del establecimiento</label>
+          </div>
+          <div class="input-group">
+            <input required="" type="text" id="ubicacionEstablecimiento" class="input" autocomplete="off" placeholder="" [(ngModel)]="form.ubicacion">
+            <label class="user-label" for="ubicacionEstablecimiento">Ubicación</label>
+          </div>
+          <div class="input-group">
+            <input required="" type="text" id="urlMenuEstablecimiento" class="input" autocomplete="off" placeholder="" [(ngModel)]="form.url_menu">
+            <label class="user-label" for="urlMenuEstablecimiento">URL del menú</label>
+          </div>
       </div>
     </ng-template>
 
-    <ng-container *ngIf="establecimiento">
+    
+
+    <div class="qr-modal" *ngIf="showQr" (click)="cerrarQr()">
+      <div class="qr-card" (click)="$event.stopPropagation()">
+        <img *ngIf="qrUrl" [src]="qrUrl" alt="QR mesa" />
+        <div class="form-actions">
+          <a *ngIf="qrUrl" [href]="qrUrl" download="qr-mesa.png" class="pill">Descargar PNG</a>
+          <button class="secondary" (click)="cerrarQr()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+   
+  </div>
+
+  <ng-container *ngIf="establecimiento">
       <div class="theme-setting">
         <span>Mesas</span>
         <div class="actions-inline">
@@ -75,18 +127,8 @@
       </ng-template>
     </ng-container>
 
-    <div class="qr-modal" *ngIf="showQr" (click)="cerrarQr()">
-      <div class="qr-card" (click)="$event.stopPropagation()">
-        <img *ngIf="qrUrl" [src]="qrUrl" alt="QR mesa" />
-        <div class="form-actions">
-          <a *ngIf="qrUrl" [href]="qrUrl" download="qr-mesa.png" class="pill">Descargar PNG</a>
-          <button class="secondary" (click)="cerrarQr()">Cerrar</button>
-        </div>
-      </div>
-    </div>
-    <div class="action-row" (click)="onLogout()">
+     <div class="action-row" (click)="onLogout()">
       <span>Cerrar sesión</span>
       <span class="material-symbols-outlined">chevron_right</span>
     </div>
-  </div>
 </div>

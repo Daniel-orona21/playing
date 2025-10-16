@@ -47,6 +47,10 @@ export class AjustesComponent implements OnInit {
   }
 
   guardarEstablecimiento(): void {
+    if (!this.isFormValid()) {
+      return;
+    }
+    
     this.estService.upsertMiEstablecimiento(this.form).subscribe({
       next: (res) => {
         this.establecimiento = res.establecimiento;
@@ -57,14 +61,14 @@ export class AjustesComponent implements OnInit {
   }
 
   editarEstablecimiento(): void {
-    if (this.establecimiento) {
+  if (!this.isEditingEst && this.establecimiento) {
       this.form = {
         nombre: this.establecimiento.nombre || '',
         url_menu: this.establecimiento.url_menu || '',
         ubicacion: this.establecimiento.ubicacion || ''
       };
     }
-    this.isEditingEst = true;
+    this.isEditingEst = !this.isEditingEst;
   }
 
   cancelarEdicion(): void {
@@ -150,4 +154,34 @@ export class AjustesComponent implements OnInit {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
+
+  getInitials(): string {
+    if (this.establecimiento?.nombre) {
+      return this.establecimiento.nombre.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    }
+    const user = this.authService.getCurrentUser();
+    if (user?.nombre) {
+      return user.nombre.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    }
+    return 'A';
+  }
+
+  getDisplayName(): string {
+    if (this.establecimiento?.nombre) {
+      return this.establecimiento.nombre;
+    }
+    const user = this.authService.getCurrentUser();
+    if (user?.nombre) {
+      return user.nombre;
+    }
+    return 'Administrador';
+  }
+
+  isFormValid(): boolean {
+  return !!(
+    this.form.nombre?.trim().length &&
+    this.form.ubicacion?.trim().length &&
+    this.form.url_menu?.trim().length
+  );
+}
 }
