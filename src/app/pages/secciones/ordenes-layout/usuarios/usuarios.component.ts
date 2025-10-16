@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
+import { AuthService } from '../../../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 
 interface User {
@@ -16,7 +19,7 @@ interface User {
   templateUrl: './usuarios.component.html',
   styleUrl: './usuarios.component.scss'
 })
-export class UsuariosComponent {
+export class UsuariosComponent implements OnInit, OnDestroy {
   isModalVisible = false;
   selectedUser: User | null = null;
   modalAction = '';
@@ -32,18 +35,8 @@ export class UsuariosComponent {
   deletionMode: boolean = false;
   selectedUsers: User[] = [];
 
-  users: User[] = [
-    { id: 1, nombre: 'Mylthon Sánchez', mesa: 1, estado: 'En preparación' },
-    { id: 2, nombre: 'Alejandro Monreal', mesa: 2, estado: 'Entregada' },
-    { id: 3, nombre: 'Alan Gurrola', mesa: 3, estado: 'Entregada' },
-    { id: 4, nombre: 'Daniel Orona', mesa: 4, estado: 'Entregada' },
-    { id: 5, nombre: 'Marco Valdéz', mesa: 5, estado: 'Entregada' },
-    { id: 6, nombre: 'Zabdiel Morales', mesa: 6, estado: 'Entregada' },
-    { id: 7, nombre: 'Kevin', mesa: 7, estado: 'Entregada' },
-    { id: 8, nombre: 'Blanca Romero', mesa: 8, estado: 'Inactiva' },
-    { id: 9, nombre: 'Rafita', mesa: 9, estado: 'Inactiva' },
-    { id: 10, nombre: 'Bravito', mesa: 10, estado: 'Inactiva' },
-  ];
+  users: User[] = [];
+  private establecimientoId: number | null = null;
 
   
   searchTerm: string = '';
@@ -88,6 +81,53 @@ export class UsuariosComponent {
     }
 
     return filtered;
+  }
+
+  private socket: any;
+
+  constructor(private http: HttpClient, private auth: AuthService) {}
+
+  ngOnInit(): void {
+    this.loadClientes();
+    // Socket: unirse al room del establecimiento
+    this.http.get<{ success: boolean; establecimiento: any }>(`${environment.apiUrl}/establecimientos/mio`, { headers: this.buildHeaders() })
+      .subscribe(({ establecimiento }) => {
+        if (!establecimiento) return;
+        this.establecimientoId = establecimiento.id_establecimiento;
+        import('socket.io-client').then(({ io }) => {
+          this.socket = io((environment.apiUrl as any).replace('/api',''), { transports: ['websocket'] });
+          this.socket.emit('join_establecimiento', this.establecimientoId!);
+          this.socket.on('establecimiento:clientes_actualizados', () => this.loadClientes());
+        });
+      });
+  }
+
+  ngOnDestroy(): void {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+  }
+
+  private buildHeaders(): HttpHeaders {
+    const token = this.auth.getToken();
+    return new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+  }
+
+  loadClientes(): void {
+    // Obtener establecimiento del admin
+    this.http.get<{ success: boolean; establecimiento: any }>(`${environment.apiUrl}/establecimientos/mio`, { headers: this.buildHeaders() })
+      .subscribe(({ establecimiento }) => {
+        if (!establecimiento) {
+          this.users = [];
+          return;
+        }
+        this.establecimientoId = establecimiento.id_establecimiento;
+        this.http.get<{ success: boolean; clientes: any[] }>(`${environment.apiUrl}/establecimientos/${establecimiento.id_establecimiento}/clientes`, { headers: this.buildHeaders() })
+          .subscribe(({ clientes }) => {
+            this.users = (clientes || []).map(c => ({ id: c.id, nombre: c.nombre, mesa: c.mesa, estado: c.estado || 'Inactiva' }));
+          });
+      });
   }
 
   // Removed order-related methods
@@ -165,8 +205,25 @@ export class UsuariosComponent {
   }
 
   confirmDeletion(): void {
-    this.users = this.users.filter(user => !this.selectedUsers.some(selected => selected.id === user.id));
-    this.deletionMode = false;
-    this.selectedUsers = [];
+    if (!this.establecimientoId || this.selectedUsers.length === 0) {
+      this.deletionMode = false;
+      this.selectedUsers = [];
+      return;
+    }
+    const ids = this.selectedUsers.map(u => u.id);
+    this.http.post<{ success: boolean; affected: number }>(`${environment.apiUrl}/establecimientos/${this.establecimientoId}/kick`, { user_ids: ids }, { headers: this.buildHeaders() })
+      .subscribe({
+        next: () => {
+          this.deletionMode = false;
+          this.selectedUsers = [];
+          // la lista se refresca por socket; como fallback, recargar
+          this.loadClientes();
+        },
+        error: () => {
+          this.deletionMode = false;
+          this.selectedUsers = [];
+          this.loadClientes();
+        }
+      });
   }
 }
