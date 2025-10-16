@@ -10,12 +10,14 @@ import { BusquedaComponent } from './pages/secciones/musica/vistas/busqueda/busq
 import { FiltroComponent } from './pages/secciones/musica/vistas/filtro/filtro.component';
 import { OrdenesLayoutComponent } from './pages/secciones/ordenes-layout/ordenes-layout.component';
 import { UsuariosComponent } from './pages/secciones/ordenes-layout/usuarios/usuarios.component';
+import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: LoginComponent, pathMatch: 'full' },
   { 
     path: 'layout', 
     component: LayoutComponent,
+    canActivate: [AuthGuard],
     children: [
       { path: '', redirectTo: 'music', pathMatch: 'full' },
       { 

@@ -52,13 +52,18 @@
             cursor: pointer;
             transition: all .3s ease;
 
-            &:hover{
+            &:hover:not(:disabled){
                 background-color: color.adjust($btnPrincipal, $lightness: 10%);
             }
 
-            &:active {
+            &:active:not(:disabled) {
                 background-color: black;
                 transition: none;
+            }
+
+            &:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
             }
             
             i, p {
@@ -73,6 +78,22 @@
                 font-weight: 100;
                 font-size: 18px;
             }
+        }
+
+        .error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     }
 

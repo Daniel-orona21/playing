@@ -3,10 +3,14 @@
         <div class="contenedor">
             <h1>PLAYING</h1>
             <h2>Inicia sesión</h2>
-            <button (click)="login()" class="loginBtn">
-                <i class="fa-brands fa-google"></i>
-                <p>Continúa con Google</p>
+            <button (click)="loginWithGoogle()" class="loginBtn" [disabled]="isLoading">
+                <i class="fa-brands fa-google" *ngIf="!isLoading"></i>
+                <i class="fa fa-spinner fa-spin" *ngIf="isLoading"></i>
+                <p>{{ isLoading ? 'Iniciando sesión...' : 'Continúa con Google' }}</p>
             </button>
+            <div *ngIf="errorMessage" class="error-message">
+                {{ errorMessage }}
+            </div>
         </div>
     </div>
     <div class="side">
