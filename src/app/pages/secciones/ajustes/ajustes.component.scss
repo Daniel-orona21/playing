@@ -187,4 +187,75 @@
       }
     }
   }
+
+  .lista-mesas {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0 20px 0;
+
+    .mesa-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #151515;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 10px 14px;
+
+      .mesa-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .estado {
+        color: #9aa0a6;
+        &.ocupada { color: #ff8c66; }
+      }
+    }
+  }
+
+  .empty { color: #9aa0a6; padding: 10px 0 20px 0; }
+
+  .pill {
+    background: #1db954;
+    color: #000;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  .pill.secondary {
+    background: #2a2a2a;
+    color: #fff;
+  }
+
+  .actions-inline {
+    display: flex;
+    gap: 10px;
+  }
+
+  .qr-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .qr-card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    img { width: 280px; height: 280px; object-fit: contain; }
+  }
 }
