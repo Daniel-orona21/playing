@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { EstablecimientosService, Establecimiento, Mesa } from '../../../services/establecimientos.service';
+import { io } from 'socket.io-client';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -20,6 +21,7 @@ export class AjustesComponent implements OnInit {
   mesas: Mesa[] = [];
   showQr = false;
   qrUrl: SafeUrl | null = null;
+  private socket: any;
 
   constructor(private authService: AuthService, private router: Router, private estService: EstablecimientosService, private sanitizer: DomSanitizer) {}
 
@@ -34,6 +36,11 @@ export class AjustesComponent implements OnInit {
             ubicacion: this.establecimiento.ubicacion || ''
           };
           this.cargarMesas();
+          // Socket para actualizar mesas en vivo
+          const base = (environment.apiUrl as any).replace('/api','');
+          this.socket = io(base, { transports: ['websocket'] });
+          this.socket.emit('join_establecimiento', this.establecimiento.id_establecimiento);
+          this.socket.on('establecimiento:mesas_actualizadas', () => this.cargarMesas());
         }
       }
     });
@@ -100,6 +107,14 @@ export class AjustesComponent implements OnInit {
     this.estService.deleteLastMesa(this.establecimiento.id_establecimiento).subscribe({
       next: (res) => {
         this.mesas = this.mesas.filter(m => m.id_mesa !== res.deleted.id_mesa);
+      },
+      error: (err) => {
+        const code = err?.error?.error;
+        if (code === 'mesa_ocupada') {
+          alert('No se puede eliminar: hay un usuario asignado a esta mesa.');
+        } else {
+          alert('No se pudo eliminar la mesa.');
+        }
       }
     });
   }
