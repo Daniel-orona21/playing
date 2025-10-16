@@ -23,6 +23,35 @@
   
   <h2>Cuenta</h2>
   <div class="contenedor">
+    <ng-container *ngIf="establecimiento && !isEditingEst; else crearEstablecimiento">
+      <div class="theme-setting">
+        <span>Establecimiento</span>
+        <span>{{ establecimiento.nombre }}</span>
+      </div>
+      <div class="theme-setting">
+        <span>Ubicación</span>
+        <span>{{ establecimiento.ubicacion || '-' }}</span>
+      </div>
+      <div class="theme-setting">
+        <span>URL menú</span>
+        <span>{{ establecimiento.url_menu || '-' }}</span>
+      </div>
+      <div class="action-row" (click)="editarEstablecimiento()">
+        <span>Editar establecimiento</span>
+        <span class="material-symbols-outlined">chevron_right</span>
+      </div>
+    </ng-container>
+    <ng-template #crearEstablecimiento>
+      <div class="form-establecimiento">
+        <input type="text" placeholder="Nombre" [(ngModel)]="form.nombre">
+        <input type="text" placeholder="Ubicación" [(ngModel)]="form.ubicacion">
+        <input type="text" placeholder="URL del menú" [(ngModel)]="form.url_menu">
+        <div class="form-actions">
+          <button (click)="guardarEstablecimiento()">Guardar</button>
+          <button class="secondary" *ngIf="establecimiento" (click)="cancelarEdicion()">Cancelar</button>
+        </div>
+      </div>
+    </ng-template>
     <div class="action-row" (click)="onLogout()">
       <span>Cerrar sesión</span>
       <span class="material-symbols-outlined">chevron_right</span>

@@ -151,4 +151,40 @@
       font-size: 20px;
     }
   }
+
+  .form-establecimiento {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 0;
+
+    input {
+      background: #151515;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      outline: none;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+
+      button {
+        background: #1db954;
+        color: #000;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #2a2a2a;
+        color: #fff;
+      }
+    }
+  }
 }
