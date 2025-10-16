@@ -138,6 +138,16 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.getToken();
+    if (token) {
+      this.http.post(`${this.API_URL}/logout`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     this.tokenSubject.next(null);

@@ -127,4 +127,28 @@
     border-radius: 30px;
     padding: 0 2rem;
   }
+
+  .action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 0;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    span:first-child {
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .material-symbols-outlined {
+      color: #fff;
+      opacity: .5;
+      font-size: 20px;
+    }
+  }
 }
