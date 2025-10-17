@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,15 +13,28 @@ import { environment } from '../../../../environments/environment';
   selector: 'app-ajustes',
   imports: [CommonModule, FormsModule],
   templateUrl: './ajustes.component.html',
-  styleUrl: './ajustes.component.scss'
+  styleUrl: './ajustes.component.scss',
+  animations: [
+    trigger('scaleInOut', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-50%) scale(0.9)' }),
+        animate('160ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'translateY(-50%) scale(1)' }))
+      ]),
+      transition(':leave', [
+        animate('120ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 0, transform: 'translateY(-50%) scale(0.9)' }))
+      ])
+    ])
+  ]
 })
 export class AjustesComponent implements OnInit {
   establecimiento: Establecimiento | null = null;
   form = { nombre: '', url_menu: '', ubicacion: '' };
   isEditingEst = false;
   mesas: Mesa[] = [];
-  showQr = false;
+  showQr = false; // no longer used for modal; kept for compatibility
   qrUrl: SafeUrl | null = null;
+  openMesaId: string | number | null = null;
+  tooltipSide: 'left' | 'right' = 'right';
   private socket: any;
 
   constructor(private authService: AuthService, private router: Router, private estService: EstablecimientosService, private sanitizer: DomSanitizer) {}
@@ -127,11 +141,11 @@ export class AjustesComponent implements OnInit {
     if (!url) return;
     const withBuster = url.startsWith('data:') ? url : `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
     this.qrUrl = this.sanitizer.bypassSecurityTrustUrl(withBuster);
-    this.showQr = true;
+    // For tooltip flow we do not set modal flag
   }
 
   cerrarQr(): void {
-    this.showQr = false;
+    this.openMesaId = null;
     this.qrUrl = null;
   }
 
@@ -149,6 +163,45 @@ export class AjustesComponent implements OnInit {
     }
     this.verQr(candidate);
   }
+
+  toggleQrTooltip(event: Event, mesa: Mesa, anchorEl?: HTMLElement): void {
+    event.stopPropagation();
+    if (this.openMesaId === mesa.id_mesa) {
+      this.cerrarQr();
+      return;
+    }
+    this.openMesaId = mesa.id_mesa as any;
+    // Decide side: prefer right, fallback to left if not enough space
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      const viewportW = window.innerWidth;
+      const estimatedWidth = 240; // tooltip + arrow
+      const spaceRight = viewportW - rect.right;
+      const spaceLeft = rect.left;
+      this.tooltipSide = spaceRight >= estimatedWidth || spaceRight > spaceLeft ? 'right' : 'left';
+    } else {
+      this.tooltipSide = 'right';
+    }
+    this.verQrMesa(mesa);
+  }
+
+  // Cerrar al hacer click fuera
+  ngAfterViewInit(): void {
+    document.addEventListener('click', this.handleOutsideClick);
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('click', this.handleOutsideClick);
+    if (this.socket) {
+      try { this.socket.disconnect?.(); } catch {}
+    }
+  }
+
+  private handleOutsideClick = () => {
+    if (this.openMesaId !== null) {
+      this.cerrarQr();
+    }
+  };
 
   onLogout(): void {
     this.authService.logout();
