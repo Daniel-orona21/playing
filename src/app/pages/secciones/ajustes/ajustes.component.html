@@ -47,10 +47,13 @@
                 </div>
               </div>
             </div>
-              <button class="btn-primary" [class.botonEliminarActivo]="isEditingEst" (click)="editarEstablecimiento()">
+              <button *ngIf="establecimiento" class="btn-primary" [class.botonEliminarActivo]="isEditingEst" (click)="editarEstablecimiento()">
               <span class="material-symbols-outlined">edit_square</span>
               Editar
             </button>
+            <button *ngIf="!establecimiento" [disabled]="!isFormValid()" aria-describedby="delete-tooltip" class="btn-inicial" (click)="guardarEstablecimiento()">
+                  Confirmar
+                </button>
     </div>
   </div>
   <div class="contenedor">
@@ -60,7 +63,7 @@
         <span class="material-symbols-outlined">account_circle</span>
         <h3>¡Completa tu cuenta!</h3>
       </div>
-      <p>Para comenzar a usar el sistema, necesitas configurar tu establecimiento y tus datos personales.</p>
+      <p>Para comenzar a usar el sistema, necesitas configurar tu establecimiento.</p>
     </div>
 
     <ng-container *ngIf="establecimiento && !isEditingEst; else crearEstablecimiento">
@@ -106,8 +109,11 @@
          <div class="header">
          <h1>Mesas</h1>
           <div class="actions-inline">
-            <button class="btn-primary secondary eliminar" [disabled]="!mesas.length" (click)="eliminarUltimaMesa()">Eliminar última</button>
-            <button class="btn-primary" (click)="crearMesaAuto()">Crear mesa</button>
+            <button class="btn-primary secondary eliminar" [disabled]="!mesas.length" (click)="eliminarUltimaMesa()">
+              <span class="material-symbols-outlined">remove</span>Eliminar última</button>
+            <button class="btn-primary" (click)="crearMesaAuto()">
+              <span class="material-symbols-outlined">add</span>
+              Crear mesa</button>
           </div>
        </div>
       <div class="lista-mesas" *ngIf="mesas.length; else sinMesas">
@@ -121,7 +127,7 @@
             <div class="qr-tooltip" *ngIf="openMesaId === mesa.id_mesa" @scaleInOut [class.right]="tooltipSide==='right'" [class.left]="tooltipSide==='left'" (click)="$event.stopPropagation()">
               <img *ngIf="qrUrl" [src]="qrUrl" alt="QR mesa" />
               <div class="form-actions">
-                <a *ngIf="qrUrl" [href]="qrUrl" download="qr-mesa.png" class="pill">Descargar PNG</a>
+                <a *ngIf="qrUrl" [href]="qrUrl" download="qr-mesa.png" class="pill">Descargar</a>
               </div>
             </div>
           </div>

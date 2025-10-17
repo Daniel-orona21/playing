@@ -210,6 +210,7 @@
   }
 
   .completar-cuenta {
+    margin-top: 2rem;
     background: linear-gradient(135deg, #1db954, #1ed760);
     border-radius: 16px;
     padding: 24px;
@@ -396,7 +397,8 @@
   .empty { 
     color: #9aa0a6;
      padding: 20px; 
-     border: 1px solid white;
+    background-color: $contenedor;
+    border-radius: 99px;
      display: flex;
      align-items: center;
      justify-content: center;
@@ -494,6 +496,28 @@ color: white;
           opacity: 0;
           pointer-events: none;
         }
+}
+
+.btn-inicial{
+  background-color: $contenedor;
+  border: none;
+  border-radius: 99px;
+  color: $colorSecundario;
+  padding: 6px 18px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: 300;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: color.adjust($contenedor, $lightness: +20%) !important;
+    }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: .5;
+    color: white;
+  }
 }
    .eliminacionContenedor {
       display: flex;
