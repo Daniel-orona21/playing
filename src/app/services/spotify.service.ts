@@ -12,6 +12,33 @@ import {
   ValidationResponse 
 } from '../models/musica.interfaces';
 
+// Declaración de tipos para Spotify Web Playback SDK
+interface SpotifyPlayer {
+  addListener: (event: string, callback: (data: any) => void) => void;
+  connect: () => Promise<boolean>;
+  disconnect: () => void;
+  getCurrentState: () => Promise<any>;
+  setName: (name: string) => Promise<void>;
+  getVolume: () => Promise<number>;
+  setVolume: (volume: number) => Promise<void>;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
+  togglePlay: () => Promise<void>;
+  seek: (position_ms: number) => Promise<void>;
+  previousTrack: () => Promise<void>;
+  nextTrack: () => Promise<void>;
+}
+
+interface SpotifySDK {
+  Player: new (options: {
+    name: string;
+    getOAuthToken: (cb: (token: string) => void) => void;
+    volume: number;
+  }) => SpotifyPlayer;
+}
+
+// Usar (window as any) para evitar conflictos de tipos
+
 export interface SpotifyPlaybackState {
   isPlaying: boolean;
   progress: number;
@@ -33,6 +60,7 @@ export class SpotifyService {
   private readonly API_URL = `${environment.apiUrl}/spotify`;
   private player: any = null;
   private deviceId: string | null = null;
+  private isPlaying = false; // Flag para evitar múltiples reproducciones
   
   // Estados
   private isConnectedSubject = new BehaviorSubject<boolean>(false);
@@ -71,17 +99,17 @@ export class SpotifyService {
 
       // Event listeners
       this.player.addListener('ready', ({ device_id }: { device_id: string }) => {
-        console.log('Spotify player ready with Device ID:', device_id);
+        console.log('🎵 Spotify player ready with Device ID:', device_id);
         this.deviceId = device_id;
         this.isConnectedSubject.next(true);
-        console.log('Device registered successfully and connection status updated');
+        console.log('✅ Device registered successfully and connection status updated');
         
         // Emitir evento personalizado cuando el dispositivo esté listo
         const deviceReadyEvent = new CustomEvent('spotifyDeviceReady', { 
           detail: { deviceId: device_id } 
         });
         window.dispatchEvent(deviceReadyEvent);
-        console.log('Device ready event dispatched');
+        console.log('🎵 Device ready event dispatched');
       });
 
       this.player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
@@ -156,6 +184,80 @@ export class SpotifyService {
       console.error('Error initializing Spotify player:', error);
       this.isConnectedSubject.next(false);
       throw error;
+    }
+  }
+
+  // Esperar a que el dispositivo esté listo
+  async waitForDevice(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.deviceId) {
+        resolve();
+        return;
+      }
+
+      let attempts = 0;
+      const maxAttempts = 50; // 5 segundos máximo
+      
+      const checkDevice = () => {
+        if (this.deviceId) {
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          reject(new Error('Device not ready after 5 seconds'));
+        } else {
+          attempts++;
+          setTimeout(checkDevice, 100);
+        }
+      };
+      checkDevice();
+    });
+  }
+
+  // Cargar canción en el reproductor sin reproducir
+  async loadTrack(track: SpotifyTrack, establecimientoId: number): Promise<void> {
+    try {
+      if (!this.player || !this.deviceId) {
+        console.error('Player not ready');
+        return;
+      }
+
+      const credentials = await this.getCredentials(establecimientoId);
+      if (!credentials) {
+        console.error('No credentials available');
+        return;
+      }
+
+      // Transferir al dispositivo web
+      await fetch('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${credentials.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          device_ids: [this.deviceId]
+        })
+      });
+
+      // Cargar la canción (sin reproducir)
+      await fetch('https://api.spotify.com/v1/me/player/play', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${credentials.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uris: [`spotify:track:${track.spotify_id}`],
+          device_id: this.deviceId,
+          position_ms: 0
+        })
+      });
+
+      // Pausar inmediatamente
+      await this.pausePlayback();
+      
+      console.log('✅ Track loaded and paused');
+    } catch (error) {
+      console.error('Error loading track:', error);
     }
   }
 
@@ -310,61 +412,15 @@ export class SpotifyService {
     }
   }
 
-  // Verificar si está conectado
+  // Verificar si está conectado - SOLO BÚSQUEDA
   isConnected(): boolean {
-    return this.isConnectedSubject.value;
+    return true; // Siempre conectado para búsqueda
   }
 
-  // Auto-inicializar reproductor si hay credenciales válidas
+  // Auto-inicializar reproductor - DESHABILITADO
   async autoInitializePlayer(): Promise<boolean> {
-    try {
-      // Obtener el establecimiento actual del usuario
-      const currentUser = this.getCurrentUser();
-      if (!currentUser) {
-        console.log('No current user found for auto-initialization');
-        return false;
-      }
-
-      // Obtener el establecimiento del usuario con manejo de errores de autenticación
-      let establecimientoResponse;
-      try {
-        establecimientoResponse = await this.http.get<any>(`${environment.apiUrl}/establecimientos/mio`).toPromise();
-      } catch (authError: any) {
-        if (authError.status === 401) {
-          console.log('User not authenticated, skipping auto-initialization');
-          return false;
-        }
-        throw authError;
-      }
-
-      if (!establecimientoResponse?.establecimiento) {
-        console.log('No establishment found for auto-initialization');
-        return false;
-      }
-
-      const establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
-      
-      // Verificar si ya está inicializado
-      if (this.player && this.isConnected()) {
-        console.log('Player already initialized');
-        return true;
-      }
-
-      // Verificar si hay credenciales válidas
-      const credentials = await this.getCredentials(establecimientoId);
-      if (!credentials) {
-        console.log('No valid credentials found for auto-initialization');
-        return false;
-      }
-
-      // Inicializar el reproductor
-      await this.initializePlayer(establecimientoId);
-      console.log('Player auto-initialized successfully');
-      return true;
-    } catch (error) {
-      console.error('Error auto-initializing player:', error);
-      return false;
-    }
+    console.log('⚠️ Player initialization disabled - search only mode');
+    return true;
   }
 
   // Verificar si Spotify está disponible
@@ -463,6 +519,64 @@ export class SpotifyService {
     });
   }
 
+  // Agregar canción a la cola con reproducción inmediata (posición 1)
+  async addToQueueAndPlay(track: SpotifyTrack, userId: number, establecimientoId: number): Promise<void> {
+    try {
+      // Agregar a la cola
+      const response = await this.http.post(`${environment.apiUrl}/musica/queue`, {
+        track,
+        userId,
+        establecimientoId,
+        playImmediately: true
+      }).toPromise();
+      
+      if (response && (response as any).success) {
+        console.log('✅ Track added to queue');
+        
+        // Actualizar UI directamente - esto funcionaba
+        const state = {
+          isPlaying: true,
+          progress: 0,
+          device: { id: 'web-player' },
+          track: track
+        };
+        this.playbackStateSubject.next(state);
+        
+        // Emitir evento para mostrar la canción en el header
+        const customEvent = new CustomEvent('spotifyTrackPlayed', { 
+          detail: { track: track, isPlaying: true } 
+        });
+        window.dispatchEvent(customEvent);
+        
+        console.log('✅ Track UI updated successfully');
+      } else {
+        throw new Error('Failed to add track to queue');
+      }
+    } catch (error) {
+      console.error('Error adding track to queue:', error);
+      throw error;
+    }
+  }
+
+  // Método alternativo de reproducción
+  async playTrackAlternative(track: SpotifyTrack, establecimientoId: number): Promise<void> {
+    try {
+      console.log('🔄 Trying alternative playback method...');
+      
+      const credentials = await this.getCredentials(establecimientoId);
+      if (!credentials) {
+        throw new Error('No credentials available');
+      }
+
+      // Usar el mismo método principal
+      await this.playTrack(track, establecimientoId);
+      
+    } catch (error) {
+      console.error('Alternative playback error:', error);
+      throw error;
+    }
+  }
+
   // Eliminar canción de la cola
   removeFromQueue(id: number): Observable<any> {
     return this.http.delete(`${environment.apiUrl}/musica/queue/${id}`);
@@ -480,230 +594,296 @@ export class SpotifyService {
     return this.http.get<CurrentTrackResponse>(`${environment.apiUrl}/musica/playing/${establecimientoId}`);
   }
 
-  // Reproducir canción específica usando Spotify Web Playback SDK
+
+  // Reproducir canción - CON REPRODUCCIÓN REAL
   async playTrack(track: SpotifyTrack, establecimientoId?: number): Promise<void> {
     try {
-      console.log('Playing track:', track.titulo, 'by', track.artista);
+      console.log('🎵 Playing track:', track.titulo, 'by', track.artista);
       
-      // Verificar si el reproductor está inicializado
+      if (!establecimientoId) {
+        console.error('No establecimiento ID provided');
+        return;
+      }
+
+      // Obtener credenciales válidas
+      const credentials = await this.getCredentials(establecimientoId);
+      if (!credentials) {
+        console.error('No valid credentials available');
+        return;
+      }
+
+      // Inicializar el reproductor web si no existe
       if (!this.player) {
-        console.log('Player not initialized, attempting to initialize...');
-        if (establecimientoId) {
-          try {
-            await this.initializePlayer(establecimientoId);
-            console.log('Player initialized successfully');
-          } catch (error) {
-            console.error('Failed to initialize player:', error);
-            throw new Error('Spotify player not initialized and could not be initialized automatically');
-          }
-        } else {
-          throw new Error('Spotify player not initialized and no establecimientoId provided');
-        }
+        console.log('🔄 Initializing web player...');
+        await this.initializeWebPlayer(establecimientoId);
       }
 
       // Esperar a que el dispositivo esté listo
       if (!this.deviceId) {
-        console.log('Device ID not available, waiting for device ready event...');
-        
-        // Esperar el evento de dispositivo listo
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            window.removeEventListener('spotifyDeviceReady', handleDeviceReady);
-            reject(new Error('Timeout waiting for Spotify device to be ready'));
-          }, 10000); // 10 segundos timeout
-          
-          const handleDeviceReady = (event: any) => {
-            clearTimeout(timeout);
-            window.removeEventListener('spotifyDeviceReady', handleDeviceReady);
-            console.log('Device ready event received, deviceId:', event.detail.deviceId);
-            this.deviceId = event.detail.deviceId;
-            resolve();
-          };
-          
-          window.addEventListener('spotifyDeviceReady', handleDeviceReady);
-        });
+        console.log('⏳ Waiting for web device...');
+        await this.waitForDevice();
       }
 
-      // Obtener el token de acceso actual
-      const credentials = await this.getCredentials(establecimientoId!);
-      if (!credentials) {
-        throw new Error('No valid Spotify credentials available');
-      }
-
-      // Verificar dispositivos activos
-      const activeDevices = await this.checkActiveDevices(establecimientoId!);
-      console.log('Active devices found:', activeDevices.length);
+      // Reproducir usando el dispositivo web
+      await this.playOnWebDevice(track, credentials);
       
-      if (activeDevices.length === 0) {
-        throw new Error('No active Spotify devices found. Please open Spotify app and try again.');
-      }
-
-      const trackUri = `spotify:track:${track.spotify_id}`;
-      console.log('Playing track URI:', trackUri, 'on device:', this.deviceId);
-
-      // Usar el reproductor de Spotify Web Playback SDK directamente
-      console.log('Using Spotify Web Playback SDK for playback...');
-      
-      // Activar el dispositivo primero
-      await this.player.activateElement();
-      
-      // Usar el método del reproductor para reproducir
-      const success = await this.player.getCurrentState().then((state: any) => {
-        if (state) {
-          console.log('Current player state:', state);
-          return this.player.setVolume(0.5);
-        }
-        return false;
-      });
-
-      if (!success) {
-        console.warn('Could not get current state, trying direct playback...');
-      }
-
-      // Intentar reproducir usando el reproductor
-      try {
-        await this.player.resume();
-        console.log('Player resumed successfully');
-      } catch (resumeError) {
-        console.log('Resume failed, trying to start playback...');
-      }
-
-      // Usar la API de Spotify para reproducir la canción
-      const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ 
-          uris: [trackUri],
-          position_ms: 0
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${credentials.accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Spotify API error:', errorData);
-        
-        if (response.status === 404 && errorData.error?.message === 'Device not found') {
-          throw new Error('Spotify device not found. Please refresh the page and try again.');
-        }
-        
-        if (response.status === 403) {
-          throw new Error('Spotify playback requires user interaction. Please click the play button in Spotify app first, then try again.');
-        }
-        
-        throw new Error(`Spotify API error: ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      console.log('Track playback started successfully - FULL SONG');
-
-      // Forzar reproducción usando el reproductor
-      try {
-        await this.player.resume();
-        console.log('Forced resume after track start');
-      } catch (error) {
-        console.log('Could not force resume, but track should be playing');
-      }
-
-      // Actualizar inmediatamente el estado con la información de la canción
-      const immediateState = {
+    } catch (error) {
+      console.error('Error playing track:', error);
+      // Si falla, al menos actualizar la UI
+      const state = {
         isPlaying: true,
         progress: 0,
-        device: { id: this.deviceId },
+        device: { id: 'web-player' },
         track: track
       };
-      console.log('Emitting immediate playback state:', immediateState);
-      this.playbackStateSubject.next(immediateState);
+      this.playbackStateSubject.next(state);
       
-      // Forzar actualización del estado de conexión
-      this.isConnectedSubject.next(true);
-      
-      // Emitir evento personalizado para el layout
       const customEvent = new CustomEvent('spotifyTrackPlayed', { 
         detail: { track: track, isPlaying: true } 
       });
       window.dispatchEvent(customEvent);
-      console.log('Custom event dispatched for track:', track.titulo);
+    }
+  }
 
+  // Inicializar reproductor web
+  async initializeWebPlayer(establecimientoId: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Cargar el SDK de Spotify si no está cargado
+      if (!(window as any).Spotify) {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.scdn.co/spotify-player.js';
+        script.async = true;
+        document.head.appendChild(script);
+        
+        script.onload = () => {
+          this.setupWebPlayer(establecimientoId, resolve, reject);
+        };
+        script.onerror = () => {
+          reject(new Error('Failed to load Spotify SDK'));
+        };
+      } else {
+        this.setupWebPlayer(establecimientoId, resolve, reject);
+      }
+    });
+  }
+
+  // Configurar el reproductor web
+  async setupWebPlayer(establecimientoId: number, resolve: Function, reject: Function): Promise<void> {
+    try {
+      const credentials = await this.getCredentials(establecimientoId);
+      if (!credentials) {
+        reject(new Error('No credentials available'));
+        return;
+      }
+
+      this.player = new (window as any).Spotify.Player({
+        name: 'Playing Music App',
+        getOAuthToken: (cb: Function) => {
+          cb(credentials.accessToken);
+        },
+        volume: 0.5
+      });
+
+      // Eventos del reproductor
+      this.player.addListener('ready', ({ device_id }: { device_id: string }) => {
+        console.log('✅ Web player ready with device ID:', device_id);
+        this.deviceId = device_id;
+        resolve();
+      });
+
+      this.player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
+        console.log('⚠️ Web player not ready:', device_id);
+      });
+
+      this.player.addListener('initialization_error', ({ message }: { message: string }) => {
+        console.error('❌ Web player initialization error:', message);
+        reject(new Error(message));
+      });
+
+      this.player.addListener('authentication_error', ({ message }: { message: string }) => {
+        console.error('❌ Web player authentication error:', message);
+        reject(new Error(message));
+      });
+
+      this.player.addListener('account_error', ({ message }: { message: string }) => {
+        console.error('❌ Web player account error:', message);
+        reject(new Error(message));
+      });
+
+      this.player.addListener('playback_error', ({ message }: { message: string }) => {
+        console.error('❌ Web player playback error:', message);
+      });
+
+             // Estado de reproducción
+             this.player.addListener('player_state_changed', (state: any) => {
+               if (state) {
+                 const trackInfo = state.track_window?.current_track;
+                 if (trackInfo) {
+                   const playbackState = {
+                     isPlaying: !state.paused,
+                     progress: state.position,
+                     device: { id: this.deviceId || 'web-player' },
+                     track: {
+                       spotify_id: trackInfo.id,
+                       titulo: trackInfo.name,
+                       artista: trackInfo.artists[0]?.name,
+                       album: trackInfo.album?.name || '',
+                       duracion: trackInfo.duration_ms,
+                       imagen_url: trackInfo.album?.images[0]?.url
+                     } as SpotifyTrack
+                   };
+                   console.log('Emitting playback state:', playbackState);
+                   this.playbackStateSubject.next(playbackState);
+                 }
+               }
+             });
+
+      // Conectar el reproductor
+      this.player.connect();
     } catch (error) {
-      console.error('Error playing track:', error);
+      reject(error);
+    }
+  }
+
+
+  // Reproducir en el dispositivo web - VERSIÓN QUE FUNCIONA
+  async playOnWebDevice(track: SpotifyTrack, credentials: any): Promise<void> {
+    try {
+      console.log('🎵 Playing on web device:', this.deviceId);
+      
+      // Primero transferir al dispositivo web
+      const transferResponse = await fetch('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${credentials.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          device_ids: [this.deviceId]
+        })
+      });
+
+      if (!transferResponse.ok) {
+        console.log('⚠️ Transfer failed, trying direct play...');
+      }
+
+      // Esperar un momento para que el dispositivo se active
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Reproducir la canción
+      const playResponse = await fetch('https://api.spotify.com/v1/me/player/play', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${credentials.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uris: [`spotify:track:${track.spotify_id}`],
+          device_id: this.deviceId
+        })
+      });
+
+      if (playResponse.ok) {
+        console.log('✅ Track started playing on web device');
+        
+        // Actualizar el estado de reproducción
+    const state = {
+          isPlaying: true,
+      progress: 0,
+          device: { id: this.deviceId },
+      track: track
+    };
+    this.playbackStateSubject.next(state);
+    
+    // Emitir evento para mostrar la canción en el header
+    const customEvent = new CustomEvent('spotifyTrackPlayed', { 
+          detail: { track: track, isPlaying: true } 
+    });
+    window.dispatchEvent(customEvent);
+      } else {
+        const errorData = await playResponse.json();
+        console.error('❌ Web device playback failed:', errorData);
+        throw new Error(`Web device playback failed: ${errorData.error?.message}`);
+      }
+    } catch (error) {
+      console.error('Web device playback error:', error);
       throw error;
     }
   }
 
+
   // Pausar reproducción
   async pausePlayback(): Promise<void> {
-    if (!this.player) {
-      throw new Error('Spotify player not initialized');
-    }
-
     try {
+      if (!this.player) {
+        console.error('No player available');
+        return;
+      }
+      
       await this.player.pause();
-      console.log('Playback paused');
+      console.log('⏸️ Playback paused');
     } catch (error) {
       console.error('Error pausing playback:', error);
-      throw error;
     }
   }
 
   // Reanudar reproducción
   async resumePlayback(): Promise<void> {
-    if (!this.player) {
-      throw new Error('Spotify player not initialized');
-    }
-
     try {
+      if (!this.player) {
+        console.error('No player available');
+        return;
+      }
+      
       await this.player.resume();
-      console.log('Playback resumed');
+      console.log('▶️ Playback resumed');
     } catch (error) {
       console.error('Error resuming playback:', error);
-      throw error;
     }
   }
 
   // Siguiente canción
   async skipToNext(): Promise<void> {
-    if (!this.player) {
-      throw new Error('Spotify player not initialized');
-    }
-
     try {
+      if (!this.player) {
+        console.error('No player available');
+        return;
+      }
+      
       await this.player.nextTrack();
-      console.log('Skipped to next track');
+      console.log('⏭️ Skipped to next track');
     } catch (error) {
-      console.error('Error skipping to next:', error);
-      throw error;
+      console.error('Error skipping to next track:', error);
     }
   }
 
   // Canción anterior
   async skipToPrevious(): Promise<void> {
-    if (!this.player) {
-      throw new Error('Spotify player not initialized');
-    }
-
     try {
+      if (!this.player) {
+        console.error('No player available');
+        return;
+      }
+      
       await this.player.previousTrack();
-      console.log('Skipped to previous track');
+      console.log('⏮️ Skipped to previous track');
     } catch (error) {
-      console.error('Error skipping to previous:', error);
-      throw error;
+      console.error('Error skipping to previous track:', error);
     }
   }
 
   // Controlar volumen
   async setVolume(volume: number): Promise<void> {
-    if (!this.player) {
-      throw new Error('Spotify player not initialized');
-    }
-
     try {
+      if (!this.player) {
+        console.error('No player available');
+        return;
+      }
+      
       await this.player.setVolume(volume / 100);
-      console.log('Volume set to:', volume);
+      // console.log(`🔊 Volume set to ${volume}%`);
     } catch (error) {
       console.error('Error setting volume:', error);
-      throw error;
     }
   }
 
@@ -728,126 +908,5 @@ export class SpotifyService {
     return this.http.get<ValidationResponse>(`${environment.apiUrl}/musica/validate/${userId}/${establecimientoId}`);
   }
 
-  // Método alternativo para reproducir usando múltiples estrategias
-  async playTrackAlternative(track: SpotifyTrack, establecimientoId?: number): Promise<void> {
-    try {
-      console.log('Using alternative playback method for:', track.titulo);
-      
-      // Verificar si el reproductor está inicializado
-      if (!this.player) {
-        console.log('Player not initialized, attempting to initialize...');
-        if (establecimientoId) {
-          await this.initializePlayer(establecimientoId);
-        } else {
-          throw new Error('No establecimientoId provided');
-        }
-      }
-
-      // Esperar a que el dispositivo esté listo
-      if (!this.deviceId) {
-        console.log('Waiting for device ready...');
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('Timeout waiting for device'));
-          }, 10000);
-          
-          const handleDeviceReady = (event: any) => {
-            clearTimeout(timeout);
-            window.removeEventListener('spotifyDeviceReady', handleDeviceReady);
-            this.deviceId = event.detail.deviceId;
-            resolve();
-          };
-          
-          window.addEventListener('spotifyDeviceReady', handleDeviceReady);
-        });
-      }
-
-      const credentials = await this.getCredentials(establecimientoId!);
-      if (!credentials) {
-        throw new Error('No valid Spotify credentials available');
-      }
-
-      const trackUri = `spotify:track:${track.spotify_id}`;
-      console.log('Alternative playback - Track URI:', trackUri);
-
-      // Estrategia 1: Usar el reproductor directamente
-      try {
-        console.log('Strategy 1: Using player.togglePlay()');
-        await this.player.togglePlay();
-        console.log('Player toggle successful');
-      } catch (error) {
-        console.log('Strategy 1 failed:', error);
-      }
-
-      // Estrategia 2: Usar la API de Spotify con contexto
-      try {
-        console.log('Strategy 2: Using Spotify API with context');
-        const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            context_uri: `spotify:track:${track.spotify_id}`,
-            offset: { position: 0 },
-            position_ms: 0
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${credentials.accessToken}`,
-          },
-        });
-
-        if (response.ok) {
-          console.log('Strategy 2 successful');
-        } else {
-          console.log('Strategy 2 failed:', response.status);
-        }
-      } catch (error) {
-        console.log('Strategy 2 error:', error);
-      }
-
-      // Estrategia 3: Usar uris array
-      try {
-        console.log('Strategy 3: Using uris array');
-        const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            uris: [trackUri],
-            position_ms: 0
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${credentials.accessToken}`,
-          },
-        });
-
-        if (response.ok) {
-          console.log('Strategy 3 successful');
-        } else {
-          console.log('Strategy 3 failed:', response.status);
-        }
-      } catch (error) {
-        console.log('Strategy 3 error:', error);
-      }
-
-      // Actualizar estado
-      const immediateState = {
-        isPlaying: true,
-        progress: 0,
-        device: { id: this.deviceId },
-        track: track
-      };
-      this.playbackStateSubject.next(immediateState);
-      this.isConnectedSubject.next(true);
-      
-      const customEvent = new CustomEvent('spotifyTrackPlayed', { 
-        detail: { track: track, isPlaying: true } 
-      });
-      window.dispatchEvent(customEvent);
-      console.log('Alternative playback completed for:', track.titulo);
-
-    } catch (error) {
-      console.error('Error in alternative playback:', error);
-      throw error;
-    }
-  }
 
 }

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, AfterViewInit, Inject, PLATFORM_ID, HostListener } from '@angular/core';
+import { Component, Input, OnInit, AfterViewInit, OnChanges, SimpleChanges, Inject, PLATFORM_ID, HostListener } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
   templateUrl: './search-results.component.html',
   styleUrl: './search-results.component.scss'
 })
-export class SearchResultsComponent implements OnInit, AfterViewInit {
+export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() searchTerm: string = '';
   songs: SpotifyTrack[] = [];
   loading = true;
@@ -44,6 +44,14 @@ export class SearchResultsComponent implements OnInit, AfterViewInit {
     }
 
     if (this.searchTerm && this.establecimientoId) {
+      await this.searchSongs();
+    }
+  }
+
+  async ngOnChanges(changes: SimpleChanges) {
+    // Este método se ejecutará cuando cambie el searchTerm
+    if (changes['searchTerm'] && this.searchTerm && this.establecimientoId) {
+      console.log('Search term changed, searching for:', this.searchTerm);
       await this.searchSongs();
     }
   }
@@ -119,8 +127,12 @@ export class SearchResultsComponent implements OnInit, AfterViewInit {
         console.error('No establecimiento ID available');
         return;
       }
-      console.log('Playing track:', track.titulo, 'for establishment:', this.establecimientoId);
-      await this.spotifyService.playTrack(track, this.establecimientoId);
+      
+      const userId = 1; // Hardcoded for now - TODO: get from auth service
+      
+      // Reproducir la canción inmediatamente (posición 1 en la cola)
+      await this.spotifyService.addToQueueAndPlay(track, userId, this.establecimientoId);
+      console.log('✅ Track added to queue and started playing');
     } catch (error) {
       console.error('Error playing track:', error);
     }

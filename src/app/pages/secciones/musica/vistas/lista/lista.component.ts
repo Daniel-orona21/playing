@@ -1,7 +1,10 @@
-import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SpotifyService } from '../../../../../services/spotify.service';
+import { EstablecimientosService } from '../../../../../services/establecimientos.service';
+import { SpotifyTrack } from '../../../../../models/musica.interfaces';
 
 interface Cancion {
   id: number;
@@ -18,7 +21,7 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent implements AfterViewInit{
+export class ListaComponent implements OnInit, AfterViewInit{
 
   ngAfterViewInit(): void {
     gsap.registerPlugin(ScrollTrigger);
@@ -91,20 +94,9 @@ export class ListaComponent implements AfterViewInit{
     );
   }
 
-  aContinuacion: Cancion[] = [
-    { id: 1, nombre: 'Cancion 24', artista: 'Artista de prueba', duracion: '3:45', album: 'Album 1', year: 2024 },
-    { id: 2, nombre: 'Cancion 25', artista: 'Artista de prueba', duracion: '4:12', album: 'Album 1', year: 2024 },
-    { id: 3, nombre: 'Cancion 26', artista: 'Artista de prueba', duracion: '3:28', album: 'Album 2', year: 2024 },
-    { id: 4, nombre: 'Cancion 27', artista: 'Artista de prueba', duracion: '4:33', album: 'Album 2', year: 2024 },
-    { id: 5, nombre: 'Cancion 28', artista: 'Artista de prueba', duracion: '3:15', album: 'Album 3', year: 2024 },
-    { id: 6, nombre: 'Cancion 29', artista: 'Artista de prueba', duracion: '4:01', album: 'Album 3', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 },
-    { id: 7, nombre: 'Cancion 30', artista: 'Artista de prueba', duracion: '3:52', album: 'Album 4', year: 2024 }
-  ];
+  aContinuacion: any[] = [];
+  establecimientoId: number | null = null;
+  loading = true;
 
   historial: Cancion[] = [
     { id: 8, nombre: 'Cancion 17', artista: 'Artista de prueba', duracion: '3:20', album: 'Album 1', year: 2024 },
@@ -118,32 +110,88 @@ export class ListaComponent implements AfterViewInit{
 
   menuAbierto: number | null = null;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private spotifyService: SpotifyService,
+    private estService: EstablecimientosService
+  ) {}
 
-  eliminarCancion(index: number) {
-    const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion:nth-child(${index + 1})`) as HTMLElement;
-    if (cancionElement) {
-      gsap.to(cancionElement, {
-        opacity: 0,
-        height: 0,
-        marginTop: 0,
-        marginBottom: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
-        duration: 0.3,
-        ease: "power1.out",
-        onComplete: () => {
-          this.aContinuacion.splice(index, 1);
-          this.menuAbierto = null;
-          ScrollTrigger.refresh();
-          console.log('ScrollTrigger refreshed after animated deletion.');
-        }
-      });
-    } else {
-      this.aContinuacion.splice(index, 1);
-      this.menuAbierto = null;
-      ScrollTrigger.refresh();
-      console.log('ScrollTrigger refreshed after direct deletion (element not found).');
+  async ngOnInit() {
+    // Obtener el establecimiento actual
+    try {
+      const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
+      if (establecimientoResponse?.establecimiento) {
+        this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
+        console.log('Establecimiento ID obtenido en lista:', this.establecimientoId);
+        await this.loadQueue();
+      }
+    } catch (error) {
+      console.error('Error obteniendo establecimiento en lista:', error);
+    }
+
+    // Escuchar eventos de canción reproducida para recargar la cola
+    window.addEventListener('spotifyTrackPlayed', () => {
+      this.loadQueue();
+    });
+  }
+
+  async loadQueue() {
+    try {
+      this.loading = true;
+      if (!this.establecimientoId) {
+        console.error('No establecimiento ID available');
+        return;
+      }
+      
+      const response = await this.spotifyService.getQueue(this.establecimientoId).toPromise();
+      if (response?.success) {
+        this.aContinuacion = response.queue;
+        console.log('Cola cargada:', this.aContinuacion.length, 'canciones');
+      }
+    } catch (error) {
+      console.error('Error loading queue:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async eliminarCancion(index: number) {
+    try {
+      const cancion = this.aContinuacion[index];
+      if (!cancion) {
+        console.error('No song found at index:', index);
+        return;
+      }
+
+      // Eliminar de la base de datos
+      await this.spotifyService.removeFromQueue(cancion.id).toPromise();
+      
+      const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion:nth-child(${index + 1})`) as HTMLElement;
+      if (cancionElement) {
+        gsap.to(cancionElement, {
+          opacity: 0,
+          height: 0,
+          marginTop: 0,
+          marginBottom: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          duration: 0.3,
+          ease: "power1.out",
+          onComplete: () => {
+            this.aContinuacion.splice(index, 1);
+            this.menuAbierto = null;
+            ScrollTrigger.refresh();
+            console.log('ScrollTrigger refreshed after animated deletion.');
+          }
+        });
+      } else {
+        this.aContinuacion.splice(index, 1);
+        this.menuAbierto = null;
+        ScrollTrigger.refresh();
+        console.log('ScrollTrigger refreshed after direct deletion (element not found).');
+      }
+    } catch (error) {
+      console.error('Error removing song from queue:', error);
     }
   }
 

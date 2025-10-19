@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { SpotifyService } from '../../../services/spotify.service';
@@ -7,7 +8,7 @@ import { SpotifyService } from '../../../services/spotify.service';
 @Component({
   selector: 'app-musica',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, CommonModule],
   templateUrl: './musica.component.html',
   styleUrl: './musica.component.scss',
   animations: [

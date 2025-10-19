@@ -4,8 +4,8 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { SpotifyService } from '../../services/spotify.service';
-import { ColaCancion } from '../../models/musica.interfaces';
+import { SpotifyService, SpotifyPlaybackState } from '../../services/spotify.service';
+import { EstablecimientosService } from '../../services/establecimientos.service';
 
 @Component({
   selector: 'app-layout',
@@ -22,29 +22,25 @@ import { ColaCancion } from '../../models/musica.interfaces';
   ]
 })
 export class LayoutComponent implements OnInit, OnDestroy {
-  public pause = false;
+  public pause = true; // Inicialmente pausado
   value = 75;
   selectedNavItem: string = 'music';
   
-  // Spotify integration
-  currentTrack: ColaCancion | null = null;
-  isSpotifyConnected = false;
-  establecimientoId = 4; // Usar el mismo ID que funciona en el SpotifyService
+  // Estado de reproducción
+  currentTrack: any = null;
+  isPlaying = false; // Inicialmente no reproduciendo
+  establecimientoId: number | null = null;
   
   private destroy$ = new Subject<void>();
 
   constructor(
     private router: Router,
-    private spotifyService: SpotifyService
+    private spotifyService: SpotifyService,
+    private estService: EstablecimientosService
   ) {}
 
-  ngOnInit() {
-    console.log('LayoutComponent: Initializing with establecimientoId:', this.establecimientoId);
+  async ngOnInit() {
     this.updateSelectedNavFromUrl();
-    this.initializeSpotify();
-    
-    // Escuchar evento personalizado de Spotify
-    window.addEventListener('spotifyTrackPlayed', this.handleSpotifyTrackPlayed);
     
     this.router.events
       .pipe(
@@ -54,81 +50,39 @@ export class LayoutComponent implements OnInit, OnDestroy {
       .subscribe((event: NavigationEnd) => {
         this.updateSelectedNavFromUrl();
       });
+
+    // Obtener el establecimiento actual
+    try {
+      const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
+      if (establecimientoResponse?.establecimiento) {
+        this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
+        console.log('Establecimiento ID obtenido en layout:', this.establecimientoId);
+      }
+    } catch (error) {
+      console.error('Error obteniendo establecimiento en layout:', error);
+    }
+
+    // NO suscribirse al estado de reproducción para evitar cambios automáticos
+
+    // Escuchar eventos de canción reproducida - solo actualizar la canción
+    window.addEventListener('spotifyTrackPlayed', (event: any) => {
+      const { track } = event.detail;
+      this.currentTrack = track;
+      // NO cambiar isPlaying ni pause automáticamente
+      console.log('Canción actualizada desde evento:', track);
+    });
+
+    // Cargar canción actual al inicializar
+    if (this.establecimientoId) {
+      this.loadCurrentTrack();
+    }
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    
-    // Limpiar event listener personalizado
-    window.removeEventListener('spotifyTrackPlayed', this.handleSpotifyTrackPlayed);
   }
   
-  private handleSpotifyTrackPlayed = (event: any) => {
-    console.log('Layout: Received custom Spotify event:', event.detail);
-    this.forceUpdateTrackInfo(event.detail.track);
-  }
-
-  private async initializeSpotify() {
-    console.log('Layout: Setting up Spotify subscriptions...');
-    
-    // Solo configurar la suscripción a isConnected$ por ahora
-    this.spotifyService.isConnected$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(connected => {
-        console.log('Layout: Connection status changed:', connected);
-        this.isSpotifyConnected = connected;
-        if (connected) {
-          this.loadCurrentTrack();
-        }
-      });
-
-    // Configurar la suscripción a playbackState$ DESPUÉS de que se reproduzca algo
-    this.spotifyService.playbackState$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(state => {
-        console.log('Layout: Received playback state:', state);
-        if (state) {
-          console.log('Layout: Playback state changed:', state);
-          this.pause = !state.isPlaying;
-          console.log('Layout: Setting pause to:', this.pause);
-          
-          if (state.track) {
-            console.log('Layout: Setting current track:', state.track);
-            this.currentTrack = {
-              id: 0,
-              cancion_id: 0,
-              cancion: state.track,
-              anadido_por: 0,
-              usuario: { nombre: 'Sistema' },
-              posicion: 0,
-              status: state.isPlaying ? 'playing' : 'pending',
-              agregada_en: new Date().toISOString()
-            };
-            console.log('Layout: Current track set to:', this.currentTrack);
-          } else {
-            console.log('Layout: No track info available');
-            this.currentTrack = null;
-          }
-        } else {
-          console.log('Layout: No playback state');
-          this.currentTrack = null;
-        }
-      });
-
-    // NO intentar auto-inicializar aquí, solo configurar suscripciones
-    console.log('Layout: Spotify subscriptions configured, waiting for playback...');
-  }
-
-  private loadCurrentTrack() {
-    this.spotifyService.getCurrentPlaying(this.establecimientoId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(response => {
-        if (response.success) {
-          this.currentTrack = response.currentTrack;
-        }
-      });
-  }
 
 
   private updateSelectedNavFromUrl() {
@@ -145,16 +99,31 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   async play() {
-    if (!this.isSpotifyConnected) {
-      console.warn('Spotify no está conectado');
-      return;
-    }
-
     try {
       if (this.pause) {
-        await this.spotifyService.resumePlayback();
+        // Reproducir
+        if (this.currentTrack && this.establecimientoId) {
+          console.log('🎵 Starting playback...');
+          
+          // Si no hay reproductor, inicializarlo y cargar la canción
+          if (!this.spotifyService['player']) {
+            await this.spotifyService.initializePlayer(this.establecimientoId);
+            await this.spotifyService.waitForDevice();
+            await this.spotifyService.loadTrack(this.currentTrack, this.establecimientoId);
+          }
+          
+          await this.spotifyService.resumePlayback();
+          this.pause = false;
+          this.isPlaying = true;
+          console.log('✅ Playback started');
+        }
       } else {
+        // Pausar
+        console.log('⏸️ Pausing playback...');
         await this.spotifyService.pausePlayback();
+        this.pause = true;
+        this.isPlaying = false;
+        console.log('✅ Playback paused');
       }
     } catch (error) {
       console.error('Error controlling playback:', error);
@@ -162,32 +131,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   async skipToNext() {
-    if (!this.isSpotifyConnected) {
-      console.warn('Spotify no está conectado');
-      return;
-    }
-
     try {
       await this.spotifyService.skipToNext();
-      // Recargar canción actual después de cambiar
-      setTimeout(() => this.loadCurrentTrack(), 1000);
     } catch (error) {
-      console.error('Error skipping to next:', error);
+      console.error('Error skipping to next track:', error);
     }
   }
 
   async skipToPrevious() {
-    if (!this.isSpotifyConnected) {
-      console.warn('Spotify no está conectado');
-      return;
-    }
-
     try {
       await this.spotifyService.skipToPrevious();
-      // Recargar canción actual después de cambiar
-      setTimeout(() => this.loadCurrentTrack(), 1000);
     } catch (error) {
-      console.error('Error skipping to previous:', error);
+      console.error('Error skipping to previous track:', error);
     }
   }
 
@@ -196,13 +151,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const percent = ((+input.value - +input.min) / (+input.max - +input.min)) * 100;
     input.style.setProperty('--value', percent + '%');
     
-    // Actualizar volumen en Spotify
-    if (this.isSpotifyConnected) {
-      try {
-        await this.spotifyService.setVolume(+input.value);
-      } catch (error) {
-        console.error('Error setting volume:', error);
-      }
+    try {
+      await this.spotifyService.setVolume(parseInt(input.value));
+    } catch (error) {
+      console.error('Error setting volume:', error);
     }
   }
 
@@ -212,24 +164,42 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   prepareRoute(outlet: RouterOutlet) {
-    return outlet?.activatedRouteData?.['animation'] || 'default';
+    if (!outlet || !outlet.activatedRouteData) {
+      return 'default';
+    }
+    return outlet.activatedRouteData['animation'] || 'default';
   }
 
-  // Método para forzar actualización cuando se reproduce una canción
-  forceUpdateTrackInfo(track: any) {
-    console.log('Layout: Force updating track info:', track);
-    this.currentTrack = {
-      id: 0,
-      cancion_id: 0,
-      cancion: track,
-      anadido_por: 0,
-      usuario: { nombre: 'Sistema' },
-      posicion: 0,
-      status: 'playing',
-      agregada_en: new Date().toISOString()
-    };
-    this.pause = false;
-    this.isSpotifyConnected = true;
-    console.log('Layout: Track info force updated:', this.currentTrack);
+  async loadCurrentTrack() {
+    try {
+      if (!this.establecimientoId) return;
+      
+      const response = await this.spotifyService.getCurrentPlaying(this.establecimientoId).toPromise();
+      if (response?.success && response.currentTrack) {
+        this.currentTrack = response.currentTrack;
+        // NO cambiar isPlaying ni pause - mantener estado inicial
+        console.log('Canción actual cargada:', this.currentTrack);
+        console.log('✅ Canción mostrada en header (pausada)');
+        
+        // Inicializar el reproductor para que esté listo
+        try {
+          await this.spotifyService.initializePlayer(this.establecimientoId);
+          console.log('✅ Reproductor inicializado y listo');
+          
+          // Esperar a que el dispositivo esté listo antes de cargar la canción
+          await this.spotifyService.waitForDevice();
+          console.log('✅ Dispositivo listo');
+          
+          // Cargar la canción en el reproductor (sin reproducir)
+          await this.spotifyService.loadTrack(this.currentTrack, this.establecimientoId);
+          console.log('✅ Canción cargada en reproductor');
+        } catch (initError) {
+          console.warn('⚠️ No se pudo inicializar el reproductor:', initError);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading current track:', error);
+    }
   }
+
 }

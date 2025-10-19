@@ -125,29 +125,14 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
         console.error('No establecimiento ID available');
         return;
       }
-      console.log('Playing track:', track.titulo, 'for establishment:', this.establecimientoId);
       
-      // Intentar método alternativo primero
-      try {
-        await this.spotifyService.playTrackAlternative(track, this.establecimientoId);
-        console.log('Alternative playback successful');
-      } catch (altError) {
-        console.log('Alternative playback failed, trying original method:', altError);
-        await this.spotifyService.playTrack(track, this.establecimientoId);
-      }
-    } catch (error: any) {
+      const userId = 1; // Hardcoded for now - TODO: get from auth service
+      
+      // Reproducir la canción inmediatamente (posición 1 en la cola)
+      await this.spotifyService.addToQueueAndPlay(track, userId, this.establecimientoId);
+      console.log('✅ Track added to queue and started playing');
+    } catch (error) {
       console.error('Error playing track:', error);
-      
-      // Mostrar instrucciones si el error es relacionado con dispositivos
-      if (error.message && (
-        error.message.includes('No active Spotify devices') ||
-        error.message.includes('requires user interaction') ||
-        error.message.includes('Device not found')
-      )) {
-        // Emitir evento para mostrar instrucciones en el componente padre
-        const event = new CustomEvent('showSpotifyInstructions');
-        window.dispatchEvent(event);
-      }
     }
   }
 

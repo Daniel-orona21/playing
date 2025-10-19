@@ -2,16 +2,23 @@
     <div class="side continuacion">
         <h2>A continuación...</h2>
         <div class="canciones">
+            <div *ngIf="loading" class="loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <p>Cargando cola...</p>
+            </div>
             <div 
                 *ngFor="let cancion of aContinuacion; let i = index" 
                 class="cancion cancionLista"
-                [class.menu-abierto]="menuAbierto === i">
+                [class.menu-abierto]="menuAbierto === i"
+                [class.playing]="cancion.status === 'playing'">
                 <div class="portada">
-                    <i class="fa-solid fa-music"></i>
+                    <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.titulo">
+                    <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
                 </div>
                 <div class="infoCancion">
-                    <p class="nombre">{{ cancion.nombre }}</p>
+                    <p class="nombre">{{ cancion.titulo }}</p>
                     <p class="artista">{{ cancion.artista }}</p>
+                    <p class="posicion" *ngIf="cancion.posicion">Posición: {{ cancion.posicion }}</p>
                 </div>
                 <div class="acciones">
                     <button 
@@ -33,6 +40,10 @@
                         </button>
                     </div>
                 </div>
+            </div>
+            <div *ngIf="!loading && aContinuacion.length === 0" class="no-songs">
+                <i class="fa-solid fa-music"></i>
+                <p>No hay canciones en la cola</p>
             </div>
         </div>
     </div>

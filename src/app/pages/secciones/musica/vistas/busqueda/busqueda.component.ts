@@ -24,6 +24,7 @@ export class BusquedaComponent implements OnInit, AfterViewInit {
   searchTerm: string = ''; // Property to hold the search term
   generosMusicales: any[] = [];
   loading = true;
+  private searchTimeout: any;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -149,11 +150,22 @@ export class BusquedaComponent implements OnInit, AfterViewInit {
   }
 
   onSearchChange() {
-    // This method will be called whenever the search input changes
-    // You can add logic here to filter results or trigger a search service
     console.log('Search term changed:', this.searchTerm);
-    // For now, we are just controlling the view based on searchTerm presence
-    // Later, you might call a service to fetch search results
+    
+    // Limpiar timeout anterior
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    
+    // Si hay término de búsqueda, limpiar categoría seleccionada
+    if (this.searchTerm.trim().length > 0) {
+      this.selectedCategory = null;
+      
+      // Debounce: esperar 500ms antes de hacer la búsqueda
+      this.searchTimeout = setTimeout(() => {
+        console.log('Executing search for:', this.searchTerm);
+      }, 500);
+    }
   }
 
   private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {

@@ -3,32 +3,28 @@
         <img src="images/wings.png" alt="" class="logo">
 
         <div class="controles">
-            <button (click)="skipToPrevious()" [disabled]="!isSpotifyConnected">
+            <button (click)="skipToPrevious()" [disabled]="!currentTrack">
                 <i class="fa-solid fa-backward"></i>
             </button>
 
             <div class="play">
-                <button (click)="play()" [disabled]="!isSpotifyConnected">
-                    <i *ngIf="pause" class="fa-solid fa-play"></i>
-                    <i *ngIf="!pause" class="fa-solid fa-pause"></i>
+                <button (click)="play()" [disabled]="!currentTrack">
+                    <i class="fa-solid" [class.fa-play]="pause" [class.fa-pause]="!pause"></i>
                 </button>
             </div>
-            <button (click)="skipToNext()" [disabled]="!isSpotifyConnected">
+            <button (click)="skipToNext()" [disabled]="!currentTrack">
                 <i class="fa-solid fa-forward"></i>
             </button>
         </div>
 
         <div class="cancionHeader">
             <div class="portada">
-                <img *ngIf="currentTrack?.cancion?.imagen_url" 
-                     [src]="currentTrack?.cancion?.imagen_url" 
-                     [alt]="currentTrack?.cancion?.titulo"
-                     class="album-cover">
-                <i *ngIf="!currentTrack?.cancion?.imagen_url" class="fa-solid fa-music"></i>
+                <img *ngIf="currentTrack?.imagen_url" [src]="currentTrack.imagen_url" [alt]="currentTrack.titulo">
+                <i *ngIf="!currentTrack?.imagen_url" class="fa-solid fa-music"></i>
             </div>
             <div class="infoCancion">
-                <p class="nombre">{{ currentTrack?.cancion?.titulo || 'Ninguna canción' }}</p>
-                <p class="artista">{{ currentTrack?.cancion?.artista || 'Selecciona una canción' }}</p>
+                <p class="nombre">{{ currentTrack?.titulo || 'Selecciona una canción' }}</p>
+                <p class="artista">{{ currentTrack?.artista || 'Para comenzar a reproducir' }}</p>
             </div>
         </div>
 
@@ -40,6 +36,7 @@
                 max="100"
                 [value]="value"
                 (input)="updateValue($event)"
+                [disabled]="!currentTrack"
                 />
             <i class="fa-solid fa-volume-high"></i>
         </div>
