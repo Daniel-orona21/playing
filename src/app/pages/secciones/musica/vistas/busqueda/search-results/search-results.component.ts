@@ -6,6 +6,7 @@ import { SpotifyService } from '../../../../../../services/spotify.service';
 import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
 import { MusicaConfigService } from '../../../../../../services/musica-config.service';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
+import { MusicPlayerService } from '../../../../../../services/music-player.service';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,7 +14,7 @@ gsap.registerPlugin(ScrollTrigger);
   selector: 'app-search-results',
   standalone: true,
   imports: [CommonModule],
-  providers: [SpotifyService, MusicaConfigService, EstablecimientosService],
+  providers: [SpotifyService, MusicaConfigService, EstablecimientosService, MusicPlayerService],
   templateUrl: './search-results.component.html',
   styleUrl: './search-results.component.scss'
 })
@@ -28,7 +29,8 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     @Inject(PLATFORM_ID) private platformId: Object,
     private spotifyService: SpotifyService,
     private musicaConfigService: MusicaConfigService,
-    private estService: EstablecimientosService
+    private estService: EstablecimientosService,
+    private musicPlayerService: MusicPlayerService
   ) {}
 
   async ngOnInit() {
@@ -131,7 +133,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       const userId = 1; // Hardcoded for now - TODO: get from auth service
       
       // Reproducir la canción inmediatamente (posición 1 en la cola)
-      await this.spotifyService.addToQueueAndPlay(track, userId, this.establecimientoId);
+      this.musicPlayerService.playTrack(track, this.establecimientoId);
       console.log('✅ Track added to queue and started playing');
     } catch (error) {
       console.error('Error playing track:', error);
