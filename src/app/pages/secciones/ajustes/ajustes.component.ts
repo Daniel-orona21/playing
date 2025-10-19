@@ -253,7 +253,37 @@ export class AjustesComponent implements OnInit {
   // Spotify methods
   async checkSpotifyConnection(): Promise<void> {
     try {
-      this.isSpotifyConnected = this.spotifyService.isConnected();
+      console.log('Checking Spotify connection...');
+      
+      if (!this.establecimiento) {
+        console.log('No establishment found');
+        return;
+      }
+      
+      // Primero hacer debug para ver qué está pasando
+      const debugResult = await this.spotifyService.debugCredentials(this.establecimiento.id_establecimiento);
+      console.log('Debug result:', debugResult);
+      console.log('Is token expired?', debugResult?.credentials?.isExpired);
+      console.log('Time until expiry:', debugResult?.credentials?.timeUntilExpiry);
+      
+      // Verificar si hay credenciales en la base de datos
+      const credentials = await this.spotifyService.getCredentials(this.establecimiento.id_establecimiento);
+      console.log('Credentials received:', credentials);
+      this.isSpotifyConnected = !!credentials;
+      console.log('isSpotifyConnected set to:', this.isSpotifyConnected);
+      
+      // Si hay credenciales pero el player no está inicializado, inicializarlo
+      if (credentials && !this.spotifyService.isConnected()) {
+        console.log('Initializing Spotify player...');
+        try {
+          await this.spotifyService.initializePlayer(this.establecimiento.id_establecimiento);
+          console.log('Spotify player initialized successfully');
+        } catch (error) {
+          console.error('Error initializing Spotify player:', error);
+          // Si falla la inicialización, marcar como desconectado
+          this.isSpotifyConnected = false;
+        }
+      }
     } catch (error) {
       console.error('Error checking Spotify connection:', error);
       this.isSpotifyConnected = false;
@@ -263,7 +293,10 @@ export class AjustesComponent implements OnInit {
   async connectSpotify(): Promise<void> {
     try {
       this.spotifyLoading = true;
-      await this.spotifyService.connectSpotify();
+      if (!this.establecimiento) {
+        throw new Error('No establishment found');
+      }
+      await this.spotifyService.connect(this.establecimiento.id_establecimiento);
     } catch (error) {
       console.error('Error connecting to Spotify:', error);
       alert('Error al conectar con Spotify. Por favor, intenta de nuevo.');
@@ -275,7 +308,10 @@ export class AjustesComponent implements OnInit {
   async disconnectSpotify(): Promise<void> {
     try {
       this.spotifyLoading = true;
-      await this.spotifyService.disconnect();
+      if (!this.establecimiento) {
+        throw new Error('No establishment found');
+      }
+      await this.spotifyService.disconnect(this.establecimiento.id_establecimiento);
       this.isSpotifyConnected = false;
     } catch (error) {
       console.error('Error disconnecting from Spotify:', error);

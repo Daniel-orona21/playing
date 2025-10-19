@@ -5,8 +5,13 @@
         <input type="text" placeholder="Buscar..." [(ngModel)]="searchTerm" (input)="onSearchChange()">
     </div>
     <div class="scroll">
-        <div class="parent" *ngIf="!selectedCategory && !searchTerm">
+        <div class="parent" *ngIf="!selectedCategory && !searchTerm && !loading">
             <div class="celda" *ngFor="let genero of generosMusicales" [ngStyle]="{'background-color': genero.backgroundColor}" (click)="selectCategory(genero.nombre)"><h3 class="nombre">{{genero.nombre}}</h3></div>
+        </div>
+        
+        <div *ngIf="loading && !selectedCategory && !searchTerm" class="loading-genres">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Cargando géneros...</p>
         </div>
         
         <!-- vista de canciones por categoria -->

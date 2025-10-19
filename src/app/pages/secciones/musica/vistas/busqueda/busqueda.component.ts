@@ -1,25 +1,38 @@
 import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { CancionesCategoriaComponent } from "./canciones-categoria/canciones-categoria.component";
+
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { FormsModule } from '@angular/forms'; // Import FormsModule
-import { SearchResultsComponent } from './search-results/search-results.component'; // Import SearchResultsComponent
+
+import { SpotifyService } from '../../../../../services/spotify.service';
+import { SearchResultsComponent } from './search-results/search-results.component';
+import { CancionesCategoriaComponent } from './canciones-categoria/canciones-categoria.component';
 
 gsap.registerPlugin(ScrollTrigger);
 
 @Component({
   selector: 'app-busqueda',
   standalone: true,
-  imports: [CommonModule, CancionesCategoriaComponent, FormsModule, SearchResultsComponent], // Add FormsModule here
+  imports: [CommonModule, CancionesCategoriaComponent, FormsModule, SearchResultsComponent],
+  providers: [SpotifyService],
   templateUrl: './busqueda.component.html',
   styleUrl: './busqueda.component.scss'
 })
-export class BusquedaComponent implements AfterViewInit {
+export class BusquedaComponent implements OnInit, AfterViewInit {
 
   searchTerm: string = ''; // Property to hold the search term
+  generosMusicales: any[] = [];
+  loading = true;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private spotifyService: SpotifyService
+  ) {}
+
+  async ngOnInit() {
+    await this.loadGenres();
+  }
 
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
@@ -67,27 +80,45 @@ export class BusquedaComponent implements AfterViewInit {
     }, 0);
   }
 
-  generosMusicales = [
-    { nombre: 'Hip-Hop/Rap', backgroundColor: 'color.adjust($contenedor, $lightness: -5%)' },
-    { nombre: 'Dance', backgroundColor: 'color.adjust($contenedor, $lightness: +20%)' },
-    { nombre: 'Rock', backgroundColor: '$contenedor' },
-    { nombre: 'Pop', backgroundColor: 'color.adjust($contenedor, $lightness: +40%)' },
-    { nombre: 'House', backgroundColor: '$contenedor' },
-    { nombre: 'Reggaeton', backgroundColor: '$contenedor' },
-    { nombre: 'Regional', backgroundColor: '$contenedor' },
-    { nombre: 'Electronic', backgroundColor: 'color.adjust($contenedor, $lightness: +10%)' },
-    { nombre: 'Jazz', backgroundColor: 'color.adjust($contenedor, $lightness: +30%)' },
-    { nombre: 'Regional', backgroundColor: '$contenedor' },
-    { nombre: 'Electronic', backgroundColor: 'color.adjust($contenedor, $lightness: +10%)' },
-    { nombre: 'Jazz', backgroundColor: 'color.adjust($contenedor, $lightness: +30%)' },
-    { nombre: 'Regional', backgroundColor: '$contenedor' },
-    { nombre: 'Electronic', backgroundColor: 'color.adjust($contenedor, $lightness: +10%)' },
-    { nombre: 'Electronic', backgroundColor: 'color.adjust($contenedor, $lightness: +10%)' },
-    { nombre: 'Jazz', backgroundColor: 'color.adjust($contenedor, $lightness: +30%)' },
-    { nombre: 'Regional', backgroundColor: '$contenedor' },
-    { nombre: 'Electronic', backgroundColor: 'color.adjust($contenedor, $lightness: +10%)' },
-    { nombre: 'Jazz', backgroundColor: 'color.adjust($contenedor, $lightness: +30%)' }
-  ];
+  async loadGenres() {
+    try {
+      this.loading = true;
+      const response = await this.spotifyService.getGenres().toPromise();
+      if (response?.success) {
+        this.generosMusicales = response.genres.map((genre: string) => ({
+          nombre: genre.charAt(0).toUpperCase() + genre.slice(1),
+          backgroundColor: this.getRandomBackgroundColor()
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading genres:', error);
+      // Fallback a géneros por defecto
+      this.generosMusicales = [
+        { nombre: 'Pop', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Rock', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Hip-Hop', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Electronic', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Jazz', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Classical', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'Country', backgroundColor: this.getRandomBackgroundColor() },
+        { nombre: 'R&B', backgroundColor: this.getRandomBackgroundColor() }
+      ];
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private getRandomBackgroundColor(): string {
+    const colors = [
+      'color.adjust($contenedor, $lightness: -5%)',
+      'color.adjust($contenedor, $lightness: +20%)',
+      '$contenedor',
+      'color.adjust($contenedor, $lightness: +40%)',
+      'color.adjust($contenedor, $lightness: +10%)',
+      'color.adjust($contenedor, $lightness: +30%)'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
   selectedCategory: string | null = null;
 

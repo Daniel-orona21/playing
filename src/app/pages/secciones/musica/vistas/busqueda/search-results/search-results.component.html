@@ -1,1 +1,49 @@
-<h3>Resultados de búsqueda para: "{{ searchTerm }}"</h3>
+<div class="search-results-container">
+    <div class="header">
+        <h3>Resultados de búsqueda para: "{{ searchTerm }}"</h3>
+    </div>
+
+    <div class="songs-grid">
+        <div *ngIf="loading" class="loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Buscando canciones...</p>
+        </div>
+        
+        <div class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="playTrack(song)">
+            <div class="portada">
+                <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
+                <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
+            </div>
+            <div class="infoCancion">
+                <p class="nombreCancion">{{song.titulo}}</p>
+                <p class="artista">{{song.artista}}</p>
+            </div>
+            <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
+            <div 
+                *ngIf="menuAbierto === i" 
+                class="menu-flotante"
+                (click)="$event.stopPropagation()">
+                <button 
+                    class="opcion" 
+                    (click)="addToQueue(song)">
+                    <span class="material-symbols-outlined">
+                        playlist_play
+                        </span>
+                    <span>Agregar a la fila</span>
+                </button>
+                <button 
+                    class="opcion eliminar" 
+                    (click)="blockTrack(song)">
+                    <span class="material-symbols-outlined">
+                        block
+                        </span>
+                    <span>Bloquear canción</span>
+                </button>
+            </div>
+        </div>
+        <div *ngIf="!loading && songs.length === 0" class="no-results">
+            <i class="fa-solid fa-music"></i>
+            <p>No se encontraron canciones</p>
+        </div>
+    </div>
+</div>

@@ -69,7 +69,25 @@
     grid-column-gap: 15px;
     grid-row-gap: 15px;
     flex: 1;
+}
+
+.loading-genres {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: $textoPrincipal;
+    
+    i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
     }
+    
+    p {
+        font-size: 1.2rem;
+    }
+}
 
     .celda {
         display: flex;

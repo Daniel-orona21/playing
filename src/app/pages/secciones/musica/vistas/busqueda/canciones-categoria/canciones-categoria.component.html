@@ -4,23 +4,28 @@
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>{{ categoryName }}</h2>
         </div>
-        <button (click)="toggleBloqueo()">
-            <span [class.iniciado]="!bloqueado" class="material-symbols-outlined">
+        <button (click)="blockGenre(categoryName!)">
+            <span class="material-symbols-outlined">
                 block
             </span>
-            <p *ngIf="!bloqueado">Bloquear</p>
-            <p *ngIf="bloqueado">Desbloquear</p>
+            <p>Bloquear género</p>
         </button>
     </div>
 
     <div [class.bloqueado]="bloqueado" class="songs-grid">
-        <div [class.bloqueado]="bloqueado" class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i">
+        <div *ngIf="loading" class="loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Cargando canciones...</p>
+        </div>
+        
+        <div [class.bloqueado]="bloqueado" class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="playTrack(song)">
             <div class="portada">
-                <i class="fa-solid fa-music"></i>
+                <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
+                <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
             </div>
             <div class="infoCancion">
-                <p class="nombreCancion">{{song.title}}</p>
-                <p class="artista">{{song.artist}}</p>
+                <p class="nombreCancion">{{song.titulo}}</p>
+                <p class="artista">{{song.artista}}</p>
             </div>
             <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
             <div 
@@ -28,8 +33,8 @@
                 class="menu-flotante"
                 (click)="$event.stopPropagation()">
                 <button 
-                    class="opcion eliminar" 
-                    (click)="eliminarCancion(i)">
+                    class="opcion" 
+                    (click)="addToQueue(song)">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>
@@ -37,11 +42,11 @@
                 </button>
                 <button 
                     class="opcion eliminar" 
-                    (click)="eliminarCancion(i)">
+                    (click)="blockTrack(song)">
                     <span class="material-symbols-outlined">
                         block
                         </span>
-                    <span>Bloquear</span>
+                    <span>Bloquear canción</span>
                 </button>
             </div>
         </div>

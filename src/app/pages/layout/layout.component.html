@@ -3,28 +3,32 @@
         <img src="images/wings.png" alt="" class="logo">
 
         <div class="controles">
-            <button>
+            <button (click)="skipToPrevious()" [disabled]="!isSpotifyConnected">
                 <i class="fa-solid fa-backward"></i>
             </button>
 
             <div class="play">
-                <button (click)="play()">
+                <button (click)="play()" [disabled]="!isSpotifyConnected">
                     <i *ngIf="pause" class="fa-solid fa-play"></i>
-                    <i  *ngIf="!pause" class="fa-solid fa-pause"></i>
+                    <i *ngIf="!pause" class="fa-solid fa-pause"></i>
                 </button>
             </div>
-            <button>
-                <i  class="fa-solid fa-forward"></i>
+            <button (click)="skipToNext()" [disabled]="!isSpotifyConnected">
+                <i class="fa-solid fa-forward"></i>
             </button>
         </div>
 
         <div class="cancionHeader">
             <div class="portada">
-                <i class="fa-solid fa-music"></i>
+                <img *ngIf="currentTrack?.cancion?.imagen_url" 
+                     [src]="currentTrack?.cancion?.imagen_url" 
+                     [alt]="currentTrack?.cancion?.titulo"
+                     class="album-cover">
+                <i *ngIf="!currentTrack?.cancion?.imagen_url" class="fa-solid fa-music"></i>
             </div>
             <div class="infoCancion">
-                <p class="nombre">Cancion 23</p>
-                <p class="artista">Artista de prueba ft. artista 21</p>
+                <p class="nombre">{{ currentTrack?.cancion?.titulo || 'Ninguna canción' }}</p>
+                <p class="artista">{{ currentTrack?.cancion?.artista || 'Selecciona una canción' }}</p>
             </div>
         </div>
 

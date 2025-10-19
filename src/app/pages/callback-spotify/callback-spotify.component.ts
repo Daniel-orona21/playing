@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SpotifyService } from '../../services/spotify.service';
+import { EstablecimientosService } from '../../services/establecimientos.service';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -113,7 +114,8 @@ export class CallbackSpotifyComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private spotifyService: SpotifyService
+    private spotifyService: SpotifyService,
+    private estService: EstablecimientosService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -143,9 +145,20 @@ export class CallbackSpotifyComponent implements OnInit {
         return;
       }
 
+      // Obtener el establecimiento actual
+      const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
+      if (!establecimientoResponse?.establecimiento) {
+        this.error = 'No se encontró el establecimiento. Por favor, intenta de nuevo.';
+        this.isLoading = false;
+        return;
+      }
+
+      const establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
+      console.log('Establecimiento ID:', establecimientoId);
+
       console.log('Procesando callback...');
       // Procesar el callback
-      await this.spotifyService.handleCallback(code, state);
+      await this.spotifyService.handleCallback(code, state, establecimientoId);
       
       this.success = true;
       this.isLoading = false;
