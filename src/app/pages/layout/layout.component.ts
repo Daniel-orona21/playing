@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { SpotifyService, SpotifyPlaybackState } from '../../services/spotify.service';
 import { EstablecimientosService } from '../../services/establecimientos.service';
+import { MusicPlayerService } from '../../services/music-player.service';
 
 @Component({
   selector: 'app-layout',
@@ -36,7 +37,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private spotifyService: SpotifyService,
-    private estService: EstablecimientosService
+    private estService: EstablecimientosService,
+    private musicPlayerService: MusicPlayerService
   ) {}
 
   async ngOnInit() {
@@ -64,12 +66,27 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // NO suscribirse al estado de reproducción para evitar cambios automáticos
 
-    // Escuchar eventos de canción reproducida - solo actualizar la canción
+    // Escuchar eventos de canción reproducida - actualizar la canción y UI
     window.addEventListener('spotifyTrackPlayed', (event: any) => {
-      const { track } = event.detail;
+      const { track, isPlaying } = event.detail;
       this.currentTrack = track;
-      // NO cambiar isPlaying ni pause automáticamente
+      this.isPlaying = isPlaying || false;
+      this.pause = !isPlaying;
       console.log('Canción actualizada desde evento:', track);
+      console.log('Estado de reproducción:', isPlaying ? 'Reproduciendo' : 'Pausado');
+    });
+
+    // Escuchar solicitudes de skip desde otros componentes
+    window.addEventListener('musicPlayerSkipRequest', async (event: any) => {
+      const { track, establecimientoId } = event.detail;
+      console.log('🎵 Layout: Solicitud de skip recibida para:', track.titulo);
+      
+      // Primero agregar la canción a la cola
+      const userId = 1;
+      await this.spotifyService.addToQueueAndPlay(track, userId, establecimientoId);
+      
+      // Luego ejecutar skipToNext para cambiar a la nueva canción
+      await this.skipToNext();
     });
 
     // Cargar canción actual al inicializar
@@ -132,7 +149,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   async skipToNext() {
     try {
-      await this.spotifyService.skipToNext();
+      if (this.establecimientoId) {
+        const userId = 1; // Hardcoded for now - TODO: get from auth service
+        await this.spotifyService.skipToNext(this.establecimientoId, userId);
+        
+        // Recargar la canción actual después del cambio
+        await this.loadCurrentTrack();
+      }
     } catch (error) {
       console.error('Error skipping to next track:', error);
     }
@@ -176,10 +199,21 @@ export class LayoutComponent implements OnInit, OnDestroy {
       
       const response = await this.spotifyService.getCurrentPlaying(this.establecimientoId).toPromise();
       if (response?.success && response.currentTrack) {
-        this.currentTrack = response.currentTrack;
-        // NO cambiar isPlaying ni pause - mantener estado inicial
+        // Extraer la información de la canción del objeto de respuesta
+        const trackData = response.currentTrack.cancion || response.currentTrack;
+        this.currentTrack = {
+          spotify_id: trackData.spotify_id,
+          titulo: trackData.titulo,
+          artista: trackData.artista,
+          album: trackData.album,
+          duracion: trackData.duracion,
+          imagen_url: trackData.imagen_url,
+          genero: trackData.genero,
+          preview_url: trackData.preview_url
+        };
+        
         console.log('Canción actual cargada:', this.currentTrack);
-        console.log('✅ Canción mostrada en header (pausada)');
+        console.log('✅ Canción mostrada en header');
         
         // Inicializar el reproductor para que esté listo
         try {
@@ -196,6 +230,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
         } catch (initError) {
           console.warn('⚠️ No se pudo inicializar el reproductor:', initError);
         }
+      } else {
+        console.log('No hay canción reproduciéndose actualmente');
+        this.currentTrack = null;
       }
     } catch (error) {
       console.error('Error loading current track:', error);

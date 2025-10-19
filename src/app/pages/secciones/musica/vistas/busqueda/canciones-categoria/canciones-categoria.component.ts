@@ -6,6 +6,7 @@ import { SpotifyService } from '../../../../../../services/spotify.service';
 import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
 import { MusicaConfigService } from '../../../../../../services/musica-config.service';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
+import { MusicPlayerService } from '../../../../../../services/music-player.service';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,7 +14,7 @@ gsap.registerPlugin(ScrollTrigger);
   selector: 'app-canciones-categoria',
   standalone: true,
   imports: [CommonModule],
-  providers: [SpotifyService, MusicaConfigService, EstablecimientosService],
+  providers: [SpotifyService, MusicaConfigService, EstablecimientosService, MusicPlayerService],
   templateUrl: './canciones-categoria.component.html',
   styleUrl: './canciones-categoria.component.scss'
 })
@@ -30,7 +31,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     @Inject(PLATFORM_ID) private platformId: Object,
     private spotifyService: SpotifyService,
     private musicaConfigService: MusicaConfigService,
-    private estService: EstablecimientosService
+    private estService: EstablecimientosService,
+    private musicPlayerService: MusicPlayerService
   ) {}
   
   async ngOnInit() {
@@ -126,11 +128,11 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
         return;
       }
       
-      const userId = 1; // Hardcoded for now - TODO: get from auth service
+      console.log('🎵 CancionesCategoria: Solicitando reproducción de:', track.titulo);
       
-      // Reproducir la canción inmediatamente (posición 1 en la cola)
-      await this.spotifyService.addToQueueAndPlay(track, userId, this.establecimientoId);
-      console.log('✅ Track added to queue and started playing');
+      // Usar el servicio de música para solicitar reproducción (esto ejecutará skipToNext en el layout)
+      this.musicPlayerService.playTrack(track, this.establecimientoId);
+      
     } catch (error) {
       console.error('Error playing track:', error);
     }

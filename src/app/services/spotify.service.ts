@@ -522,7 +522,9 @@ export class SpotifyService {
   // Agregar canción a la cola con reproducción inmediata (posición 1)
   async addToQueueAndPlay(track: SpotifyTrack, userId: number, establecimientoId: number): Promise<void> {
     try {
-      // Agregar a la cola
+      console.log('🎵 Adding track to queue and playing immediately:', track.titulo);
+      
+      // Agregar a la cola con reproducción inmediata
       const response = await this.http.post(`${environment.apiUrl}/musica/queue`, {
         track,
         userId,
@@ -531,9 +533,9 @@ export class SpotifyService {
       }).toPromise();
       
       if (response && (response as any).success) {
-        console.log('✅ Track added to queue');
+        console.log('✅ Track added to queue and started playing');
         
-        // Actualizar UI directamente - esto funcionaba
+        // Actualizar UI directamente
         const state = {
           isPlaying: true,
           progress: 0,
@@ -592,6 +594,32 @@ export class SpotifyService {
   // Obtener canción actualmente reproduciéndose
   getCurrentPlaying(establecimientoId: number): Observable<CurrentTrackResponse> {
     return this.http.get<CurrentTrackResponse>(`${environment.apiUrl}/musica/playing/${establecimientoId}`);
+  }
+
+  // Obtener canción actualmente reproduciéndose (versión simplificada)
+  async getCurrentPlayingTrack(establecimientoId: number): Promise<SpotifyTrack | null> {
+    try {
+      const response = await this.getCurrentPlaying(establecimientoId).toPromise();
+      
+      if (response?.success && response.currentTrack?.cancion) {
+        const track = response.currentTrack.cancion;
+        return {
+          spotify_id: track.spotify_id,
+          titulo: track.titulo,
+          artista: track.artista,
+          album: track.album,
+          duracion: track.duracion,
+          imagen_url: track.imagen_url,
+          genero: track.genero,
+          preview_url: track.preview_url
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting current playing track:', error);
+      return null;
+    }
   }
 
 
@@ -842,18 +870,71 @@ export class SpotifyService {
     }
   }
 
-  // Siguiente canción
-  async skipToNext(): Promise<void> {
+  // Cambiar a la siguiente canción
+  async skipToNext(establecimientoId: number, userId: number): Promise<void> {
     try {
-      if (!this.player) {
-        console.error('No player available');
-        return;
-      }
+      console.log('⏭️ Skipping to next track');
       
-      await this.player.nextTrack();
-      console.log('⏭️ Skipped to next track');
+      // Obtener la canción actualmente reproduciéndose
+      const currentTrack = await this.getCurrentPlayingTrack(establecimientoId);
+      
+      if (currentTrack) {
+        console.log('Current track:', currentTrack.titulo);
+        
+        // Obtener el ID de la cola para la canción actual
+        const currentResponse = await this.getCurrentPlaying(establecimientoId).toPromise();
+        
+        if (currentResponse?.success && currentResponse.currentTrack) {
+          // Marcar como reproducida y pasar a la siguiente
+          const nextResponse = await this.markAsPlayed(currentResponse.currentTrack.id, establecimientoId, userId).toPromise();
+          
+          if (nextResponse?.success) {
+            console.log('✅ Moved to next track');
+            
+            // Si hay una siguiente canción, actualizar la UI
+            if (nextResponse.nextTrack) {
+              const nextTrack = nextResponse.nextTrack;
+              const state = {
+                isPlaying: true,
+                progress: 0,
+                device: { id: 'web-player' },
+                track: {
+                  spotify_id: nextTrack.cancion?.spotify_id || '',
+                  titulo: nextTrack.cancion?.titulo || '',
+                  artista: nextTrack.cancion?.artista || '',
+                  album: nextTrack.cancion?.album || '',
+                  duracion: nextTrack.cancion?.duracion || 0,
+                  imagen_url: nextTrack.cancion?.imagen_url || '',
+                  genero: nextTrack.cancion?.genero,
+                  preview_url: nextTrack.cancion?.preview_url
+                }
+              };
+              this.playbackStateSubject.next(state);
+              
+              // Emitir evento para mostrar la nueva canción en el header
+              const customEvent = new CustomEvent('spotifyTrackPlayed', { 
+                detail: { track: state.track, isPlaying: true } 
+              });
+              window.dispatchEvent(customEvent);
+              
+              console.log('✅ Next track UI updated');
+            } else {
+              console.log('No more tracks in queue');
+              // Limpiar el estado si no hay más canciones
+              this.playbackStateSubject.next(null);
+            }
+          } else {
+            throw new Error('Failed to skip to next track');
+          }
+        } else {
+          console.log('No current track in queue to skip');
+        }
+      } else {
+        console.log('No current track playing');
+      }
     } catch (error) {
       console.error('Error skipping to next track:', error);
+      throw error;
     }
   }
 
