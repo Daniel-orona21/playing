@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { EstablecimientosService, Establecimiento, Mesa } from '../../../services/establecimientos.service';
+import { SpotifyService } from '../../../services/spotify.service';
 import { io } from 'socket.io-client';
 import { environment } from '../../../../environments/environment';
 
@@ -36,8 +37,18 @@ export class AjustesComponent implements OnInit {
   openMesaId: string | number | null = null;
   tooltipSide: 'left' | 'right' = 'right';
   private socket: any;
+  
+  // Spotify properties
+  isSpotifyConnected = false;
+  spotifyLoading = false;
 
-  constructor(private authService: AuthService, private router: Router, private estService: EstablecimientosService, private sanitizer: DomSanitizer) {}
+  constructor(
+    private authService: AuthService, 
+    private router: Router, 
+    private estService: EstablecimientosService, 
+    private sanitizer: DomSanitizer,
+    private spotifyService: SpotifyService
+  ) {}
 
   ngOnInit(): void {
     this.estService.getMiEstablecimiento().subscribe({
@@ -56,6 +67,7 @@ export class AjustesComponent implements OnInit {
           this.socket.emit('join_establecimiento', this.establecimiento.id_establecimiento);
           this.socket.on('establecimiento:mesas_actualizadas', () => this.cargarMesas());
         }
+        this.checkSpotifyConnection();
       }
     });
   }
@@ -237,4 +249,39 @@ export class AjustesComponent implements OnInit {
     this.form.url_menu?.trim().length
   );
 }
+
+  // Spotify methods
+  async checkSpotifyConnection(): Promise<void> {
+    try {
+      this.isSpotifyConnected = this.spotifyService.isConnected();
+    } catch (error) {
+      console.error('Error checking Spotify connection:', error);
+      this.isSpotifyConnected = false;
+    }
+  }
+
+  async connectSpotify(): Promise<void> {
+    try {
+      this.spotifyLoading = true;
+      await this.spotifyService.connectSpotify();
+    } catch (error) {
+      console.error('Error connecting to Spotify:', error);
+      alert('Error al conectar con Spotify. Por favor, intenta de nuevo.');
+    } finally {
+      this.spotifyLoading = false;
+    }
+  }
+
+  async disconnectSpotify(): Promise<void> {
+    try {
+      this.spotifyLoading = true;
+      await this.spotifyService.disconnect();
+      this.isSpotifyConnected = false;
+    } catch (error) {
+      console.error('Error disconnecting from Spotify:', error);
+      alert('Error al desconectar de Spotify. Por favor, intenta de nuevo.');
+    } finally {
+      this.spotifyLoading = false;
+    }
+  }
 }

@@ -139,7 +139,43 @@
       </div>
     </ng-container>
 
-    
+    <!-- Sección de Spotify -->
+    <div class="seccion">
+      <div class="header">
+        <h1>Música</h1>
+      </div>
+      <div class="contenedor">
+        <div class="theme-setting" *ngIf="!isSpotifyConnected">
+          <span>Conectar con Spotify</span>
+          <button 
+            class="btn-primary" 
+            [disabled]="spotifyLoading"
+            (click)="connectSpotify()">
+            <span class="material-symbols-outlined" *ngIf="!spotifyLoading">music_note</span>
+            <span class="material-symbols-outlined" *ngIf="spotifyLoading">refresh</span>
+            {{ spotifyLoading ? 'Conectando...' : 'Conectar Spotify' }}
+          </button>
+        </div>
+        
+        <div class="theme-setting" *ngIf="isSpotifyConnected">
+          <span>Spotify conectado</span>
+          <div class="spotify-status">
+            <span class="material-symbols-outlined spotify-icon">check_circle</span>
+            <button 
+              class="btn-primary secondary" 
+              [disabled]="spotifyLoading"
+              (click)="disconnectSpotify()">
+              <span class="material-symbols-outlined">logout</span>
+              {{ spotifyLoading ? 'Desconectando...' : 'Desconectar' }}
+            </button>
+          </div>
+        </div>
+        
+        <div class="spotify-info" *ngIf="isSpotifyConnected">
+          <p>Tu cuenta de Spotify está conectada. Ahora puedes reproducir música desde la sección de música.</p>
+        </div>
+      </div>
+    </div>
 
      <div class="seccion">
       <header>

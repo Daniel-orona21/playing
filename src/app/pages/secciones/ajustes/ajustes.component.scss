@@ -632,3 +632,30 @@ color: white;
     padding: 10px 16px;
   }
 }
+
+// Spotify styles
+.spotify-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spotify-icon {
+  color: #1db954;
+  font-size: 20px;
+}
+
+.spotify-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(29, 185, 84, 0.1);
+  border-radius: 10px;
+  border-left: 3px solid #1db954;
+  
+  p {
+    margin: 0;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}

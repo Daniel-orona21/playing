@@ -10,6 +10,7 @@ import { BusquedaComponent } from './pages/secciones/musica/vistas/busqueda/busq
 import { FiltroComponent } from './pages/secciones/musica/vistas/filtro/filtro.component';
 import { OrdenesLayoutComponent } from './pages/secciones/ordenes-layout/ordenes-layout.component';
 import { UsuariosComponent } from './pages/secciones/ordenes-layout/usuarios/usuarios.component';
+import { CallbackSpotifyComponent } from './pages/callback-spotify/callback-spotify.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -45,5 +46,6 @@ export const routes: Routes = [
       { path: 'settings', component: AjustesComponent, data: { animation: 'SettingsPage' } }
     ]
   },
+  { path: 'callback/spotify', component: CallbackSpotifyComponent },
   { path: '**', component: LoginComponent },
 ];
