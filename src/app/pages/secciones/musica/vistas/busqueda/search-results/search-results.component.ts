@@ -124,20 +124,12 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   }
 
   async playTrack(track: SpotifyTrack) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      
-      const userId = 1; // Hardcoded for now - TODO: get from auth service
-      
-      // Reproducir la canción inmediatamente (posición 1 en la cola)
-      this.musicPlayerService.playTrack(track, this.establecimientoId);
-      console.log('✅ Track added to queue and started playing');
-    } catch (error) {
-      console.error('Error playing track:', error);
+    if (!this.establecimientoId) {
+      console.error('No establecimiento ID available');
+      return;
     }
+    
+    this.musicPlayerService.playTrack(track, this.establecimientoId);
   }
 
   async addToQueue(track: SpotifyTrack) {

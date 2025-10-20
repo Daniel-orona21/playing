@@ -77,16 +77,38 @@ export class LayoutComponent implements OnInit, OnDestroy {
     });
 
     // Escuchar solicitudes de skip desde otros componentes
-    window.addEventListener('musicPlayerSkipRequest', async (event: any) => {
+    window.addEventListener('musicPlayerPlayRequest', async (event: any) => {
       const { track, establecimientoId } = event.detail;
-      console.log('🎵 Layout: Solicitud de skip recibida para:', track.titulo);
+      console.log('🎵 Layout: Solicitud de reproducción recibida para:', track.titulo);
       
-      // Primero agregar la canción a la cola
-      const userId = 1;
-      await this.spotifyService.addToQueueAndPlay(track, userId, establecimientoId);
+      try {
+        // Verificar si hay una canción reproduciéndose actualmente
+        const currentTrack = await this.spotifyService.getCurrentPlayingTrack(establecimientoId);
+        
+        if (currentTrack) {
+          // Si hay canción actual, usar flujo normal
+          const userId = 1;
+          await this.spotifyService.addToQueueAndPlay(track, userId, establecimientoId);
+          await this.skipToNext();
+        } else {
+          // Si no hay canción actual, usar flujo de reproducción inicial
+          await this.handleInitialPlayback(track, establecimientoId);
+        }
+      } catch (error) {
+        console.error('Error manejando solicitud de reproducción:', error);
+      }
+    });
+
+    // Escuchar solicitudes de reproducción inicial (cuando no hay música sonando)
+    window.addEventListener('musicPlayerInitialPlayRequest', async (event: any) => {
+      const { track, establecimientoId } = event.detail;
+      console.log('🎵 Layout: Solicitud de reproducción inicial recibida para:', track.titulo);
       
-      // Luego ejecutar skipToNext para cambiar a la nueva canción
-      await this.skipToNext();
+      try {
+        await this.handleInitialPlayback(track, establecimientoId);
+      } catch (error) {
+        console.error('Error manejando reproducción inicial:', error);
+      }
     });
 
     // Cargar canción actual al inicializar
@@ -193,6 +215,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return outlet.activatedRouteData['animation'] || 'default';
   }
 
+
   async loadCurrentTrack() {
     try {
       if (!this.establecimientoId) return;
@@ -236,6 +259,36 @@ export class LayoutComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error loading current track:', error);
+    }
+  }
+
+  // Método para manejar reproducción inicial (cuando no hay música sonando)
+  private async handleInitialPlayback(track: any, establecimientoId: number): Promise<void> {
+    try {
+      console.log('🎵 Iniciando reproducción inicial para:', track.titulo);
+      
+      // PASO 1: Agregar a la cola (actualizar BD) SIN reproducir
+      const userId = 1;
+      await this.spotifyService.addToQueue(track, userId, establecimientoId).toPromise();
+      console.log('✅ BD actualizada');
+      
+      // PASO 2: Inicializar reproductor si es necesario
+      if (!this.spotifyService['player']) {
+        console.log('🔄 Inicializando reproductor...');
+        await this.spotifyService.initializePlayer(establecimientoId);
+        await this.spotifyService.waitForDevice();
+        console.log('✅ Reproductor inicializado');
+      }
+      
+      // PASO 3: Reproducir directamente usando el SDK (sin loadTrack)
+      console.log('🎵 Reproduciendo directamente con SDK...');
+      await this.spotifyService.playTrack(track, establecimientoId);
+      this.isPlaying = true;
+      this.pause = false;
+      console.log('✅ Reproducción iniciada correctamente');
+      
+    } catch (error) {
+      console.error('Error en reproducción inicial:', error);
     }
   }
 

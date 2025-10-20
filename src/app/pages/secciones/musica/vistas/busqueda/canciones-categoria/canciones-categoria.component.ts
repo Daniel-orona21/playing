@@ -122,19 +122,28 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   }
 
   async playTrack(track: SpotifyTrack) {
+    if (!this.establecimientoId) {
+      console.error('No establecimiento ID available');
+      return;
+    }
+    
+    // Verificar si hay música reproduciéndose actualmente
     try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
+      const currentTrack = await this.spotifyService.getCurrentPlayingTrack(this.establecimientoId);
+      
+      if (currentTrack) {
+        // Si hay música sonando, usar flujo normal
+        console.log('🎵 Hay música sonando, usando flujo normal');
+        this.musicPlayerService.playTrack(track, this.establecimientoId);
+      } else {
+        // Si no hay música sonando, usar flujo de reproducción inicial
+        console.log('🎵 No hay música sonando, usando flujo inicial');
+        this.musicPlayerService.playInitialTrack(track, this.establecimientoId);
       }
-      
-      console.log('🎵 CancionesCategoria: Solicitando reproducción de:', track.titulo);
-      
-      // Usar el servicio de música para solicitar reproducción (esto ejecutará skipToNext en el layout)
-      this.musicPlayerService.playTrack(track, this.establecimientoId);
-      
     } catch (error) {
-      console.error('Error playing track:', error);
+      console.error('Error verificando estado de reproducción:', error);
+      // En caso de error, usar flujo normal
+      this.musicPlayerService.playTrack(track, this.establecimientoId);
     }
   }
 
