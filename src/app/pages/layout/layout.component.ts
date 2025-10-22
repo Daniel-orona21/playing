@@ -267,10 +267,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     try {
       console.log('🎵 Iniciando reproducción inicial para:', track.titulo);
       
-      // PASO 1: Agregar a la cola (actualizar BD) SIN reproducir
+      // PASO 1: Agregar a la cola (actualizar BD) como PENDING (no playing aún)
       const userId = 1;
       await this.spotifyService.addToQueue(track, userId, establecimientoId).toPromise();
-      console.log('✅ BD actualizada');
+      console.log('✅ BD actualizada - canción agregada como PENDING');
       
       // PASO 2: Inicializar reproductor si es necesario
       if (!this.spotifyService['player']) {
@@ -280,15 +280,40 @@ export class LayoutComponent implements OnInit, OnDestroy {
         console.log('✅ Reproductor inicializado');
       }
       
-      // PASO 3: Reproducir directamente usando el SDK (sin loadTrack)
-      console.log('🎵 Reproduciendo directamente con SDK...');
+      // PASO 3: Cargar la canción usando playTrack (esto carga Y reproduce)
+      console.log('🎵 Cargando y reproduciendo canción...');
       await this.spotifyService.playTrack(track, establecimientoId);
+      
+      // PASO 4: Actualizar estado de la UI
+      this.currentTrack = track;
       this.isPlaying = true;
       this.pause = false;
+      
+      // PASO 5: Solo después de que realmente empiece a sonar, marcar como playing en BD
+      console.log('🔄 Marcando canción como PLAYING en BD...');
+      await this.markTrackAsPlaying(track, establecimientoId);
       console.log('✅ Reproducción iniciada correctamente');
       
     } catch (error) {
       console.error('Error en reproducción inicial:', error);
+    }
+  }
+
+  // Método helper para marcar una canción como playing en la BD
+  private async markTrackAsPlaying(track: any, establecimientoId: number): Promise<void> {
+    try {
+      // Buscar la canción en la cola y marcarla como playing
+      const response = await this.spotifyService.getQueue(establecimientoId).toPromise();
+      if (response?.success && response.queue) {
+        const trackInQueue = response.queue.find((q: any) => q.spotify_id === track.spotify_id);
+        if (trackInQueue) {
+          // Actualizar el status a playing
+          await this.spotifyService.updateQueueStatus(trackInQueue.id, 'playing').toPromise();
+          console.log('✅ Canción marcada como PLAYING en BD');
+        }
+      }
+    } catch (error) {
+      console.error('Error marcando canción como playing:', error);
     }
   }
 

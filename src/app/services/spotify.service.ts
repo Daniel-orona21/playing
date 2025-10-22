@@ -591,6 +591,13 @@ export class SpotifyService {
     });
   }
 
+  // Actualizar status de una canción en la cola
+  updateQueueStatus(id: number, status: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/musica/queue/${id}/status`, {
+      status
+    });
+  }
+
   // Obtener canción actualmente reproduciéndose
   getCurrentPlaying(establecimientoId: number): Observable<CurrentTrackResponse> {
     return this.http.get<CurrentTrackResponse>(`${environment.apiUrl}/musica/playing/${establecimientoId}`);
