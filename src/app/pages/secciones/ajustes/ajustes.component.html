@@ -160,7 +160,6 @@
         <div class="theme-setting" *ngIf="isSpotifyConnected">
           <span>Spotify conectado</span>
           <div class="spotify-status">
-            <span class="material-symbols-outlined spotify-icon">check_circle</span>
             <button 
               class="btn-primary secondary" 
               [disabled]="spotifyLoading"
@@ -169,10 +168,6 @@
               {{ spotifyLoading ? 'Desconectando...' : 'Desconectar' }}
             </button>
           </div>
-        </div>
-        
-        <div class="spotify-info" *ngIf="isSpotifyConnected">
-          <p>Tu cuenta de Spotify está conectada. Ahora puedes reproducir música desde la sección de música.</p>
         </div>
       </div>
     </div>

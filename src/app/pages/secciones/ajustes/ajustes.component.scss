@@ -638,6 +638,24 @@ color: white;
   display: flex;
   align-items: center;
   gap: 10px;
+
+  button {
+    background-color: $navSeleccionado;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 99px;
+    padding: 10px 20px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: color.adjust($navSeleccionado, $lightness: +10%) !important;
+    }
+  }
 }
 
 .spotify-icon {
