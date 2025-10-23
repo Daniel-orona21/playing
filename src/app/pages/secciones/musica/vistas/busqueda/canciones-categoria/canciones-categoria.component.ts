@@ -4,9 +4,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SpotifyService } from '../../../../../../services/spotify.service';
 import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
-import { MusicaConfigService } from '../../../../../../services/musica-config.service';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
-import { MusicPlayerService } from '../../../../../../services/music-player.service';
+import { PlaybackService } from '../../../../../../services/playback.service';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
   selector: 'app-canciones-categoria',
   standalone: true,
   imports: [CommonModule],
-  providers: [SpotifyService, MusicaConfigService, EstablecimientosService, MusicPlayerService],
+  providers: [SpotifyService, EstablecimientosService],
   templateUrl: './canciones-categoria.component.html',
   styleUrl: './canciones-categoria.component.scss'
 })
@@ -30,18 +29,19 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private spotifyService: SpotifyService,
-    private musicaConfigService: MusicaConfigService,
     private estService: EstablecimientosService,
-    private musicPlayerService: MusicPlayerService
+    private playbackService: PlaybackService,
   ) {}
   
   async ngOnInit() {
-    // Obtener el establecimiento actual
     try {
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Inicializar el reproductor de Spotify
+        await this.initializePlayback();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento:', error);
@@ -49,6 +49,29 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
 
     if (this.categoryName && this.establecimientoId) {
       await this.loadSongsByGenre();
+    }
+  }
+
+  async initializePlayback() {
+    if (!this.establecimientoId) {
+      console.error('❌ No establecimiento ID available for playback initialization');
+      return;
+    }
+
+    try {
+      // Verificar si ya está inicializado
+      let isInitialized = false;
+      this.playbackService.isInitialized$.subscribe(value => {
+        isInitialized = value;
+      }).unsubscribe();
+      
+      if (!isInitialized) {
+        console.log('🔄 Initializing playback service for establishment:', this.establecimientoId);
+        await this.playbackService.initialize(this.establecimientoId);
+        console.log('✅ Playback service initialized successfully!');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing playback:', error);
     }
   }
   
@@ -120,83 +143,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
       this.loading = false;
     }
   }
-
-  async playTrack(track: SpotifyTrack) {
-    if (!this.establecimientoId) {
-      console.error('No establecimiento ID available');
-      return;
-    }
-    
-    // Verificar si hay música reproduciéndose actualmente
-    try {
-      const currentTrack = await this.spotifyService.getCurrentPlayingTrack(this.establecimientoId);
-      
-      if (currentTrack) {
-        // Si hay música sonando, usar flujo normal
-        console.log('🎵 Hay música sonando, usando flujo normal');
-        this.musicPlayerService.playTrack(track, this.establecimientoId);
-      } else {
-        // Si no hay música sonando, usar flujo de reproducción inicial
-        console.log('🎵 No hay música sonando, usando flujo inicial');
-        this.musicPlayerService.playInitialTrack(track, this.establecimientoId);
-      }
-    } catch (error) {
-      console.error('Error verificando estado de reproducción:', error);
-      // En caso de error, usar flujo normal
-      this.musicPlayerService.playTrack(track, this.establecimientoId);
-    }
-  }
-
-  async addToQueue(track: SpotifyTrack) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      const userId = 1; // Hardcoded for now - TODO: get from auth service
-      await this.spotifyService.addToQueue(track, userId, this.establecimientoId).toPromise();
-      console.log('Track added to queue');
-    } catch (error) {
-      console.error('Error adding to queue:', error);
-    }
-  }
-
-  async blockTrack(track: SpotifyTrack) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      await this.musicaConfigService.addFilter({
-        establecimiento_id: this.establecimientoId,
-        tipo: 'cancion',
-        spotify_id: track.spotify_id,
-        razon: 'Bloqueado por administrador'
-      }).toPromise();
-      console.log('Track blocked');
-    } catch (error) {
-      console.error('Error blocking track:', error);
-    }
-  }
-
-  async blockGenre(genre: string) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      await this.musicaConfigService.addFilter({
-        establecimiento_id: this.establecimientoId,
-        tipo: 'genero',
-        genero: genre,
-        razon: 'Género bloqueado por administrador'
-      }).toPromise();
-      console.log('Genre blocked');
-    } catch (error) {
-      console.error('Error blocking genre:', error);
-    }
-  }
-
   goBack() {
     this.backToCategories.emit();
   }
@@ -209,6 +155,19 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
     this.menuAbierto = null; // Close the menu after action
+  }
+
+  async reproducirCancion(song: SpotifyTrack, event: Event) {
+    event.stopPropagation();
+    
+    try {
+      console.log('Playing song:', song.titulo);
+      await this.playbackService.playTrack(song.spotify_id, song);
+      console.log('Song playing successfully');
+    } catch (error) {
+      console.error('Error playing song:', error);
+      alert('Error al reproducir la canción. Asegúrate de que Spotify esté conectado.');
+    }
   }
 
   private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {

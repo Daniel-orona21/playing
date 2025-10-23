@@ -3,23 +3,23 @@
         <img src="images/wings.png" alt="" class="logo">
 
         <div class="controles">
-            <button (click)="skipToPrevious()" [disabled]="!currentTrack">
+            <button (click)="previousTrack()" [disabled]="!currentTrack">
                 <i class="fa-solid fa-backward"></i>
             </button>
 
             <div class="play">
-                <button (click)="play()" [disabled]="!currentTrack">
-                    <i class="fa-solid" [class.fa-play]="pause" [class.fa-pause]="!pause"></i>
+                <button (click)="togglePlay()" [disabled]="!currentTrack">
+                    <i class="fa-solid" [class.fa-play]="!isPlaying" [class.fa-pause]="isPlaying"></i>
                 </button>
             </div>
-            <button (click)="skipToNext()" [disabled]="!currentTrack">
+            <button (click)="nextTrack()" [disabled]="!currentTrack">
                 <i class="fa-solid fa-forward"></i>
             </button>
         </div>
 
         <div class="cancionHeader">
             <div class="portada">
-                <img *ngIf="currentTrack?.imagen_url" [src]="currentTrack.imagen_url" [alt]="currentTrack.titulo">
+                <img *ngIf="currentTrack?.imagen_url" [src]="currentTrack!.imagen_url" [alt]="currentTrack!.titulo">
                 <i *ngIf="!currentTrack?.imagen_url" class="fa-solid fa-music"></i>
             </div>
             <div class="infoCancion">

@@ -123,7 +123,6 @@ export class ListaComponent implements OnInit, AfterViewInit{
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido en lista:', this.establecimientoId);
-        await this.loadQueue();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento en lista:', error);
@@ -131,28 +130,7 @@ export class ListaComponent implements OnInit, AfterViewInit{
 
     // Escuchar eventos de canción reproducida para recargar la cola
     window.addEventListener('spotifyTrackPlayed', () => {
-      this.loadQueue();
     });
-  }
-
-  async loadQueue() {
-    try {
-      this.loading = true;
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      
-      const response = await this.spotifyService.getQueue(this.establecimientoId).toPromise();
-      if (response?.success) {
-        this.aContinuacion = response.queue;
-        console.log('Cola cargada:', this.aContinuacion.length, 'canciones');
-      }
-    } catch (error) {
-      console.error('Error loading queue:', error);
-    } finally {
-      this.loading = false;
-    }
   }
 
   async eliminarCancion(index: number) {
@@ -162,9 +140,6 @@ export class ListaComponent implements OnInit, AfterViewInit{
         console.error('No song found at index:', index);
         return;
       }
-
-      // Eliminar de la base de datos
-      await this.spotifyService.removeFromQueue(cancion.id).toPromise();
       
       const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion:nth-child(${index + 1})`) as HTMLElement;
       if (cancionElement) {

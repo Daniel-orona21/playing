@@ -93,17 +93,6 @@ export class BusquedaComponent implements OnInit, AfterViewInit {
       }
     } catch (error) {
       console.error('Error loading genres:', error);
-      // Fallback a géneros por defecto
-      this.generosMusicales = [
-        { nombre: 'Pop', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Rock', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Hip-Hop', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Electronic', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Jazz', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Classical', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'Country', backgroundColor: this.getRandomBackgroundColor() },
-        { nombre: 'R&B', backgroundColor: this.getRandomBackgroundColor() }
-      ];
     } finally {
       this.loading = false;
     }

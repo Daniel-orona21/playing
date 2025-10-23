@@ -4,9 +4,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SpotifyService } from '../../../../../../services/spotify.service';
 import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
-import { MusicaConfigService } from '../../../../../../services/musica-config.service';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
-import { MusicPlayerService } from '../../../../../../services/music-player.service';
+import { PlaybackService } from '../../../../../../services/playback.service';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
   selector: 'app-search-results',
   standalone: true,
   imports: [CommonModule],
-  providers: [SpotifyService, MusicaConfigService, EstablecimientosService, MusicPlayerService],
+  providers: [SpotifyService, EstablecimientosService],
   templateUrl: './search-results.component.html',
   styleUrl: './search-results.component.scss'
 })
@@ -28,9 +27,8 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private spotifyService: SpotifyService,
-    private musicaConfigService: MusicaConfigService,
     private estService: EstablecimientosService,
-    private musicPlayerService: MusicPlayerService
+    private playbackService: PlaybackService,
   ) {}
 
   async ngOnInit() {
@@ -40,6 +38,9 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Inicializar el reproductor de Spotify
+        await this.initializePlayback();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento:', error);
@@ -47,6 +48,42 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
 
     if (this.searchTerm && this.establecimientoId) {
       await this.searchSongs();
+    }
+  }
+
+  async initializePlayback() {
+    console.log('🎵 initializePlayback called');
+    console.log('establecimientoId:', this.establecimientoId);
+    
+    if (!this.establecimientoId) {
+      console.error('❌ No establecimiento ID available for playback initialization');
+      return;
+    }
+
+    try {
+      // Verificar si ya está inicializado (obtener el valor actual del BehaviorSubject)
+      const currentState = this.playbackService.getCurrentState();
+      console.log('Current playback state:', currentState);
+      
+      // Verificar si está inicializado directamente
+      let isInitialized = false;
+      this.playbackService.isInitialized$.subscribe(value => {
+        isInitialized = value;
+      }).unsubscribe();
+      
+      console.log('isInitialized:', isInitialized);
+      
+      if (!isInitialized) {
+        console.log('🔄 Initializing playback service for establishment:', this.establecimientoId);
+        await this.playbackService.initialize(this.establecimientoId);
+        console.log('✅ Playback service initialized successfully!');
+      } else {
+        console.log('✅ Playback service already initialized');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing playback:', error);
+      console.error('Error details:', error);
+      alert(`Error al inicializar el reproductor: ${error}`);
     }
   }
 
@@ -123,46 +160,6 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     }
   }
 
-  async playTrack(track: SpotifyTrack) {
-    if (!this.establecimientoId) {
-      console.error('No establecimiento ID available');
-      return;
-    }
-    
-    this.musicPlayerService.playTrack(track, this.establecimientoId);
-  }
-
-  async addToQueue(track: SpotifyTrack) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      const userId = 1; // Hardcoded for now - TODO: get from auth service
-      await this.spotifyService.addToQueue(track, userId, this.establecimientoId).toPromise();
-      console.log('Track added to queue');
-    } catch (error) {
-      console.error('Error adding to queue:', error);
-    }
-  }
-
-  async blockTrack(track: SpotifyTrack) {
-    try {
-      if (!this.establecimientoId) {
-        console.error('No establecimiento ID available');
-        return;
-      }
-      await this.musicaConfigService.addFilter({
-        establecimiento_id: this.establecimientoId,
-        tipo: 'cancion',
-        spotify_id: track.spotify_id,
-        razon: 'Bloqueado por administrador'
-      }).toPromise();
-      console.log('Track blocked');
-    } catch (error) {
-      console.error('Error blocking track:', error);
-    }
-  }
 
   abrirMenu(index: number, event: Event) {
     event.stopPropagation();
@@ -172,6 +169,19 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
     this.menuAbierto = null;
+  }
+
+  async reproducirCancion(song: SpotifyTrack, event: Event) {
+    event.stopPropagation();
+    
+    try {
+      console.log('Playing song:', song.titulo);
+      await this.playbackService.playTrack(song.spotify_id, song);
+      console.log('Song playing successfully');
+    } catch (error) {
+      console.error('Error playing song:', error);
+      alert('Error al reproducir la canción. Asegúrate de que Spotify esté conectado.');
+    }
   }
 
   private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {

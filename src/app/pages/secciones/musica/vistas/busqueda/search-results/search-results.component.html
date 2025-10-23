@@ -9,7 +9,7 @@
             <p>Buscando canciones...</p>
         </div>
         
-        <div class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="playTrack(song)">
+        <div class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="reproducirCancion(song, $event)">
             <div class="portada">
                 <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
                 <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
@@ -24,16 +24,14 @@
                 class="menu-flotante"
                 (click)="$event.stopPropagation()">
                 <button 
-                    class="opcion" 
-                    (click)="addToQueue(song)">
+                    class="opcion">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>
                     <span>Agregar a la fila</span>
                 </button>
                 <button 
-                    class="opcion eliminar" 
-                    (click)="blockTrack(song)">
+                    class="opcion eliminar">
                     <span class="material-symbols-outlined">
                         block
                         </span>

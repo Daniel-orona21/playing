@@ -271,19 +271,6 @@ export class AjustesComponent implements OnInit {
       console.log('Credentials received:', credentials);
       this.isSpotifyConnected = !!credentials;
       console.log('isSpotifyConnected set to:', this.isSpotifyConnected);
-      
-      // Si hay credenciales pero el player no está inicializado, inicializarlo
-      if (credentials && !this.spotifyService.isConnected()) {
-        console.log('Initializing Spotify player...');
-        try {
-          await this.spotifyService.initializePlayer(this.establecimiento.id_establecimiento);
-          console.log('Spotify player initialized successfully');
-        } catch (error) {
-          console.error('Error initializing Spotify player:', error);
-          // Si falla la inicialización, marcar como desconectado
-          this.isSpotifyConnected = false;
-        }
-      }
     } catch (error) {
       console.error('Error checking Spotify connection:', error);
       this.isSpotifyConnected = false;

@@ -2,10 +2,6 @@
     <div class="side continuacion">
         <h2>A continuación...</h2>
         <div class="canciones">
-            <div *ngIf="loading" class="loading">
-                <i class="fa-solid fa-spinner fa-spin"></i>
-                <p>Cargando cola...</p>
-            </div>
             <div 
                 *ngFor="let cancion of aContinuacion; let i = index" 
                 class="cancion cancionLista"

@@ -1,9 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { SpotifyService } from '../../../services/spotify.service';
 
 @Component({
   selector: 'app-musica',
@@ -20,11 +19,11 @@ import { SpotifyService } from '../../../services/spotify.service';
     ])
   ]
 })
-export class MusicaComponent implements OnInit, OnDestroy {
+export class MusicaComponent implements OnInit {
   selectedTab: string = 'lista';
   showSpotifyInstructions = false;
 
-  constructor(private router: Router, private spotifyService: SpotifyService) {}
+  constructor(private router: Router) {}
 
   ngOnInit() {
     // Establecer el tab inicial basado en la URL actual
@@ -36,11 +35,6 @@ export class MusicaComponent implements OnInit, OnDestroy {
       .subscribe((event: NavigationEnd) => {
         this.updateSelectedTabFromUrl();
       });
-
-    // Escuchar evento para mostrar instrucciones de Spotify
-    window.addEventListener('showSpotifyInstructions', () => {
-      this.showInstructions();
-    });
   }
 
   private updateSelectedTabFromUrl() {
@@ -61,19 +55,5 @@ export class MusicaComponent implements OnInit, OnDestroy {
 
   prepareRoute(outlet: RouterOutlet) {
     return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
-  }
-
-  showInstructions() {
-    this.showSpotifyInstructions = true;
-  }
-
-  hideInstructions() {
-    this.showSpotifyInstructions = false;
-  }
-
-  ngOnDestroy() {
-    window.removeEventListener('showSpotifyInstructions', () => {
-      this.showInstructions();
-    });
   }
 }

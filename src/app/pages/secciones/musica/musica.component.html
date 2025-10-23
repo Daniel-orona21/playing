@@ -26,31 +26,3 @@
         <router-outlet #outlet="outlet"></router-outlet>
     </div>
 </div>
-
-<!-- Instrucciones de Spotify -->
-<div class="spotify-instructions" *ngIf="showSpotifyInstructions">
-    <div class="instructions-content">
-        <h3>🎵 Instrucciones para reproducir música</h3>
-        <div class="steps">
-            <div class="step">
-                <span class="step-number">1</span>
-                <p>Abre la aplicación de Spotify en tu dispositivo</p>
-            </div>
-            <div class="step">
-                <span class="step-number">2</span>
-                <p>Reproduce cualquier canción por unos segundos</p>
-            </div>
-            <div class="step">
-                <span class="step-number">3</span>
-                <p>Regresa aquí y selecciona una canción</p>
-            </div>
-        </div>
-        <div class="note">
-            <p><strong>Nota:</strong> Spotify requiere interacción del usuario antes de permitir reproducción automática.</p>
-        </div>
-        <button class="close-btn" (click)="hideInstructions()">
-            <span class="material-symbols-outlined">close</span>
-            Entendido
-        </button>
-    </div>
-</div>
