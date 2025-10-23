@@ -10,12 +10,49 @@
     padding-top: 1rem;
 }
 
-.buscador {
-    width: 32%;
+.contenedorBuscador {
+    display: flex;
+    width: auto;
+    gap: 15px;
+
+    button {
+        width: 4rem;
+        border-radius: 99px;
+        background-color: $contenedor;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        border: none;
+        pointer-events: none;
+        opacity: 0;
+        transition: all .3s ease;
+        transform: translateX(-5rem);
+        
+        span {
+            color: white;
+        }
+        
+        &:hover {
+            background-color: color.adjust($contenedor, $lightness: +5%) !important;
+        }
+        &:active {
+            background-color: color.adjust($contenedor, $lightness: +25%) !important;
+        }
+        
+        &.activo {
+            cursor: pointer;
+            opacity: 1;
+            pointer-events: all !important;
+            transform: translateX(-0rem);
+        }
+
+    }
+
+    .buscador {
     position: relative;
+    width: calc(33.3333333% - 15px);
 
     input {
-
         background-color: $contenedor;
         border: none;
         border-radius: 99px;
@@ -36,6 +73,7 @@
         font-size: 20px;
         font-weight: 100;
     }
+}
 }
 
 .scroll {

@@ -73,19 +73,20 @@ header {
         display: flex;
         height: 100%;
         position: relative;
-        min-width: 330px;
+        width: 400px;
 
         .portada {
-            background-color: $contenedorOscuro;
+            background-color: $contenedor;
             aspect-ratio: 1/1 !important;
             display: flex;
+            max-height: 100%;
             align-items: center;
             justify-content: center;
             position: relative;
             flex-shrink: 0;
             overflow: hidden;
 
-            .album-cover {
+            img {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;

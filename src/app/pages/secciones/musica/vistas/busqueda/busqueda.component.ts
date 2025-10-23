@@ -21,7 +21,7 @@ gsap.registerPlugin(ScrollTrigger);
 })
 export class BusquedaComponent implements OnInit, AfterViewInit {
 
-  searchTerm: string = ''; // Property to hold the search term
+  searchTerm: string = ''; 
   generosMusicales: any[] = [];
   loading = true;
   private searchTimeout: any;
@@ -41,6 +41,10 @@ export class BusquedaComponent implements OnInit, AfterViewInit {
         this._setupCategoryAnimations();
       }
     }
+  }
+
+  limpiarBuscador(){
+    this.searchTerm= '';
   }
 
   private _setupCategoryAnimations(): void {
