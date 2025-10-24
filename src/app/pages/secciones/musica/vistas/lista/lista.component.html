@@ -60,12 +60,12 @@
                     <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.nombre">
                     <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
                 </div>
-                <div class="infoCancionFila">
+                <div class="infoCancion">
                     <div class="datosCancion">
                         <p class="nombre">{{ cancion.nombre }}</p>
                         <p class="artista">{{ cancion.artista }}</p>
                     </div>
-                    <p class="posicion" *ngIf="cancion.usuario_nombre">De {{ cancion.usuario_nombre }}</p>
+                    <p class="posicion" *ngIf="cancion.usuario_nombre">De <span class="nombreU">{{ cancion.usuario_nombre }}</span></p>
                     </div>
             </div>
             <div *ngIf="!loading && historial.length === 0" class="no-songs">

@@ -148,14 +148,12 @@
         }
 
         .menu-flotante {
-            position: absolute;
-            top: 50%;
-            right: 50px; /* Adjust as needed */
-            transform: translateY(-50%);
+            position: fixed; /* ✅ Cambiado de absolute a fixed para escapar del overflow */
+            /* top y left se manejan dinámicamente desde TypeScript */
             border-radius: 20px;
             padding: 5px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 10;
+            z-index: 1000; /* ✅ z-index alto para estar por encima de todo */
             display: flex;
             flex-direction: column;
             gap: 5px;

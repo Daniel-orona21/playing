@@ -27,6 +27,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   loading = true;
   menuAbierto: number | null = null;
   establecimientoId: number | null = null;
+  menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
   
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -158,7 +159,22 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
 
   abrirMenu(index: number, event: Event) {
     event.stopPropagation(); // Prevent the click from propagating to the song container
-    this.menuAbierto = this.menuAbierto === index ? null : index;
+    
+    if (this.menuAbierto === index) {
+      this.menuAbierto = null;
+    } else {
+      this.menuAbierto = index;
+      
+      // Calcular posición del botón
+      const button = event.target as HTMLElement;
+      const rect = button.getBoundingClientRect();
+      
+      // Posicionar el menú justo debajo del botón
+      this.menuPosition = {
+        top: rect.bottom + 5, // 5px debajo del botón
+        left: rect.right - 200 // Alineado a la derecha (asumiendo ancho de menú ~200px)
+      };
+    }
   }
 
   eliminarCancion(index: number) {

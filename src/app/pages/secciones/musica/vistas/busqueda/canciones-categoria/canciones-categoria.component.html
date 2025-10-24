@@ -52,6 +52,8 @@
             <div 
                 *ngIf="menuAbierto === i" 
                 class="menu-flotante"
+                [style.top.px]="menuPosition.top"
+                [style.left.px]="menuPosition.left"
                 (click)="$event.stopPropagation()">
                 <button 
                     class="opcion"
