@@ -4,7 +4,6 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SpotifyService } from '../../../../../services/spotify.service';
 import { EstablecimientosService } from '../../../../../services/establecimientos.service';
-import { SpotifyTrack } from '../../../../../models/musica.interfaces';
 
 interface Cancion {
   id: number;
@@ -14,6 +13,8 @@ interface Cancion {
   album?: string;
   year?: number;
   imagen_url?: string;
+  usuario_id?: number;
+  usuario_nombre?: string;
 }
 
 @Component({
@@ -99,17 +100,11 @@ export class ListaComponent implements OnInit, AfterViewInit{
   establecimientoId: number | null = null;
   loading = true;
 
-  historial: Cancion[] = [
-    { id: 8, nombre: 'Cancion 17', artista: 'Artista de prueba', duracion: '3:20', album: 'Album 1', year: 2024 },
-    { id: 9, nombre: 'Cancion 18', artista: 'Artista de prueba', duracion: '4:05', album: 'Album 1', year: 2024 },
-    { id: 10, nombre: 'Cancion 19', artista: 'Artista de prueba', duracion: '3:45', album: 'Album 2', year: 2024 },
-    { id: 11, nombre: 'Cancion 20', artista: 'Artista de prueba', duracion: '3:38', album: 'Album 2', year: 2024 },
-    { id: 12, nombre: 'Cancion 21', artista: 'Artista de prueba', duracion: '4:15', album: 'Album 3', year: 2024 },
-    { id: 13, nombre: 'Cancion 22', artista: 'Artista de prueba', duracion: '3:30', album: 'Album 3', year: 2024 },
-    { id: 14, nombre: 'Cancion 23', artista: 'Artista de prueba', duracion: '3:55', album: 'Album 4', year: 2024 }
-  ];
+  historial: Cancion[] = [];
 
   menuAbierto: number | null = null;
+  isDeleting = false; // ✅ Flag para evitar recargas durante eliminación
+  deletingIds: Set<number> = new Set(); // ✅ IDs de canciones que se están eliminando
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -136,12 +131,16 @@ export class ListaComponent implements OnInit, AfterViewInit{
 
     // Escuchar eventos de canción reproducida para recargar la cola
     window.addEventListener('spotifyTrackPlayed', () => {
-      this.cargarCola();
+      if (!this.isDeleting) {
+        this.cargarCola();
+      }
     });
 
     // Escuchar eventos de actualización de cola
     window.addEventListener('queueUpdated', () => {
-      this.cargarCola();
+      if (!this.isDeleting) {
+        this.cargarCola();
+      }
     });
   }
 
@@ -198,7 +197,9 @@ export class ListaComponent implements OnInit, AfterViewInit{
           artista: item.artista,
           duracion: this.formatDuration(item.duracion),
           album: item.album,
-          imagen_url: item.imagen_url
+          imagen_url: item.imagen_url,
+          usuario_id: item.usuario_id,
+          usuario_nombre: item.usuario_nombre
         }));
         console.log('History loaded:', this.historial.length, 'songs');
       }
@@ -214,23 +215,42 @@ export class ListaComponent implements OnInit, AfterViewInit{
   }
 
   async eliminarCancion(index: number) {
+    const cancion = this.aContinuacion[index];
+    if (!cancion) {
+      console.error('No song found at index:', index);
+      return;
+    }
+
+    // Verificar si ya se está eliminando esta canción
+    if (this.deletingIds.has(cancion.id)) {
+      console.log('Esta canción ya se está eliminando');
+      return;
+    }
+
+    console.log('🗑️ Starting deletion for song:', cancion.id, cancion.titulo, 'at index:', index);
+
     try {
-      const cancion = this.aContinuacion[index];
-      if (!cancion) {
-        console.error('No song found at index:', index);
-        return;
-      }
+      // 1. Marcar como eliminando para bloquear event listeners
+      this.isDeleting = true;
+      this.deletingIds.add(cancion.id);
       
-      // Eliminar de la base de datos
-      console.log('Removing song from queue:', cancion.id);
+      // 2. Eliminar de la base de datos PRIMERO
+      console.log('🗑️ Deleting from database:', cancion.id);
       const response = await this.spotifyService.removeFromQueue(cancion.id).toPromise();
       
-      if (response?.success) {
-        console.log('Song removed from queue successfully');
-        
-        // Animación de eliminación
-        const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion:nth-child(${index + 1})`) as HTMLElement;
-        if (cancionElement) {
+      if (!response?.success) {
+        throw new Error('Failed to remove song from queue');
+      }
+      
+      console.log('✅ Deleted from database');
+      
+      // 3. Encontrar el elemento DOM correcto por su ID (no por index)
+      const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion[data-song-id="${cancion.id}"]`) as HTMLElement;
+      console.log('🎯 Found element to animate:', cancionElement ? 'YES' : 'NO');
+      
+      if (cancionElement) {
+        // 4. Animar el elemento
+        await new Promise<void>((resolve) => {
           gsap.to(cancionElement, {
             opacity: 0,
             height: 0,
@@ -241,24 +261,33 @@ export class ListaComponent implements OnInit, AfterViewInit{
             duration: 0.3,
             ease: "power1.out",
             onComplete: () => {
-              this.aContinuacion.splice(index, 1);
-              this.menuAbierto = null;
-              ScrollTrigger.refresh();
-              console.log('ScrollTrigger refreshed after animated deletion.');
+              console.log('✅ Animation completed');
+              resolve();
             }
           });
-        } else {
-          this.aContinuacion.splice(index, 1);
-          this.menuAbierto = null;
-          ScrollTrigger.refresh();
-          console.log('ScrollTrigger refreshed after direct deletion (element not found).');
-        }
-      } else {
-        throw new Error('Failed to remove song from queue');
+        });
       }
+      
+      // 5. Eliminar del array local después de la animación
+      const indexToRemove = this.aContinuacion.findIndex(item => item.id === cancion.id);
+      if (indexToRemove !== -1) {
+        this.aContinuacion.splice(indexToRemove, 1);
+        console.log('✅ Removed from local array');
+      }
+      
+      this.menuAbierto = null;
+      ScrollTrigger.refresh();
+      
     } catch (error) {
-      console.error('Error removing song from queue:', error);
+      console.error('❌ Error removing song from queue:', error);
       alert('Error al eliminar la canción de la cola');
+      // Si hay error, recargar para tener el estado correcto
+      await this.cargarCola();
+    } finally {
+      // SIEMPRE limpiar al final
+      this.deletingIds.delete(cancion.id);
+      this.isDeleting = false;
+      console.log('🔓 Deletion process finished');
     }
   }
 

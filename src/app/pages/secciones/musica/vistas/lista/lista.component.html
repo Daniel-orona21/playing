@@ -2,42 +2,49 @@
     <div class="side continuacion">
         <h2>A continuación...</h2>
         <div class="canciones">
-            <div 
-                *ngFor="let cancion of aContinuacion; let i = index" 
-                class="cancion cancionLista"
-                [class.menu-abierto]="menuAbierto === i"
-                [class.playing]="cancion.status === 'playing'">
-                <div class="portada">
+            <ng-container *ngFor="let cancion of aContinuacion; let i = index">
+                <div 
+                    *ngIf="cancion.posicion !== 1"
+                    class="cancion cancionLista"
+                    [class.menu-abierto]="menuAbierto === i"
+                    [class.playing]="cancion.status === 'playing'"
+                    [attr.data-song-id]="cancion.id">
+                    
+                    <div class="portada">
                     <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.titulo">
                     <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
-                </div>
-                <div class="infoCancion">
-                    <p class="nombre">{{ cancion.titulo }}</p>
-                    <p class="artista">{{ cancion.artista }}</p>
-                    <p class="posicion" *ngIf="cancion.posicion">Posición: {{ cancion.posicion }}</p>
-                </div>
-                <div class="acciones">
+                    </div>
+
+                    <div class="infoCancionFila">
+                    <div class="datosCancion">
+                        <p class="nombre">{{ cancion.titulo }}</p>
+                        <p class="artista">{{ cancion.artista }}</p>
+                    </div>
+                    <p class="posicion" *ngIf="cancion.usuario_nombre">De {{ cancion.usuario_nombre }}</p>
+                    </div>
+
+                    <div class="acciones">
                     <button 
                         class="mas"
                         (click)="abrirMenu(i, $event)">
                         <i class="fa-solid fa-ellipsis"></i>
                     </button>
+
                     <div 
                         *ngIf="menuAbierto === i" 
                         class="menu-flotante"
                         (click)="$event.stopPropagation()">
                         <button 
-                            class="opcion eliminar" 
-                            (click)="eliminarCancion(i)">
-                            <span class="material-symbols-outlined">
-                                close
-                                </span>
-                            <span>Eliminar</span>
+                        class="opcion eliminar" 
+                        (click)="eliminarCancion(i)">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Eliminar</span>
                         </button>
                     </div>
+                    </div>
                 </div>
-            </div>
-            <div *ngIf="!loading && aContinuacion.length === 0" class="no-songs">
+                </ng-container>
+            <div *ngIf="!loading && aContinuacion.length < 2" class="no-songs">
                 <i class="fa-solid fa-music"></i>
                 <p>No hay canciones en la cola</p>
             </div>
@@ -53,10 +60,13 @@
                     <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.nombre">
                     <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
                 </div>
-                <div class="infoCancion">
-                    <p class="nombre">{{ cancion.nombre }}</p>
-                    <p class="artista">{{ cancion.artista }}</p>
-                </div>
+                <div class="infoCancionFila">
+                    <div class="datosCancion">
+                        <p class="nombre">{{ cancion.nombre }}</p>
+                        <p class="artista">{{ cancion.artista }}</p>
+                    </div>
+                    <p class="posicion" *ngIf="cancion.usuario_nombre">De {{ cancion.usuario_nombre }}</p>
+                    </div>
             </div>
             <div *ngIf="!loading && historial.length === 0" class="no-songs">
                 <i class="fa-solid fa-history"></i>
