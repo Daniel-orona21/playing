@@ -193,7 +193,7 @@ export class ListaComponent implements OnInit, AfterViewInit{
 
     try {
       console.log('Loading history for establecimiento:', this.establecimientoId);
-      const response = await this.spotifyService.getHistory(this.establecimientoId, 10).toPromise();
+      const response = await this.spotifyService.getHistory(this.establecimientoId, 100).toPromise();
       
       if (response?.success) {
         this.historial = response.history.map((item: any) => ({
