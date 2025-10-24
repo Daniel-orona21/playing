@@ -19,6 +19,7 @@ interface Cancion {
 
 @Component({
   selector: 'app-lista',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'

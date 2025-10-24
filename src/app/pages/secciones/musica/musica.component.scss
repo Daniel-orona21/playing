@@ -54,10 +54,22 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    position: relative;
 
-    ::ng-deep router-outlet + * {
+    // Asegurar que todos los componentes hijos ocupen el espacio completo
+    > app-lista,
+    > app-busqueda,
+    > app-filtro {
         width: 100%;
         height: 100%;
         display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        
+        // Asegurar que [hidden] funcione correctamente
+        &[hidden] {
+            display: none !important;
+        }
     }
 }

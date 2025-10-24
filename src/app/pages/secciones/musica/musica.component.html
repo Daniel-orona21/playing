@@ -22,7 +22,9 @@
             </span>
         </button>
     </div>
-    <div class="tab" [@routeAnimations]="prepareRoute(outlet)">
-        <router-outlet #outlet="outlet"></router-outlet>
+    <div class="tab">
+        <app-lista [hidden]="selectedTab !== 'lista'"></app-lista>
+        <app-busqueda [hidden]="selectedTab !== 'busqueda'"></app-busqueda>
+        <app-filtro [hidden]="selectedTab !== 'filtro'"></app-filtro>
     </div>
 </div>

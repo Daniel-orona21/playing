@@ -1,23 +1,17 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { trigger, transition, style, animate } from '@angular/animations';
+import { ListaComponent } from './vistas/lista/lista.component';
+import { BusquedaComponent } from './vistas/busqueda/busqueda.component';
+import { FiltroComponent } from './vistas/filtro/filtro.component';
 
 @Component({
   selector: 'app-musica',
   standalone: true,
-  imports: [RouterOutlet, CommonModule],
+  imports: [CommonModule, ListaComponent, BusquedaComponent, FiltroComponent],
   templateUrl: './musica.component.html',
-  styleUrl: './musica.component.scss',
-  animations: [
-    trigger('routeAnimations', [
-      transition('* <=> *', [
-        style({ opacity: 0 }),
-        animate('300ms ease-in-out', style({ opacity: 1 }))
-      ])
-    ])
-  ]
+  styleUrl: './musica.component.scss'
 })
 export class MusicaComponent implements OnInit {
   selectedTab: string = 'lista';
@@ -50,10 +44,8 @@ export class MusicaComponent implements OnInit {
 
   selectTab(tab: string) {
     this.selectedTab = tab;
-    this.router.navigate(['/layout/music', tab]);
-  }
-
-  prepareRoute(outlet: RouterOutlet) {
-    return outlet && outlet.activatedRouteData && outlet.activatedRouteData['animation'];
+    // Ya no navegamos, solo cambiamos el tab
+    // Opcional: actualizar la URL sin navegar
+    this.router.navigate(['/layout/music', tab], { skipLocationChange: false });
   }
 }
