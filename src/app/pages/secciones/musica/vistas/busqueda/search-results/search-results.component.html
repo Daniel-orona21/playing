@@ -1,8 +1,54 @@
 <div class="search-results-container">
-    <div class="header">
-        <h3>Resultados de búsqueda para: <strong>{{ searchTerm }}</strong></h3>
+    <!-- Vista de canciones de artista -->
+    <app-canciones-artista 
+        *ngIf="selectedArtist" 
+        [artist]="selectedArtist" 
+        (backToResults)="clearArtist()">
+    </app-canciones-artista>
+
+    <!-- Vista de resultados de búsqueda -->
+    <div *ngIf="!selectedArtist">
+        <div class="header">
+            <h3>Resultados de búsqueda para: <strong>{{ searchTerm }}</strong></h3>
+        </div>
+
+        <!-- Sección de Artistas -->
+        <div class="artists-section" *ngIf="!loading && artists.length > 0">
+            <h4 class="section-title">Artistas</h4>
+            <div class="artists-grid">
+                <div class="artista" *ngFor="let artist of artists; let i = index" [class.menu-abierto]="menuArtistaAbierto === i" (click)="selectArtist(artist)">
+                <div class="portada-artista">
+                    <img *ngIf="artist.imagen_url" [src]="artist.imagen_url" [alt]="artist.nombre">
+                    <i *ngIf="!artist.imagen_url" class="fa-solid fa-user"></i>
+                </div>
+                <div class="infoArtista">
+                    <p class="nombreArtista">{{artist.nombre}}</p>
+                </div>
+                <!-- <button class="mas" (click)="abrirMenuArtista(i, $event)"><i class="fa-solid fa-ellipsis"></i></button> -->
+                <div 
+                    *ngIf="menuArtistaAbierto === i" 
+                    class="menu-flotante"
+                    [style.top.px]="menuArtistaPosition.top"
+                    [style.left.px]="menuArtistaPosition.left"
+                    (click)="$event.stopPropagation()">
+                    <button 
+                        class="opcion eliminar"
+                        (click)="bloquearArtista(artist)">
+                        <span class="material-symbols-outlined">
+                            block
+                        </span>
+                        <span>Bloquear artista</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Sección de Canciones -->
+    
+    <div class="songs-section" *ngIf="!loading && songs.length > 0">
+        <h4 class="section-title">Canciones</h4>
+    </div>
     <div class="songs-grid">
         <div *ngIf="loading" class="loading">
             <!-- From Uiverse.io by SelfMadeSystem --> 
@@ -63,9 +109,10 @@
                 </button>
             </div>
         </div>
-        <div *ngIf="!loading && songs.length === 0" class="no-results">
+        <div *ngIf="!loading && songs.length === 0 && artists.length === 0" class="no-results">
             <i class="fa-solid fa-music"></i>
-            <p>No se encontraron canciones</p>
+            <p>No se encontraron resultados</p>
         </div>
+    </div>
     </div>
 </div>

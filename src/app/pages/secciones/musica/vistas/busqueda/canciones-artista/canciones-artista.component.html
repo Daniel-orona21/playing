@@ -1,0 +1,76 @@
+<div class="artista-container">
+    <div class="header">
+        <div class="izq">
+            <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>{{ artist?.nombre }}</h2>
+        </div>
+        <button>
+            <span class="material-symbols-outlined">
+                block
+            </span>
+            <p>Bloquear artista</p>
+        </button>
+    </div>
+
+    <div [class.bloqueado]="bloqueado" class="songs-grid">
+         <div *ngIf="loading" class="loading">
+            <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+            <circle
+                class="active"
+                pathLength="360"
+                fill="transparent"
+                stroke-width="32"
+                cx="192"
+                cy="192"
+                r="176"
+            ></circle>
+            <circle
+                class="track"
+                pathLength="360"
+                fill="transparent"
+                stroke-width="32"
+                cx="192"
+                cy="192"
+                r="176"
+            ></circle>
+            </svg>
+
+            <p>Cargando canciones...</p>
+        </div>
+        
+        <div [class.bloqueado]="bloqueado" class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="reproducirCancion(song, $event)">
+            <div class="portada">
+                <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
+                <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
+            </div>
+            <div class="infoCancion">
+                <p class="nombreCancion">{{song.titulo}}</p>
+                <p class="artista">{{song.artista}}</p>
+            </div>
+            <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
+            <div 
+                *ngIf="menuAbierto === i" 
+                class="menu-flotante"
+                [style.top.px]="menuPosition.top"
+                [style.left.px]="menuPosition.left"
+                (click)="$event.stopPropagation()">
+                <button 
+                    class="opcion"
+                    (click)="agregarALaCola(song, true); menuAbierto = null">
+                    <span class="material-symbols-outlined">
+                        playlist_play
+                        </span>
+                    <span>Agregar a la fila</span>
+                </button>
+                <button 
+                    class="opcion eliminar">
+                    <span class="material-symbols-outlined">
+                        block
+                        </span>
+                    <span>Bloquear canción</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

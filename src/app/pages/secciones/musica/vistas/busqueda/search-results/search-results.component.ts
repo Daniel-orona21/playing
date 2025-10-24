@@ -3,18 +3,19 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SpotifyService } from '../../../../../../services/spotify.service';
-import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
+import { SpotifyTrack, SpotifyArtist } from '../../../../../../models/musica.interfaces';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
 import { PlaybackService } from '../../../../../../services/playback.service';
 import { AuthService } from '../../../../../../services/auth.service';
 import { QueueManagerService } from '../../../../../../services/queue-manager.service';
+import { CancionesArtistaComponent } from '../canciones-artista/canciones-artista.component';
 
 gsap.registerPlugin(ScrollTrigger);
 
 @Component({
   selector: 'app-search-results',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CancionesArtistaComponent],
   providers: [SpotifyService, EstablecimientosService],
   templateUrl: './search-results.component.html',
   styleUrl: './search-results.component.scss'
@@ -22,10 +23,14 @@ gsap.registerPlugin(ScrollTrigger);
 export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() searchTerm: string = '';
   songs: SpotifyTrack[] = [];
+  artists: SpotifyArtist[] = [];
+  selectedArtist: SpotifyArtist | null = null;
   loading = true;
   menuAbierto: number | null = null;
+  menuArtistaAbierto: number | null = null;
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
+  menuArtistaPosition = { top: 0, left: 0 }; // Posición del menú flotante de artistas
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -126,13 +131,14 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   }
 
   @HostListener('document:click', ['$event']) onDocumentClick(event: Event) {
-    if (this.menuAbierto !== null) {
+    if (this.menuAbierto !== null || this.menuArtistaAbierto !== null) {
       const clickedElement = event.target as HTMLElement;
       const menuButton = clickedElement.closest('.mas');
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!menuButton && !menuFlotante) {
         this.menuAbierto = null;
+        this.menuArtistaAbierto = null;
       }
     }
   }
@@ -144,11 +150,12 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
         console.error('No establecimiento ID available');
         return;
       }
-      console.log('Searching songs for:', this.searchTerm, 'establecimiento:', this.establecimientoId);
+      console.log('Searching songs and artists for:', this.searchTerm, 'establecimiento:', this.establecimientoId);
       const response = await this.spotifyService.searchTracks(this.searchTerm, this.establecimientoId).toPromise();
       if (response?.success) {
         this.songs = response.tracks;
-        console.log('Search results loaded:', this.songs.length);
+        this.artists = response.artists || [];
+        console.log('Search results loaded:', this.songs.length, 'songs and', this.artists.length, 'artists');
       }
     } catch (error) {
       console.error('Error searching songs:', error);
@@ -181,6 +188,54 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
     this.menuAbierto = null;
+  }
+
+  abrirMenuArtista(index: number, event: Event) {
+    event.stopPropagation();
+    
+    if (this.menuArtistaAbierto === index) {
+      this.menuArtistaAbierto = null;
+    } else {
+      this.menuArtistaAbierto = index;
+      
+      const button = event.target as HTMLElement;
+      const rect = button.getBoundingClientRect();
+    
+      this.menuArtistaPosition = {
+        top: rect.bottom + 5, 
+        left: rect.right - 200 
+      };
+    }
+  }
+
+  bloquearArtista(artist: SpotifyArtist) {
+    console.log('Bloquear artista (sin funcionalidad):', artist.nombre);
+    this.menuArtistaAbierto = null;
+    // TODO: Implementar funcionalidad de bloqueo
+  }
+
+  selectArtist(artist: SpotifyArtist) {
+    this.selectedArtist = artist;
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        const scroller = document.querySelector(".scroll");
+        if (scroller) {
+          scroller.scrollTop = 0; // Reset scroll position to top when selecting an artist
+        }
+      }, 0);
+    }
+  }
+
+  clearArtist() {
+    this.selectedArtist = null;
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        const scroller = document.querySelector(".scroll");
+        if (scroller) {
+          scroller.scrollTop = 0; // Reset scroll position to top when returning to results
+        }
+      }, 0);
+    }
   }
 
   async reproducirCancion(song: SpotifyTrack, event: Event) {

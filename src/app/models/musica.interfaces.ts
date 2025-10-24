@@ -54,9 +54,20 @@ export interface SpotifyTrack {
   preview_url?: string;
 }
 
+export interface SpotifyArtist {
+  spotify_id: string;
+  nombre: string;
+  imagen_url: string | null;
+  genres: string[];
+  followers: number;
+  popularity: number;
+}
+
 export interface SpotifySearchResponse {
   success: boolean;
   tracks: SpotifyTrack[];
+  artists?: SpotifyArtist[];
+  totalArtists?: number;
 }
 
 export interface SpotifyGenresResponse {

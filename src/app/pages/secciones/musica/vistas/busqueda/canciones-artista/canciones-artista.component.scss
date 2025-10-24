@@ -1,0 +1,263 @@
+@use '../../../../../../../colores.scss' as *;
+@use 'sass:color';
+
+.artista-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: space-between;
+    background-color: $fondo;
+    z-index: 9;
+    
+    padding: .5rem 0;
+
+    h2 {
+        font-size: 24px;
+        color: $textoPrincipal;
+    }
+
+    .back-button {
+        background-color: transparent;
+        aspect-ratio: 1/1;
+        border-radius: 99px;
+        display: flex;
+        padding: 8px;
+        border: none;
+        color: $textoPrincipal;
+        font-size: 24px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: $nav;
+        }
+    }
+
+    .izq {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: $contenedor;
+        color: white;
+        border: none;
+        border-radius: 99px;
+        padding: 10px 15px;
+        gap: 1rem;
+        font-size: 16px;
+        
+        span {
+            transition: all .3s ease;
+            color: $colorSecundario;
+            font-size: 1.5rem;
+            
+            &.iniciado {
+                opacity: .5;
+              }
+        }
+
+        &:hover {
+            background-color: color.adjust($contenedor, $lightness: +20%) !important;
+        }
+    }
+
+}
+
+.songs-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+
+     .loading {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        gap: 1rem;
+        color: $textoPrincipal;
+        
+        p {
+            font-size: 1rem;
+            color: $textoSecundario;
+        }
+    }
+
+    .sinbloqueo {
+        background-color: transparent;
+        pointer-events: none;
+        display: flex;
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        z-index: 99;
+        
+        &.bloqueado {
+            background-color: rgba(0, 0, 0, 0.651);
+            backdrop-filter: blur(4px);
+        }
+    }
+
+    .cancion {
+        background-color: $cancion;
+        display: flex;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+
+        &.bloqueado {
+            pointer-events: none;
+            cursor: not-allowed;
+
+            &::before {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
+                background-color: rgba(0, 0, 0, 0.434);
+                content: "";
+                z-index: 9;
+                cursor: not-allowed !important;
+                pointer-events: all;
+            }
+        }
+
+        &.menu-abierto {
+            .mas {
+                background-color: $navSeleccionado;
+            }
+        }
+
+        .menu-flotante {
+            position: fixed;
+            border-radius: 20px;
+            padding: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            white-space: nowrap;
+            background-color: $contenedor;
+            backdrop-filter: blur(5px);
+
+            .opcion {
+                border-radius: 99px;
+                background-color: transparent;
+                border: none;
+                backdrop-filter: blur(10px);
+                display: flex;
+                gap: 10px;
+                padding: 5px 20px 5px 15px;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 14px;
+                font-weight: 100;
+
+                span {
+                    font-weight: 100;
+                }
+
+                &:hover {
+                    background-color: $botonFlotante;
+                    filter: brightness(1.2);
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .portada {
+            background-color: $portada;
+            aspect-ratio: 1/1 !important;
+            margin: 10px;
+            max-width: 3rem !important;
+            max-height: 3rem !important;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            
+            img {
+                min-width: 100%;
+                min-width: 3rem !important;
+                min-height: 3rem !important;
+                aspect-ratio: 1/1 !important;
+                min-height: 100%;
+                object-fit: cover;
+                flex: 1;
+            }
+            
+            i {
+                font-size: 2rem;
+                color: $colorSecundario;
+            }
+        }
+
+        .infoCancion {
+            padding: 0 5px;
+            min-width: 0;
+            flex: 1 1 0;
+            gap: 3px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            p {
+                text-align: left;
+                white-space: nowrap;      
+                overflow: hidden;        
+                text-overflow: ellipsis !important;
+                padding-right: 3rem;
+
+            }
+            .artista {
+                color: $artista;
+            }
+        }
+
+    .mas {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        background-color: transparent;
+        height: 30px;
+        width: 30px;
+        border-radius: 99px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px;
+        border: none;
+        color: $colorSecundario;
+        transform: translateY(-50%);
+        font-size: 24px;
+
+
+        &:hover {
+            background-color: $navSeleccionado;
+        }
+    }
+}
+}
+

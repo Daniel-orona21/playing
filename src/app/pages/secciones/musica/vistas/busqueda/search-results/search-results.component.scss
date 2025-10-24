@@ -4,12 +4,11 @@
 .search-results-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
     width: 100%;
 }
 
 .header {
-    padding: .5rem 0;
+    padding: 1rem 0;
     
     h3 {
         font-size: 20px;
@@ -19,6 +18,175 @@
             font-weight: 800;
         }
     }
+}
+
+.section-title {
+    font-size: 20px;
+    color: $textoPrincipal;
+    font-weight: 600;
+}
+
+// Sección de artistas
+.artists-section {
+    // margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+
+    .artists-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 15px;
+        margin-bottom: 1rem;
+
+        .artista {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            gap: 5px;
+
+            &:hover {
+                // transform: translateY(-2px);
+            }
+
+            &.menu-abierto {
+                .mas {
+                    background-color: $navSeleccionado;
+                }
+            }
+
+            .menu-flotante {
+                position: fixed;
+                border-radius: 20px;
+                padding: 5px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                white-space: nowrap;
+                background-color: $contenedor;
+                backdrop-filter: blur(5px);
+
+                .opcion {
+                    border-radius: 99px;
+                    background-color: transparent;
+                    border: none;
+                    backdrop-filter: blur(10px);
+                    display: flex;
+                    gap: 10px;
+                    padding: 5px 20px 5px 15px;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 100;
+
+                    span {
+                        font-weight: 100;
+                    }
+
+                    &:hover {
+                        background-color: $botonFlotante;
+                        filter: brightness(1.2);
+                        cursor: pointer;
+                    }
+                }
+            }
+
+            .portada-artista {
+                background-color: $portada;
+                aspect-ratio: 1/1 !important;
+                margin: 8px;
+                max-width: 7rem !important;
+                max-height: 7rem !important;
+                border-radius: 50%;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                flex-shrink: 0;
+                
+                img {
+                    min-width: 100%;
+                    min-width: 7rem !important;
+                    min-height: 7rem !important;
+                    aspect-ratio: 1/1 !important;
+                    min-height: 100%;
+                    object-fit: cover;
+                    flex: 1;
+                }
+                
+                i {
+                    font-size: 2rem;
+                    color: $colorSecundario;
+                }
+            }
+
+            .infoArtista {
+                padding: 0 5px;
+                min-width: 0;
+                flex: 1 1 0;
+                gap: 3px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+
+                p {
+                    white-space: nowrap;
+                    text-align: center;      
+                    overflow: hidden;        
+                    text-overflow: ellipsis; 
+                }
+                
+                .nombreArtista {
+                    color: $textoPrincipal;
+                    font-weight: 500;
+                }
+                
+                .tipo {
+                    color: $artista;
+                    text-transform: capitalize;
+                }
+            }
+
+            .mas {
+                position: absolute;
+                top: 50%;
+                right: 20px;
+                background-color: transparent;
+                height: 30px;
+                width: 30px;
+                border-radius: 99px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 5px;
+                border: none;
+                color: $colorSecundario;
+                transform: translateY(-50%);
+                font-size: 24px;
+
+                &:hover {
+                    background-color: $navSeleccionado;
+                }
+            }
+        }
+    }
+}
+
+.songs-section {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: .5rem;
 }
 
 .songs-grid {

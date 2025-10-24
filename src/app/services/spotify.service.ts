@@ -217,6 +217,13 @@ export class SpotifyService {
     });
   }
 
+  // Buscar canciones por artista
+  getTracksByArtist(artistId: string, establecimientoId: number): Observable<SpotifySearchResponse> {
+    return this.http.get<SpotifySearchResponse>(`${environment.apiUrl}/musica/artists/${artistId}/tracks`, {
+      params: { establecimientoId: establecimientoId.toString() }
+    });
+  }
+
   // ========== GESTIÓN DE COLA ==========
 
   // Agregar canción a la cola
