@@ -50,12 +50,17 @@
                 *ngFor="let cancion of historial; let i = index" 
                 class="cancion cancionLista">
                 <div class="portada">
-                    <i class="fa-solid fa-music"></i>
+                    <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.nombre">
+                    <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
                 </div>
                 <div class="infoCancion">
                     <p class="nombre">{{ cancion.nombre }}</p>
                     <p class="artista">{{ cancion.artista }}</p>
                 </div>
+            </div>
+            <div *ngIf="!loading && historial.length === 0" class="no-songs">
+                <i class="fa-solid fa-history"></i>
+                <p>No hay historial de reproducción</p>
             </div>
         </div>
     </div>

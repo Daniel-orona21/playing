@@ -5,6 +5,9 @@ import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PlaybackService } from '../../services/playback.service';
+import { SpotifyService } from '../../services/spotify.service';
+import { EstablecimientosService } from '../../services/establecimientos.service';
+import { QueueManagerService } from '../../services/queue-manager.service';
 import { SpotifyTrack } from '../../models/musica.interfaces';
 
 @Component({
@@ -33,6 +36,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private playbackService: PlaybackService,
+    private spotifyService: SpotifyService,
+    private estService: EstablecimientosService,
+    private queueManager: QueueManagerService
   ) {}
 
   async ngOnInit() {
@@ -58,6 +64,79 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.value = Math.round(state.volume * 100);
         this.updateVolumeSlider();
       });
+
+    // Obtener establecimiento y restaurar reproducción
+    await this.restorePlayback();
+  }
+
+  async restorePlayback() {
+    try {
+      // Obtener el establecimiento actual
+      const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
+      if (establecimientoResponse?.establecimiento) {
+        this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
+        console.log('🔄 Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Inicializar el reproductor de Spotify
+        let isInitialized = false;
+        this.playbackService.isInitialized$.subscribe(value => {
+          isInitialized = value;
+        }).unsubscribe();
+        
+        if (!isInitialized) {
+          console.log('🔄 Initializing playback service...');
+          await this.playbackService.initialize(this.establecimientoId);
+          
+          // Inicializar el gestor de cola
+          console.log('🔄 Initializing queue manager...');
+          await this.queueManager.initialize(this.establecimientoId);
+        }
+        
+        // Buscar si hay una canción actualmente en reproducción
+        console.log('🔍 Checking for current playing song...');
+        const response = await this.spotifyService.getCurrentPlaying(this.establecimientoId).toPromise();
+        
+        if (response?.success && response.currentPlaying) {
+          const currentSong = response.currentPlaying;
+          console.log('✅ Found current playing song:', currentSong.titulo);
+          
+          // ✅ ACTIVAR MODO RESTAURACIÓN (desactiva la lógica automática del QueueManager)
+          this.queueManager.setRestoringMode(true);
+          
+          // Crear objeto SpotifyTrack
+          const track: SpotifyTrack = {
+            spotify_id: currentSong.spotify_id,
+            titulo: currentSong.titulo,
+            artista: currentSong.artista,
+            album: currentSong.album,
+            duracion: currentSong.duracion,
+            imagen_url: currentSong.imagen_url,
+            genero: currentSong.genero,
+            preview_url: currentSong.preview_url
+          };
+          
+          // Establecer el ID actual en el queue manager
+          this.queueManager.setCurrentQueueItem(currentSong.id);
+          
+          // Reproducir la canción (sin activar lógica de cola)
+          console.log('🎵 Restoring playback...');
+          await this.playbackService.playTrack(currentSong.spotify_id, track);
+          
+          // ✅ Esperar un poco y DESACTIVAR MODO RESTAURACIÓN
+          setTimeout(() => {
+            this.queueManager.setRestoringMode(false);
+            console.log('✅ Playback restored successfully!');
+          }, 2000); // Esperar 2 segundos antes de reactivar la lógica automática
+          
+        } else {
+          console.log('ℹ️ No current playing song found');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error restoring playback:', error);
+      // Asegurarse de desactivar el modo restauración en caso de error
+      this.queueManager.setRestoringMode(false);
+    }
   }
 
   ngOnDestroy() {

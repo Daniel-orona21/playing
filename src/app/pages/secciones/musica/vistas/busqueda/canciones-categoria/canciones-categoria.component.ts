@@ -6,6 +6,8 @@ import { SpotifyService } from '../../../../../../services/spotify.service';
 import { SpotifyTrack } from '../../../../../../models/musica.interfaces';
 import { EstablecimientosService } from '../../../../../../services/establecimientos.service';
 import { PlaybackService } from '../../../../../../services/playback.service';
+import { AuthService } from '../../../../../../services/auth.service';
+import { QueueManagerService } from '../../../../../../services/queue-manager.service';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,6 +33,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     private spotifyService: SpotifyService,
     private estService: EstablecimientosService,
     private playbackService: PlaybackService,
+    private authService: AuthService,
+    private queueManager: QueueManagerService
   ) {}
   
   async ngOnInit() {
@@ -69,6 +73,11 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
         console.log('🔄 Initializing playback service for establishment:', this.establecimientoId);
         await this.playbackService.initialize(this.establecimientoId);
         console.log('✅ Playback service initialized successfully!');
+        
+        // Inicializar el gestor de cola
+        console.log('🔄 Initializing queue manager...');
+        await this.queueManager.initialize(this.establecimientoId);
+        console.log('✅ Queue manager initialized successfully!');
       }
     } catch (error) {
       console.error('❌ Error initializing playback:', error);
@@ -162,11 +171,93 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     
     try {
       console.log('Playing song:', song.titulo);
-      await this.playbackService.playTrack(song.spotify_id, song);
-      console.log('Song playing successfully');
+      
+      // Primero, agregar la canción a la cola y obtener su ID
+      const response = await this.agregarALaColaYReproducir(song);
+      
+      if (response) {
+        console.log('Song playing successfully');
+      }
     } catch (error) {
       console.error('Error playing song:', error);
       alert('Error al reproducir la canción. Asegúrate de que Spotify esté conectado.');
+    }
+  }
+
+  async agregarALaColaYReproducir(song: SpotifyTrack): Promise<boolean> {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        console.error('No user or establecimiento available');
+        return false;
+      }
+
+      console.log('Adding song to queue and playing:', song.titulo);
+      
+      // ✅ Usar el nuevo endpoint que agrega al principio y reproduce inmediatamente
+      const response = await this.spotifyService.addToQueueAndPlayNow(
+        song,
+        this.establecimientoId,
+        user.id
+      ).toPromise();
+
+      if (response?.success && response.queueId) {
+        console.log('Song added at position 1 and playing with ID:', response.queueId);
+        
+        // Establecer el ID actual en el queue manager
+        this.queueManager.setCurrentQueueItem(response.queueId);
+        
+        // Reproducir la canción
+        await this.playbackService.playTrack(song.spotify_id, song);
+        
+        // Emitir evento
+        window.dispatchEvent(new CustomEvent('queueUpdated'));
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error adding song to queue and playing:', error);
+      return false;
+    }
+  }
+
+  async agregarALaCola(song: SpotifyTrack, showAlert: boolean = true) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        console.error('No user or establecimiento available');
+        if (showAlert) {
+          alert('Error: Usuario o establecimiento no disponible');
+        }
+        return;
+      }
+
+      console.log('Adding song to queue:', song.titulo);
+      
+      const response = await this.spotifyService.addToQueue(
+        song,
+        this.establecimientoId,
+        user.id
+      ).toPromise();
+
+      if (response?.success) {
+        console.log('Song added to queue successfully at position', response.position);
+        if (showAlert) {
+          // alert(`"${song.titulo}" agregada a la cola en posición ${response.position}`);
+        }
+        
+        // Emitir evento personalizado para que otros componentes sepan que se agregó una canción
+        window.dispatchEvent(new CustomEvent('queueUpdated'));
+      } else {
+        throw new Error('Failed to add song to queue');
+      }
+    } catch (error) {
+      console.error('Error adding song to queue:', error);
+      if (showAlert) {
+        alert('Error al agregar la canción a la cola');
+      }
     }
   }
 

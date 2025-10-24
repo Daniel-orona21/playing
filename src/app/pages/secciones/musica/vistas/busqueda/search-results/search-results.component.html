@@ -45,7 +45,8 @@
                 class="menu-flotante"
                 (click)="$event.stopPropagation()">
                 <button 
-                    class="opcion">
+                    class="opcion"
+                    (click)="agregarALaCola(song, true); menuAbierto = null">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>

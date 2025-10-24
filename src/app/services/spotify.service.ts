@@ -4,7 +4,8 @@ import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { 
   SpotifySearchResponse, 
-  SpotifyGenresResponse, 
+  SpotifyGenresResponse,
+  SpotifyTrack, 
 } from '../models/musica.interfaces';
 
 // Declaración de tipos para Spotify Web Playback SDK
@@ -212,6 +213,89 @@ export class SpotifyService {
   // Buscar canciones por género
   getTracksByGenre(genre: string, establecimientoId: number): Observable<SpotifySearchResponse> {
     return this.http.get<SpotifySearchResponse>(`${environment.apiUrl}/musica/genres/${genre}/tracks`, {
+      params: { establecimientoId: establecimientoId.toString() }
+    });
+  }
+
+  // ========== GESTIÓN DE COLA ==========
+
+  // Agregar canción a la cola
+  addToQueue(track: SpotifyTrack, establecimientoId: number, usuarioId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue`, {
+      spotify_id: track.spotify_id,
+      titulo: track.titulo,
+      artista: track.artista,
+      album: track.album,
+      duracion: track.duracion,
+      imagen_url: track.imagen_url,
+      genero: track.genero,
+      preview_url: track.preview_url,
+      establecimientoId,
+      usuarioId
+    });
+  }
+
+  // ✅ NUEVO: Agregar canción y reproducir inmediatamente (al principio de la cola)
+  addToQueueAndPlayNow(track: SpotifyTrack, establecimientoId: number, usuarioId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/play-now`, {
+      spotify_id: track.spotify_id,
+      titulo: track.titulo,
+      artista: track.artista,
+      album: track.album,
+      duracion: track.duracion,
+      imagen_url: track.imagen_url,
+      genero: track.genero,
+      preview_url: track.preview_url,
+      establecimientoId,
+      usuarioId
+    });
+  }
+
+  // Obtener la cola de canciones
+  getQueue(establecimientoId: number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/musica/queue`, {
+      params: { establecimientoId: establecimientoId.toString() }
+    });
+  }
+
+  // Eliminar canción de la cola
+  removeFromQueue(colaId: number): Observable<any> {
+    return this.http.delete(`${environment.apiUrl}/musica/queue/${colaId}`);
+  }
+
+  // Actualizar estado de canción en la cola
+  updateQueueStatus(colaId: number, status: string): Observable<any> {
+    return this.http.patch(`${environment.apiUrl}/musica/queue/${colaId}/status`, {
+      status
+    });
+  }
+
+  // Establecer canción actual como playing (mueve las anteriores al historial)
+  setCurrentPlaying(colaId: number, establecimientoId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/set-playing`, {
+      colaId,
+      establecimientoId
+    });
+  }
+
+  // Mover canción al historial
+  moveToHistory(colaId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/${colaId}/move-to-history`, {});
+  }
+
+  // Obtener historial de reproducción
+  getHistory(establecimientoId: number, limit: number = 50): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/musica/history`, {
+      params: { 
+        establecimientoId: establecimientoId.toString(),
+        limit: limit.toString()
+      }
+    });
+  }
+
+  // Obtener la canción actualmente en reproducción
+  getCurrentPlaying(establecimientoId: number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/musica/queue/current-playing`, {
       params: { establecimientoId: establecimientoId.toString() }
     });
   }
