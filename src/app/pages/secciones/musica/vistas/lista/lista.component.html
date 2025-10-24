@@ -5,10 +5,23 @@
             <ng-container *ngFor="let cancion of aContinuacion; let i = index">
                 <div 
                     *ngIf="cancion.posicion !== 1"
-                    class="cancion cancionLista"
+                    class="cancion"
                     [class.menu-abierto]="menuAbierto === i"
                     [class.playing]="cancion.status === 'playing'"
-                    [attr.data-song-id]="cancion.id">
+                    [class.dragging]="draggedSongId === cancion.id"
+                    [class.drag-over]="dragOverSongId === cancion.id"
+                    [attr.data-song-id]="cancion.id"
+                    draggable="true"
+                    (dragstart)="onDragStart($event, cancion)"
+                    (dragend)="onDragEnd($event)"
+                    (dragover)="onDragOver($event, cancion)"
+                    (drop)="onDrop($event, cancion)"
+                    (dragenter)="onDragEnter($event, cancion)"
+                    (dragleave)="onDragLeave($event, cancion)">
+                    
+                    <button class="drag-handle" (mousedown)="$event.stopPropagation()">
+                        <span class="material-symbols-outlined">drag_indicator</span>
+                    </button>
                     
                     <div class="portada">
                     <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.titulo">
@@ -19,8 +32,8 @@
                     <div class="datosCancion">
                         <p class="nombre">{{ cancion.titulo }}</p>
                         <p class="artista">{{ cancion.artista }}</p>
+                        <p class="posicion" *ngIf="cancion.usuario_nombre">Agregada por {{ cancion.usuario_nombre }}</p>
                     </div>
-                    <p class="posicion" *ngIf="cancion.usuario_nombre">De {{ cancion.usuario_nombre }}</p>
                     </div>
 
                     <div class="acciones">
@@ -55,7 +68,7 @@
         <div class="canciones">
             <div 
                 *ngFor="let cancion of historial; let i = index" 
-                class="cancion cancionLista">
+                class="cancion cancionHistorial">
                 <div class="portada">
                     <img *ngIf="cancion.imagen_url" [src]="cancion.imagen_url" [alt]="cancion.nombre">
                     <i *ngIf="!cancion.imagen_url" class="fa-solid fa-music"></i>
@@ -64,8 +77,8 @@
                     <div class="datosCancion">
                         <p class="nombre">{{ cancion.nombre }}</p>
                         <p class="artista">{{ cancion.artista }}</p>
+                        <p class="posicion" *ngIf="cancion.usuario_nombre">Agregada por <span class="nombreU">{{ cancion.usuario_nombre }}</span></p>
                     </div>
-                    <p class="posicion" *ngIf="cancion.usuario_nombre">De <span class="nombreU">{{ cancion.usuario_nombre }}</span></p>
                     </div>
             </div>
             <div *ngIf="!loading && historial.length === 0" class="no-songs">

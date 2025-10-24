@@ -299,4 +299,13 @@ export class SpotifyService {
       params: { establecimientoId: establecimientoId.toString() }
     });
   }
+
+  // Reordenar cola - cambiar posición de una canción
+  reorderQueue(cancionId: number, nuevaPosicion: number, establecimientoId: number): Observable<any> {
+    return this.http.patch(`${environment.apiUrl}/musica/queue/reorder`, {
+      cancionId,
+      nuevaPosicion,
+      establecimientoId
+    });
+  }
 }

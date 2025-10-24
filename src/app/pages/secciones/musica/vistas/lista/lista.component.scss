@@ -58,13 +58,37 @@
         border-radius: 6px;
       }
 
+     
+
     .cancion {
         background-color: $cancion;
         display: flex;
-        // width: min-content;
-        // min-width: 450px;
         border-radius: 20px;
         position: relative;
+        cursor: grab;
+        transition: all 0.15s ease;
+        border: 2px solid transparent;
+        user-select: none;
+        padding-left: 5px;
+        align-items: center;
+        
+        &:active {
+            cursor: grabbing;
+        }
+        
+        &.dragging {
+            opacity: 0.4;
+            cursor: grabbing;
+            transform: scale(0.98);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+        
+        &.drag-over {
+            border: 2px dotted $colorSecundario !important;
+            z-index: 10 !important;
+        }
+        
+    
 
         .menu-flotante {
             display: flex;
@@ -104,8 +128,8 @@
             background-color: $portada;
             aspect-ratio: 1/1 !important;
             margin: 10px;
-            max-width: 3rem !important;
-            max-height: 3rem !important;
+            max-width: 4rem !important;
+            max-height: 4rem !important;
             border-radius: 10px;
             overflow: hidden;
             display: flex;
@@ -116,8 +140,8 @@
             
             img {
                 min-width: 100%;
-                min-width: 3rem !important;
-                min-height: 3rem !important;
+                // min-width: 4rem !important;
+                // min-height: 4rem !important;
                 aspect-ratio: 1/1 !important;
                 min-height: 100%;
                 object-fit: cover;
@@ -140,7 +164,7 @@
             .datosCancion {
                 display: flex;
                 flex-direction: column;
-                gap: .5rem;
+                gap: 2.5px;
             }
 
               p {
@@ -168,12 +192,12 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            align-items: center;
+            align-items: center !important; 
 
             .datosCancion {
                 display: flex;
                 flex-direction: column;
-                gap: .5rem;
+                gap: 2.5px;
             }
 
               p {
@@ -186,6 +210,8 @@
             .artista, .posicion {
                 color: $artista;
             }
+
+            
 
             .nombreU {
                 // color: white;
@@ -214,6 +240,37 @@
             background-color: $navSeleccionado;
         }
     }
+    
+    .drag-handle {
+        background-color: transparent;
+        border: none;
+        color: $colorSecundario;
+        padding: 0px;
+        cursor: grab;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        
+        &:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            color: lighten($colorSecundario, 10%);
+        }
+        
+        &:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+        
+        span {
+            font-size: 1.5rem;
+            pointer-events: none;
+            color: white;
+        }
+    }
 }
 }
 
@@ -235,3 +292,11 @@
         font-size: 1rem;
     }
 }
+ .cancionHistorial {
+        padding-left: 0px !important;
+        cursor: default !important;
+}
+
+.posicion {
+                    font-size: 12px !important;
+            }

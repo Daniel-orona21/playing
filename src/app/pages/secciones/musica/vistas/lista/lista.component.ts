@@ -105,6 +105,11 @@ export class ListaComponent implements OnInit, AfterViewInit{
   menuAbierto: number | null = null;
   isDeleting = false; // ✅ Flag para evitar recargas durante eliminación
   deletingIds: Set<number> = new Set(); // ✅ IDs de canciones que se están eliminando
+  
+  // Variables para drag and drop
+  draggedSongId: number | null = null;
+  dragOverSongId: number | null = null;
+  dragLeaveTimeout: any = null;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -305,5 +310,158 @@ export class ListaComponent implements OnInit, AfterViewInit{
     if (this.menuAbierto !== null) {
       this.cerrarMenu();
     }
+  }
+
+  // ===== DRAG AND DROP METHODS =====
+  
+  onDragStart(event: DragEvent, cancion: any) {
+    this.draggedSongId = cancion.id;
+    
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', cancion.id.toString());
+    }
+    
+    console.log('🎵 Drag started:', cancion.titulo, 'ID:', cancion.id, 'Position:', cancion.posicion);
+  }
+
+  onDragEnd(event: DragEvent) {
+    this.draggedSongId = null;
+    this.dragOverSongId = null;
+    
+    // Limpiar timeout pendiente
+    if (this.dragLeaveTimeout) {
+      clearTimeout(this.dragLeaveTimeout);
+      this.dragLeaveTimeout = null;
+    }
+    
+    console.log('🎵 Drag ended');
+  }
+
+  onDragOver(event: DragEvent, cancion: any) {
+    event.preventDefault(); // Necesario para permitir drop
+    event.stopPropagation();
+    
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    
+    // Mantener el highlight activo mientras estamos sobre el elemento
+    if (this.draggedSongId !== null && this.draggedSongId !== cancion.id) {
+      if (this.dragOverSongId !== cancion.id) {
+        this.dragOverSongId = cancion.id;
+      }
+      
+      // Cancelar cualquier timeout pendiente de dragleave
+      if (this.dragLeaveTimeout) {
+        clearTimeout(this.dragLeaveTimeout);
+        this.dragLeaveTimeout = null;
+      }
+    }
+  }
+
+  onDragEnter(event: DragEvent, cancion: any) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Cancelar timeout de dragleave
+    if (this.dragLeaveTimeout) {
+      clearTimeout(this.dragLeaveTimeout);
+      this.dragLeaveTimeout = null;
+    }
+    
+    if (this.draggedSongId !== null && this.draggedSongId !== cancion.id) {
+      this.dragOverSongId = cancion.id;
+    }
+  }
+
+  onDragLeave(event: DragEvent, cancion: any) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Usar timeout para evitar flickering cuando pasamos sobre elementos hijos
+    if (this.dragLeaveTimeout) {
+      clearTimeout(this.dragLeaveTimeout);
+    }
+    
+    this.dragLeaveTimeout = setTimeout(() => {
+      // Verificar si realmente salimos del elemento
+      const currentElement = document.querySelector(`.cancion[data-song-id="${cancion.id}"]`);
+      if (currentElement) {
+        const rect = currentElement.getBoundingClientRect();
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        
+        // Solo quitar el highlight si el mouse está fuera del elemento
+        if (mouseX < rect.left || mouseX > rect.right || 
+            mouseY < rect.top || mouseY > rect.bottom) {
+          if (this.dragOverSongId === cancion.id) {
+            this.dragOverSongId = null;
+          }
+        }
+      }
+    }, 50); // 50ms de delay para evitar flickering
+  }
+
+  async onDrop(event: DragEvent, dropCancion: any) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (this.draggedSongId === null || this.draggedSongId === dropCancion.id) {
+      this.dragOverSongId = null;
+      return;
+    }
+
+    const draggedCancion = this.aContinuacion.find(c => c.id === this.draggedSongId);
+    
+    if (!draggedCancion) {
+      console.error('Dragged song not found');
+      this.draggedSongId = null;
+      this.dragOverSongId = null;
+      return;
+    }
+    
+    console.log('🎵 Dropping:', draggedCancion.titulo, '(pos:', draggedCancion.posicion, ')');
+    console.log('🎵 Onto:', dropCancion.titulo, '(pos:', dropCancion.posicion, ')');
+
+    try {
+      // Actualizar en el backend primero
+      await this.reordenarCola(draggedCancion.id, dropCancion.posicion);
+      
+      console.log('✅ Queue reordered successfully');
+      
+    } catch (error) {
+      console.error('❌ Error reordering queue:', error);
+      // Recargar la cola si hay error
+      await this.cargarCola();
+    } finally {
+      this.draggedSongId = null;
+      this.dragOverSongId = null;
+      
+      // Limpiar timeout pendiente
+      if (this.dragLeaveTimeout) {
+        clearTimeout(this.dragLeaveTimeout);
+        this.dragLeaveTimeout = null;
+      }
+    }
+  }
+
+  async reordenarCola(cancionId: number, nuevaPosicion: number) {
+    if (!this.establecimientoId) {
+      throw new Error('No establecimiento ID');
+    }
+
+    const response = await this.spotifyService.reorderQueue(
+      cancionId,
+      nuevaPosicion,
+      this.establecimientoId
+    ).toPromise();
+
+    if (!response?.success) {
+      throw new Error('Failed to reorder queue');
+    }
+
+    // Recargar para tener el orden correcto desde el backend
+    await this.cargarCola();
   }
 }
