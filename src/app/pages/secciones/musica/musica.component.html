@@ -23,8 +23,8 @@
         </button>
     </div>
     <div class="tab">
-        <app-lista [hidden]="selectedTab !== 'lista'"></app-lista>
-        <app-busqueda [hidden]="selectedTab !== 'busqueda'"></app-busqueda>
-        <app-filtro [hidden]="selectedTab !== 'filtro'"></app-filtro>
+        <app-lista [attr.hidden]="selectedTab !== 'lista' ? true : null" [hidden]="selectedTab !== 'lista'"></app-lista>
+        <app-busqueda [attr.hidden]="selectedTab !== 'busqueda' ? true : null" [hidden]="selectedTab !== 'busqueda'"></app-busqueda>
+        <app-filtro [attr.hidden]="selectedTab !== 'filtro' ? true : null"></app-filtro>
     </div>
 </div>

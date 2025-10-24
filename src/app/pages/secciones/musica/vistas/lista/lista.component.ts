@@ -1,4 +1,4 @@
-import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit } from '@angular/core';
+import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -24,25 +24,101 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent implements OnInit, AfterViewInit{
+export class ListaComponent implements OnInit, AfterViewInit, OnChanges{
+  @Input() hidden: boolean = false;
+  private animationsInitialized = false;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Detectar cuando el componente se vuelve visible
+    if (changes['hidden'] && !changes['hidden'].currentValue && changes['hidden'].previousValue) {
+      // El componente acaba de volverse visible
+      if (isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          this._refreshAnimations();
+        }, 100);
+      }
+    }
+  }
 
   ngAfterViewInit(): void {
     gsap.registerPlugin(ScrollTrigger);
 
     if (isPlatformBrowser(this.platformId)) {
-      this._setupContinuacionAnimations();
-      this._setupHistorialAnimations();
+      // Solo configurar animaciones si el componente está visible
+      setTimeout(() => {
+        if (!this.hidden) {
+          this._setupContinuacionAnimations();
+          this._setupHistorialAnimations();
+          this.animationsInitialized = true;
+        }
+      }, 100);
     }
+  }
+
+  private _refreshAnimations(): void {
+    console.log('🔄 Refreshing ALL lista animations');
+    this._refreshContinuacionAnimations();
+    this._refreshHistorialAnimations();
+    this.animationsInitialized = true;
+  }
+
+  private _refreshContinuacionAnimations(): void {
+    console.log('🔄 Refreshing CONTINUACION animations only');
+    
+    // Matar solo las animaciones de la cola/continuación
+    ScrollTrigger.getAll().forEach(st => {
+      const trigger = st.trigger as HTMLElement;
+      if (trigger && trigger.closest('.side.continuacion')) {
+        st.kill();
+      }
+    });
+    
+    // Reconfigurar solo las animaciones de continuación
+    this._setupContinuacionAnimations();
+    
+    // Refrescar ScrollTrigger
+    ScrollTrigger.refresh();
+  }
+
+  private _refreshHistorialAnimations(): void {
+    console.log('🔄 Refreshing HISTORIAL animations only');
+    
+    // Matar solo las animaciones del historial
+    ScrollTrigger.getAll().forEach(st => {
+      const trigger = st.trigger as HTMLElement;
+      if (trigger && trigger.closest('.side.historial')) {
+        st.kill();
+      }
+    });
+    
+    // Reconfigurar solo las animaciones de historial
+    this._setupHistorialAnimations();
+    
+    // Refrescar ScrollTrigger
+    ScrollTrigger.refresh();
   }
 
   private _setupContinuacionAnimations(): void {
     const scroller = document.querySelector(".side.continuacion .canciones");
-    if (!scroller) return;
+    if (!scroller) {
+      console.warn("Scroller continuacion not found");
+      return;
+    }
 
-    gsap.utils.toArray(".side.continuacion .canciones .cancion").forEach((element: any) => {
+    const elementos = gsap.utils.toArray(".side.continuacion .canciones .cancion");
+    console.log(`Setting up continuacion animations for ${elementos.length} elements`);
+    
+    elementos.forEach((element: any) => {
+      // Limpiar cualquier animación GSAP previa en este elemento
+      gsap.killTweensOf(element);
+      
       if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
         gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+      } else {
+        // Si ya está visible, establecer directamente
+        gsap.set(element, { opacity: 1, y: 0, scale: 1 });
       }
+      
       gsap.to(element,
         {
           opacity: 1,
@@ -52,8 +128,9 @@ export class ListaComponent implements OnInit, AfterViewInit{
           scrollTrigger: {
             trigger: element,
             scroller: scroller,
-            start: "top 95%",
+            start: "top 100%",
             toggleActions: "play none none reverse",
+            id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
           }
         }
       );
@@ -62,12 +139,25 @@ export class ListaComponent implements OnInit, AfterViewInit{
 
   private _setupHistorialAnimations(): void {
     const scroller = document.querySelector(".side.historial .canciones");
-    if (!scroller) return;
+    if (!scroller) {
+      console.warn("Scroller historial not found");
+      return;
+    }
 
-    gsap.utils.toArray(".side.historial .canciones .cancion").forEach((element: any) => {
+    const elementos = gsap.utils.toArray(".side.historial .canciones .cancion");
+    console.log(`Setting up historial animations for ${elementos.length} elements`);
+    
+    elementos.forEach((element: any) => {
+      // Limpiar cualquier animación GSAP previa en este elemento
+      gsap.killTweensOf(element);
+      
       if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
         gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+      } else {
+        // Si ya está visible, establecer directamente
+        gsap.set(element, { opacity: 1, y: 0, scale: 1 });
       }
+      
       gsap.to(element,
         {
           opacity: 1,
@@ -77,8 +167,9 @@ export class ListaComponent implements OnInit, AfterViewInit{
           scrollTrigger: {
             trigger: element,
             scroller: scroller,
-            start: "top 95%",
+            start: "top 100%",
             toggleActions: "play none none reverse",
+            id: `historial-${Math.random()}`
           }
         }
       );
@@ -126,8 +217,9 @@ export class ListaComponent implements OnInit, AfterViewInit{
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido en lista:', this.establecimientoId);
         
-        // Cargar la cola inicial
+        // Cargar la cola y el historial iniciales
         await this.cargarCola();
+        await this.cargarHistorial();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento en lista:', error);
@@ -135,17 +227,18 @@ export class ListaComponent implements OnInit, AfterViewInit{
       this.loading = false;
     }
 
-    // Escuchar eventos de canción reproducida para recargar la cola
+    // Escuchar eventos de canción reproducida para recargar la cola Y el historial
     window.addEventListener('spotifyTrackPlayed', () => {
       if (!this.isDeleting) {
         this.cargarCola();
+        this.cargarHistorial(); // Recargar historial solo cuando cambia la canción
       }
     });
 
-    // Escuchar eventos de actualización de cola
+    // Escuchar eventos de actualización de cola (NO recargar historial)
     window.addEventListener('queueUpdated', () => {
       if (!this.isDeleting) {
-        this.cargarCola();
+        this.cargarCola(); // Solo recargar la cola, no el historial
       }
     });
   }
@@ -178,10 +271,14 @@ export class ListaComponent implements OnInit, AfterViewInit{
           agregada_en: item.agregada_en
         }));
         console.log('Queue loaded:', this.aContinuacion.length, 'songs');
+        
+        // Refrescar SOLO las animaciones de la cola/continuación
+        if (isPlatformBrowser(this.platformId) && !this.hidden) {
+          setTimeout(() => {
+            this._refreshContinuacionAnimations();
+          }, 100);
+        }
       }
-
-      // Cargar el historial también
-      await this.cargarHistorial();
     } catch (error) {
       console.error('Error loading queue:', error);
     }
@@ -208,6 +305,13 @@ export class ListaComponent implements OnInit, AfterViewInit{
           usuario_nombre: item.usuario_nombre
         }));
         console.log('History loaded:', this.historial.length, 'songs');
+        
+        // Refrescar SOLO las animaciones del historial
+        if (isPlatformBrowser(this.platformId) && !this.hidden) {
+          setTimeout(() => {
+            this._refreshHistorialAnimations();
+          }, 100);
+        }
       }
     } catch (error) {
       console.error('Error loading history:', error);
@@ -462,6 +566,7 @@ export class ListaComponent implements OnInit, AfterViewInit{
       throw new Error('Failed to reorder queue');
     }
 
+    console.log('🔄 Queue reordered, reloading and refreshing animations...');
     // Recargar para tener el orden correcto desde el backend
     await this.cargarCola();
   }

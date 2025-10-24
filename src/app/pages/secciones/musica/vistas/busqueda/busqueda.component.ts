@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 import { gsap } from 'gsap';
@@ -19,7 +19,9 @@ gsap.registerPlugin(ScrollTrigger);
   templateUrl: './busqueda.component.html',
   styleUrl: './busqueda.component.scss'
 })
-export class BusquedaComponent implements OnInit, AfterViewInit {
+export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
+  @Input() hidden: boolean = false;
+  private animationsInitialized = false;
 
   searchTerm: string = ''; 
   generosMusicales: any[] = [];
@@ -31,15 +33,38 @@ export class BusquedaComponent implements OnInit, AfterViewInit {
     private spotifyService: SpotifyService
   ) {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // Detectar cuando el componente se vuelve visible
+    if (changes['hidden'] && !changes['hidden'].currentValue && changes['hidden'].previousValue) {
+      // El componente acaba de volverse visible
+      if (isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          this._refreshAnimations();
+        }, 100);
+      }
+    }
+  }
+
   async ngOnInit() {
     await this.loadGenres();
   }
 
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
-      if (!this.selectedCategory) {
-        this._setupCategoryAnimations();
-      }
+      setTimeout(() => {
+        if (!this.hidden && !this.selectedCategory) {
+          this._setupCategoryAnimations();
+          this.animationsInitialized = true;
+        }
+      }, 100);
+    }
+  }
+
+  private _refreshAnimations(): void {
+    console.log('🔄 Refreshing busqueda animations');
+    
+    if (!this.selectedCategory && this.generosMusicales.length > 0) {
+      this._setupCategoryAnimations();
     }
   }
 
