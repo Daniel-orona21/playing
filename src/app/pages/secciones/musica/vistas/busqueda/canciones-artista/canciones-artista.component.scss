@@ -52,16 +52,22 @@
         align-items: center;
         justify-content: center;
         background-color: $contenedor;
-        color: white;
+        color: $textoSecundario !important;
         border: none;
         border-radius: 99px;
         padding: 10px 15px;
         gap: 1rem;
         font-size: 16px;
+        cursor: pointer;
+        transition: all .3s ease;
+
+        p {
+            transition: all .3s ease;
+        }
         
         span {
             transition: all .3s ease;
-            color: $colorSecundario;
+            color: color.adjust($colorSecundario, $lightness: -20%) !important;
             font-size: 1.5rem;
             
             &.iniciado {
@@ -70,7 +76,30 @@
         }
 
         &:hover {
-            background-color: color.adjust($contenedor, $lightness: +20%) !important;
+            p {
+                color: white !important;
+            }
+
+             span {
+                color: $colorSecundario;
+                color: color.adjust($colorSecundario, $lightness: 0%) !important;
+            }
+        }
+        
+        &.bloqueado {
+            
+            span {
+                color: $colorSecundario;
+                color: color.adjust($colorSecundario, $lightness: 0%) !important;
+            }
+            
+            p {
+                color: white;
+            }
+            
+            &:hover {
+                background-color: color.adjust($contenedor, $lightness: +10%) !important;
+            }
         }
     }
 
@@ -212,6 +241,24 @@
                 font-size: 2rem;
                 color: $colorSecundario;
             }
+
+            .blocked-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2;
+
+                span {
+                    color: rgb(137, 137, 137);
+                    font-size: 44px;
+                }
+            }
         }
 
         .infoCancion {
@@ -234,6 +281,19 @@
             .artista {
                 color: $artista;
             }
+
+            .blocked-text {
+        color: #ff4444;
+        font-size: 12px;
+        margin-top: 4px;
+        display: none !important;
+    }
+        }
+
+        &.bloqueada {
+            opacity: 0.6;
+            pointer-events: none;
+            cursor: not-allowed;
         }
 
     .mas {

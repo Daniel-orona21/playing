@@ -16,13 +16,21 @@
         <div class="artists-section" *ngIf="!loading && artists.length > 0">
             <h4 class="section-title">Artistas</h4>
             <div class="artists-grid">
-                <div class="artista" *ngFor="let artist of artists; let i = index" [class.menu-abierto]="menuArtistaAbierto === i" (click)="selectArtist(artist)">
+                <div class="artista" 
+                     *ngFor="let artist of artists; let i = index" 
+                     [class.menu-abierto]="menuArtistaAbierto === i" 
+                     [class.bloqueada]="isArtistaBlocked(artist.nombre)"
+                     (click)="selectArtist(artist)">
                 <div class="portada-artista">
                     <img *ngIf="artist.imagen_url" [src]="artist.imagen_url" [alt]="artist.nombre">
                     <i *ngIf="!artist.imagen_url" class="fa-solid fa-user"></i>
+                    <div *ngIf="isArtistaBlocked(artist.nombre)" class="blocked-overlay">
+                        <span class="material-symbols-outlined">block</span>
+                    </div>
                 </div>
                 <div class="infoArtista">
                     <p class="nombreArtista">{{artist.nombre}}</p>
+                    <p *ngIf="isArtistaBlocked(artist.nombre)" class="blocked-text">Bloqueado</p>
                 </div>
                 <!-- <button class="mas" (click)="abrirMenuArtista(i, $event)"><i class="fa-solid fa-ellipsis"></i></button> -->
                 <div 
@@ -32,12 +40,14 @@
                     [style.left.px]="menuArtistaPosition.left"
                     (click)="$event.stopPropagation()">
                     <button 
-                        class="opcion eliminar"
+                        class="opcion"
+                        [class.eliminar]="!isArtistaBlocked(artist.nombre)"
+                        [disabled]="isArtistaBlocked(artist.nombre)"
                         (click)="bloquearArtista(artist)">
                         <span class="material-symbols-outlined">
                             block
                         </span>
-                        <span>Bloquear artista</span>
+                        <span>{{ isArtistaBlocked(artist.nombre) ? 'Artista bloqueado' : 'Bloquear artista' }}</span>
                     </button>
                 </div>
             </div>
@@ -76,14 +86,22 @@
             <p>Buscando...</p>
         </div>
         
-        <div class="cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto === i" (click)="reproducirCancion(song, $event)">
+        <div class="cancion" 
+             *ngFor="let song of songs; let i = index" 
+             [class.menu-abierto]="menuAbierto === i" 
+             [class.bloqueada]="isCancionBlocked(song.spotify_id)"
+             (click)="reproducirCancion(song, $event)">
             <div class="portada">
                 <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
                 <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
+                <div *ngIf="isCancionBlocked(song.spotify_id)" class="blocked-overlay">
+                    <span class="material-symbols-outlined">block</span>
+                </div>
             </div>
             <div class="infoCancion">
                 <p class="nombreCancion">{{song.titulo}}</p>
                 <p class="artista">{{song.artista}}</p>
+                <p *ngIf="isCancionBlocked(song.spotify_id)" class="blocked-text">Bloqueada</p>
             </div>
             <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
             <div 
@@ -94,6 +112,7 @@
                 (click)="$event.stopPropagation()">
                 <button 
                     class="opcion"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
                     (click)="agregarALaCola(song, true); menuAbierto = null">
                     <span class="material-symbols-outlined">
                         playlist_play
@@ -101,11 +120,14 @@
                     <span>Agregar a la fila</span>
                 </button>
                 <button 
-                    class="opcion eliminar">
+                    class="opcion"
+                    [class.eliminar]="!isCancionBlocked(song.spotify_id)"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
+                    (click)="bloquearCancion(song)">
                     <span class="material-symbols-outlined">
                         block
                         </span>
-                    <span>Bloquear canción</span>
+                    <span>{{ isCancionBlocked(song.spotify_id) ? 'Canción bloqueada' : 'Bloquear canción' }}</span>
                 </button>
             </div>
         </div>

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -8,6 +8,8 @@ import { EstablecimientosService } from '../../../../../../services/establecimie
 import { PlaybackService } from '../../../../../../services/playback.service';
 import { AuthService } from '../../../../../../services/auth.service';
 import { QueueManagerService } from '../../../../../../services/queue-manager.service';
+import { FiltrosService } from '../../../../../../services/filtros.service';
+import { Subscription } from 'rxjs';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,7 +21,7 @@ gsap.registerPlugin(ScrollTrigger);
   templateUrl: './canciones-artista.component.html',
   styleUrl: './canciones-artista.component.scss'
 })
-export class CancionesArtistaComponent implements OnInit, AfterViewInit {
+export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() artist: SpotifyArtist | null = null;
   @Output() backToResults = new EventEmitter<void>();
   bloqueado = false;
@@ -28,6 +30,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
   menuAbierto: number | null = null;
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
+  private filtrosSubscription?: Subscription;
   
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -35,7 +38,8 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
     private estService: EstablecimientosService,
     private playbackService: PlaybackService,
     private authService: AuthService,
-    private queueManager: QueueManagerService
+    private queueManager: QueueManagerService,
+    private filtrosService: FiltrosService
   ) {}
   
   async ngOnInit() {
@@ -44,6 +48,17 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Cargar filtros
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        
+        // Verificar si el artista está bloqueado inicialmente
+        if (this.artist) {
+          this.bloqueado = this.filtrosService.isArtistaBlocked(this.artist.nombre);
+        }
+        
+        // Suscribirse a cambios en filtros para actualizar el estado en tiempo real
+        this.subscribeToFiltrosChanges();
         
         // Inicializar el reproductor de Spotify
         await this.initializePlayback();
@@ -55,6 +70,27 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
     if (this.artist && this.establecimientoId) {
       await this.loadSongsByArtist();
     }
+  }
+
+  subscribeToFiltrosChanges() {
+    this.filtrosSubscription = this.filtrosService.filtros$.subscribe(() => {
+      // Actualizar el estado de bloqueado cuando cambien los filtros
+      if (this.artist) {
+        this.bloqueado = this.filtrosService.isArtistaBlocked(this.artist.nombre);
+        console.log(`Estado de bloqueo actualizado para ${this.artist.nombre}: ${this.bloqueado}`);
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    // Limpiar la suscripción al destruir el componente
+    if (this.filtrosSubscription) {
+      this.filtrosSubscription.unsubscribe();
+    }
+  }
+
+  isCancionBlocked(spotifyId: string): boolean {
+    return this.filtrosService.isCancionBlocked(spotifyId);
   }
 
   async initializePlayback() {
@@ -97,8 +133,62 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
     }
   }
   
-  toggleBloqueo() {
-    this.bloqueado = !this.bloqueado;
+  async toggleBloqueo() {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId || !this.artist) {
+        alert('Error: Usuario, establecimiento o artista no disponible');
+        return;
+      }
+
+      if (this.bloqueado) {
+        // Desbloquear: buscar el filtro y eliminarlo
+        const filtro = this.filtrosService.getFiltroByTipoAndValor('artista', this.artist.nombre);
+        
+        if (filtro) {
+          console.log('Desbloqueando artista:', this.artist.nombre);
+          
+          const response = await this.filtrosService.deleteFiltro(filtro.id_filtro).toPromise();
+          
+          if (response?.success) {
+            this.bloqueado = false;
+            // alert(`Artista "${this.artist.nombre}" desbloqueado exitosamente.`);
+          }
+        } else {
+          // Si no se encuentra el filtro, actualizar el estado
+          this.bloqueado = false;
+        }
+      } else {
+        // Bloquear: crear nuevo filtro
+        console.log('Bloqueando artista:', this.artist.nombre);
+        
+        const response = await this.filtrosService.addFiltro({
+          establecimientoId: this.establecimientoId,
+          tipo: 'artista',
+          valor: this.artist.nombre,
+          nombreDisplay: this.artist.nombre,
+          imagenUrl: this.artist.imagen_url ?? undefined,
+          usuarioId: user.id
+        }).toPromise();
+
+        if (response?.success) {
+          this.bloqueado = true;
+          // alert(`Artista "${this.artist.nombre}" bloqueado exitosamente.`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error en toggle de bloqueo de artista:', error);
+      if (error.status === 409) {
+        alert('Este artista ya está bloqueado');
+        this.bloqueado = true;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al cambiar el estado del bloqueo del artista');
+      }
+    }
   }
 
   ngAfterViewInit(): void {
@@ -181,6 +271,47 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit {
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
     this.menuAbierto = null;
+  }
+
+  async bloquearCancion(song: SpotifyTrack) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        alert('Error: Usuario o establecimiento no disponible');
+        return;
+      }
+
+      console.log('Bloqueando canción:', song.titulo);
+      
+      const response = await this.filtrosService.addFiltro({
+        establecimientoId: this.establecimientoId,
+        tipo: 'cancion',
+        valor: song.spotify_id,
+        nombreDisplay: `${song.titulo} - ${song.artista}`,
+        imagenUrl: song.imagen_url ?? undefined,
+        usuarioId: user.id
+      }).toPromise();
+
+      if (response?.success) {
+        // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
+        this.menuAbierto = null;
+        
+        // Actualizar los filtros locales
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+      }
+    } catch (error: any) {
+      console.error('Error bloqueando canción:', error);
+      if (error.status === 409) {
+        alert('Esta canción ya está bloqueada');
+        this.menuAbierto = null;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al bloquear la canción');
+      }
+    }
   }
 
   async reproducirCancion(song: SpotifyTrack, event: Event) {

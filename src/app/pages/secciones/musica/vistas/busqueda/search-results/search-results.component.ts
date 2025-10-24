@@ -8,6 +8,7 @@ import { EstablecimientosService } from '../../../../../../services/establecimie
 import { PlaybackService } from '../../../../../../services/playback.service';
 import { AuthService } from '../../../../../../services/auth.service';
 import { QueueManagerService } from '../../../../../../services/queue-manager.service';
+import { FiltrosService } from '../../../../../../services/filtros.service';
 import { CancionesArtistaComponent } from '../canciones-artista/canciones-artista.component';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -38,7 +39,8 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     private estService: EstablecimientosService,
     private playbackService: PlaybackService,
     private authService: AuthService,
-    private queueManager: QueueManagerService
+    private queueManager: QueueManagerService,
+    private filtrosService: FiltrosService
   ) {}
 
   async ngOnInit() {
@@ -48,6 +50,9 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Cargar filtros
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         
         // Inicializar el reproductor de Spotify
         await this.initializePlayback();
@@ -208,10 +213,94 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     }
   }
 
-  bloquearArtista(artist: SpotifyArtist) {
-    console.log('Bloquear artista (sin funcionalidad):', artist.nombre);
-    this.menuArtistaAbierto = null;
-    // TODO: Implementar funcionalidad de bloqueo
+  isArtistaBlocked(artistName: string): boolean {
+    return this.filtrosService.isArtistaBlocked(artistName);
+  }
+
+  isCancionBlocked(spotifyId: string): boolean {
+    return this.filtrosService.isCancionBlocked(spotifyId);
+  }
+
+  async bloquearArtista(artist: SpotifyArtist) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        alert('Error: Usuario o establecimiento no disponible');
+        return;
+      }
+
+      console.log('Bloqueando artista:', artist.nombre);
+      
+      const response = await this.filtrosService.addFiltro({
+        establecimientoId: this.establecimientoId,
+        tipo: 'artista',
+        valor: artist.nombre,
+        nombreDisplay: artist.nombre,
+        imagenUrl: artist.imagen_url ?? undefined,
+        usuarioId: user.id
+      }).toPromise();
+
+      if (response?.success) {
+        // alert(`Artista "${artist.nombre}" bloqueado exitosamente`);
+        this.menuArtistaAbierto = null;
+        
+        // Actualizar los filtros locales
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+      }
+    } catch (error: any) {
+      console.error('Error bloqueando artista:', error);
+      if (error.status === 409) {
+        alert('Este artista ya está bloqueado');
+        this.menuArtistaAbierto = null;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al bloquear el artista');
+      }
+    }
+  }
+
+  async bloquearCancion(song: SpotifyTrack) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        alert('Error: Usuario o establecimiento no disponible');
+        return;
+      }
+
+      console.log('Bloqueando canción:', song.titulo);
+      
+      const response = await this.filtrosService.addFiltro({
+        establecimientoId: this.establecimientoId,
+        tipo: 'cancion',
+        valor: song.spotify_id,
+        nombreDisplay: `${song.titulo} - ${song.artista}`,
+        imagenUrl: song.imagen_url ?? undefined,
+        usuarioId: user.id
+      }).toPromise();
+
+      if (response?.success) {
+        // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
+        this.menuAbierto = null;
+        
+        // Actualizar los filtros locales
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+      }
+    } catch (error: any) {
+      console.error('Error bloqueando canción:', error);
+      if (error.status === 409) {
+        alert('Esta canción ya está bloqueada');
+        this.menuAbierto = null;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al bloquear la canción');
+      }
+    }
   }
 
   selectArtist(artist: SpotifyArtist) {

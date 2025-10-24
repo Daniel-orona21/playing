@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -8,6 +8,8 @@ import { EstablecimientosService } from '../../../../../../services/establecimie
 import { PlaybackService } from '../../../../../../services/playback.service';
 import { AuthService } from '../../../../../../services/auth.service';
 import { QueueManagerService } from '../../../../../../services/queue-manager.service';
+import { FiltrosService } from '../../../../../../services/filtros.service';
+import { Subscription } from 'rxjs';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,7 +21,7 @@ gsap.registerPlugin(ScrollTrigger);
   templateUrl: './canciones-categoria.component.html',
   styleUrl: './canciones-categoria.component.scss'
 })
-export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
+export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() categoryName: string | null = null;
   @Output() backToCategories = new EventEmitter<void>();
   bloqueado = false;
@@ -28,6 +30,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   menuAbierto: number | null = null;
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
+  private filtrosSubscription?: Subscription;
   
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -35,7 +38,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     private estService: EstablecimientosService,
     private playbackService: PlaybackService,
     private authService: AuthService,
-    private queueManager: QueueManagerService
+    private queueManager: QueueManagerService,
+    private filtrosService: FiltrosService
   ) {}
   
   async ngOnInit() {
@@ -44,6 +48,17 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Cargar filtros
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        
+        // Verificar si el género está bloqueado inicialmente
+        if (this.categoryName) {
+          this.bloqueado = this.filtrosService.isGeneroBlocked(this.categoryName.toLowerCase());
+        }
+        
+        // Suscribirse a cambios en filtros para actualizar el estado en tiempo real
+        this.subscribeToFiltrosChanges();
         
         // Inicializar el reproductor de Spotify
         await this.initializePlayback();
@@ -55,6 +70,27 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     if (this.categoryName && this.establecimientoId) {
       await this.loadSongsByGenre();
     }
+  }
+
+  subscribeToFiltrosChanges() {
+    this.filtrosSubscription = this.filtrosService.filtros$.subscribe(() => {
+      // Actualizar el estado de bloqueado cuando cambien los filtros
+      if (this.categoryName) {
+        this.bloqueado = this.filtrosService.isGeneroBlocked(this.categoryName.toLowerCase());
+        console.log(`Estado de bloqueo actualizado para género ${this.categoryName}: ${this.bloqueado}`);
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    // Limpiar la suscripción al destruir el componente
+    if (this.filtrosSubscription) {
+      this.filtrosSubscription.unsubscribe();
+    }
+  }
+
+  isCancionBlocked(spotifyId: string): boolean {
+    return this.filtrosService.isCancionBlocked(spotifyId);
   }
 
   async initializePlayback() {
@@ -97,8 +133,61 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
     }
   }
   
-  toggleBloqueo() {
-    this.bloqueado = !this.bloqueado;
+  async toggleBloqueo() {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId || !this.categoryName) {
+        alert('Error: Usuario, establecimiento o categoría no disponible');
+        return;
+      }
+
+      if (this.bloqueado) {
+        // Desbloquear: buscar el filtro y eliminarlo
+        const filtro = this.filtrosService.getFiltroByTipoAndValor('genero', this.categoryName.toLowerCase());
+        
+        if (filtro) {
+          console.log('Desbloqueando género:', this.categoryName);
+          
+          const response = await this.filtrosService.deleteFiltro(filtro.id_filtro).toPromise();
+          
+          if (response?.success) {
+            this.bloqueado = false;
+            // alert(`Género "${this.categoryName}" desbloqueado exitosamente.`);
+          }
+        } else {
+          // Si no se encuentra el filtro, actualizar el estado
+          this.bloqueado = false;
+        }
+      } else {
+        // Bloquear: crear nuevo filtro
+        console.log('Bloqueando género:', this.categoryName);
+        
+        const response = await this.filtrosService.addFiltro({
+          establecimientoId: this.establecimientoId,
+          tipo: 'genero',
+          valor: this.categoryName.toLowerCase(),
+          nombreDisplay: this.categoryName,
+          usuarioId: user.id
+        }).toPromise();
+
+        if (response?.success) {
+          this.bloqueado = true;
+          // alert(`Género "${this.categoryName}" bloqueado exitosamente.`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error en toggle de bloqueo de género:', error);
+      if (error.status === 409) {
+        alert('Este género ya está bloqueado');
+        this.bloqueado = true;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al cambiar el estado del bloqueo del género');
+      }
+    }
   }
 
   ngAfterViewInit(): void {
@@ -180,6 +269,47 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit {
   eliminarCancion(index: number) {
     console.log('Eliminar canción:', index);
     this.menuAbierto = null; // Close the menu after action
+  }
+
+  async bloquearCancion(song: SpotifyTrack) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        alert('Error: Usuario o establecimiento no disponible');
+        return;
+      }
+
+      console.log('Bloqueando canción:', song.titulo);
+      
+      const response = await this.filtrosService.addFiltro({
+        establecimientoId: this.establecimientoId,
+        tipo: 'cancion',
+        valor: song.spotify_id,
+        nombreDisplay: `${song.titulo} - ${song.artista}`,
+        imagenUrl: song.imagen_url ?? undefined,
+        usuarioId: user.id
+      }).toPromise();
+
+      if (response?.success) {
+        // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
+        this.menuAbierto = null;
+        
+        // Actualizar los filtros locales
+        await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+      }
+    } catch (error: any) {
+      console.error('Error bloqueando canción:', error);
+      if (error.status === 409) {
+        alert('Esta canción ya está bloqueada');
+        this.menuAbierto = null;
+        // Actualizar filtros por si acaso
+        if (this.establecimientoId) {
+          await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
+        }
+      } else {
+        alert('Error al bloquear la canción');
+      }
+    }
   }
 
   async reproducirCancion(song: SpotifyTrack, event: Event) {

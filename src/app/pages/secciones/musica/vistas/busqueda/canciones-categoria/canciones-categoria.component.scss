@@ -1,6 +1,40 @@
 @use '../../../../../../../colores.scss' as *;
 @use 'sass:color';
 
+// Estilos para elementos bloqueados
+.bloqueada {
+    opacity: 0.5;
+    pointer-events: none;
+    
+    .portada {
+        position: relative;
+        
+        .blocked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+           span {
+                font-size: 48px;
+                color: rgba(137, 137, 137, 0.432);
+            }
+        }
+    }
+    
+    .blocked-text {
+        color: #ff4444;
+        font-size: 12px;
+        margin-top: 4px;
+        display: none !important;
+    }
+}
+
 .categoria-container {
     display: flex;
     flex-direction: column;
@@ -52,16 +86,22 @@
         align-items: center;
         justify-content: center;
         background-color: $contenedor;
-        color: white;
+        color: $textoSecundario !important;
         border: none;
         border-radius: 99px;
         padding: 10px 15px;
         gap: 1rem;
         font-size: 16px;
+        cursor: pointer;
+        transition: all .3s ease;
+
+        p {
+            transition: all .3s ease;
+        }
         
         span {
             transition: all .3s ease;
-            color: $colorSecundario;
+            color: color.adjust($colorSecundario, $lightness: -20%) !important;
             font-size: 1.5rem;
             
             &.iniciado {
@@ -70,7 +110,30 @@
         }
 
         &:hover {
-            background-color: color.adjust($contenedor, $lightness: +20%) !important;
+            p {
+                color: white !important;
+            }
+
+             span {
+                color: $colorSecundario;
+                color: color.adjust($colorSecundario, $lightness: 0%) !important;
+            }
+        }
+        
+        &.bloqueado {
+            
+            span {
+                color: $colorSecundario;
+                color: color.adjust($colorSecundario, $lightness: 0%) !important;
+            }
+            
+            p {
+                color: white;
+            }
+            
+            &:hover {
+                background-color: color.adjust($contenedor, $lightness: +10%) !important;
+            }
         }
     }
 

@@ -9,15 +9,15 @@
             <h3>Límite máximo de reproducción de canciónes</h3>
             <div class="radio-group">
                 <label>
-                    <input type="radio" name="playLimit" value="1_hour" [(ngModel)]="playLimit">
+                    <input type="radio" name="playLimit" value="1_hora" [(ngModel)]="playLimit" (change)="savePlayLimit()">
                     1 vez por hora
                 </label>
                 <label>
-                    <input type="radio" name="playLimit" value="2_hours" [(ngModel)]="playLimit">
+                    <input type="radio" name="playLimit" value="2_horas" [(ngModel)]="playLimit" (change)="savePlayLimit()">
                     1 vez cada 2 horas
                 </label>
                 <label>
-                    <input type="radio" name="playLimit" value="no_limit" [(ngModel)]="playLimit">
+                    <input type="radio" name="playLimit" value="sin_limite" [(ngModel)]="playLimit" (change)="savePlayLimit()">
                     Sin límite
                 </label>
             </div>
@@ -28,13 +28,13 @@
                 <h3>Límite de canciones por usuario por hora</h3>
             </div>
             <div class="inputContainer">
-                <button (click)="decrementUserSongLimit()">
+                <button (click)="decrementUserSongLimit(); saveUserSongLimit()">
                     <span class="material-symbols-outlined">
                         remove
                     </span>
                 </button>
-                    <input [(ngModel)]="userSongLimit" type="number" placeholder="0">
-                    <button (click)="incrementUserSongLimit()">
+                    <input [(ngModel)]="userSongLimit" type="number" placeholder="0" (blur)="saveUserSongLimit()" min="0">
+                    <button (click)="incrementUserSongLimit(); saveUserSongLimit()">
                         <span class="material-symbols-outlined">
                             add
                         </span>
@@ -49,7 +49,8 @@
             <div class="filtro-grid" *ngIf="songs.length > 0">
                 <div class="item cancion" *ngFor="let song of songs; let i = index" [class.menu-abierto]="menuAbierto.song === i">
                     <div class="portada">
-                        <i class="fa-solid fa-music"></i>
+                        <img *ngIf="song.imageUrl" [src]="song.imageUrl" [alt]="song.title">
+                        <i *ngIf="!song.imageUrl" class="fa-solid fa-music"></i>
                     </div>
                     <div class="infoCancion">
                         <p class="nombreCancion">{{song.title}}</p>
@@ -100,7 +101,10 @@
             <h3 *ngIf="artists.length > 0">Artistas</h3>
             <div class="filtro-grid" *ngIf="artists.length > 0">
                 <div class="item artista" *ngFor="let artist of artists; let i = index" [class.menu-abierto]="menuAbierto.artist === i">
-                    <i class="fa-solid fa-music"></i>
+                    <div class="portada-artista">
+                        <img *ngIf="artist.imageUrl" [src]="artist.imageUrl" [alt]="artist.name">
+                        <i *ngIf="!artist.imageUrl" class="fa-solid fa-music"></i>
+                    </div>
                     <p>{{artist.name}}</p>
                     <button class="mas" (click)="abrirMenu(i, $event, 'artist')"><i class="fa-solid fa-ellipsis"></i></button>
                     <div 
