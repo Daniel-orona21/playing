@@ -18,7 +18,10 @@
         </div>
 
         <div class="cancionHeader">
-            <div class="portada">
+            <div (click)="abrirVista()" class="portada">
+                <div class="overlay">
+                    <span class="material-symbols-outlined">open_in_new</span>
+                </div>
                 <img *ngIf="currentTrack?.imagen_url" [src]="currentTrack!.imagen_url" [alt]="currentTrack!.titulo">
                 <i *ngIf="!currentTrack?.imagen_url" class="fa-solid fa-music"></i>
             </div>

@@ -12,6 +12,7 @@ import { OrdenesLayoutComponent } from './pages/secciones/ordenes-layout/ordenes
 import { UsuariosComponent } from './pages/secciones/ordenes-layout/usuarios/usuarios.component';
 import { CallbackSpotifyComponent } from './pages/callback-spotify/callback-spotify.component';
 import { AuthGuard } from './guards/auth.guard';
+import { PublicaComponent } from './pages/secciones/publica/publica.component';
 
 export const routes: Routes = [
   { path: '', component: LoginComponent, pathMatch: 'full' },
@@ -47,5 +48,6 @@ export const routes: Routes = [
     ]
   },
   { path: 'callback/spotify', component: CallbackSpotifyComponent },
+  { path: 'vista', component: PublicaComponent },
   { path: '**', component: LoginComponent },
 ];

@@ -301,4 +301,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
+
+  abrirVista() {
+  window.open('/vista', '_blank');
+}
 }
