@@ -201,26 +201,38 @@ export class SpotifyService {
   // Buscar canciones
   searchTracks(query: string, establecimientoId: number): Observable<SpotifySearchResponse> {
     return this.http.get<SpotifySearchResponse>(`${environment.apiUrl}/musica/search`, {
-      params: { q: query, establecimientoId: establecimientoId.toString() }
+      params: { 
+        q: query, 
+        establecimientoId: establecimientoId.toString(),
+        skipFilters: 'true' // Admin no tiene filtros
+      }
     });
   }
 
   // Obtener géneros disponibles
   getGenres(): Observable<SpotifyGenresResponse> {
-    return this.http.get<SpotifyGenresResponse>(`${environment.apiUrl}/musica/genres`);
+    return this.http.get<SpotifyGenresResponse>(`${environment.apiUrl}/musica/genres`, {
+      params: { skipFilters: 'true' } // Admin no tiene filtros
+    });
   }
 
   // Buscar canciones por género
   getTracksByGenre(genre: string, establecimientoId: number): Observable<SpotifySearchResponse> {
     return this.http.get<SpotifySearchResponse>(`${environment.apiUrl}/musica/genres/${genre}/tracks`, {
-      params: { establecimientoId: establecimientoId.toString() }
+      params: { 
+        establecimientoId: establecimientoId.toString(),
+        skipFilters: 'true' // Admin no tiene filtros
+      }
     });
   }
 
   // Buscar canciones por artista
   getTracksByArtist(artistId: string, establecimientoId: number): Observable<SpotifySearchResponse> {
     return this.http.get<SpotifySearchResponse>(`${environment.apiUrl}/musica/artists/${artistId}/tracks`, {
-      params: { establecimientoId: establecimientoId.toString() }
+      params: { 
+        establecimientoId: establecimientoId.toString(),
+        skipFilters: 'true' // Admin no tiene filtros
+      }
     });
   }
 

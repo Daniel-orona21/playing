@@ -1,9 +1,10 @@
-import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SpotifyService } from '../../../../../services/spotify.service';
 import { EstablecimientosService } from '../../../../../services/establecimientos.service';
+import { MusicaSocketService } from '../../../../../services/musica-socket.service';
 
 interface Cancion {
   id: number;
@@ -24,7 +25,7 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent implements OnInit, AfterViewInit, OnChanges{
+export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   @Input() hidden: boolean = false;
   private animationsInitialized = false;
 
@@ -206,7 +207,8 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges{
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private spotifyService: SpotifyService,
-    private estService: EstablecimientosService
+    private estService: EstablecimientosService,
+    private musicaSocketService: MusicaSocketService
   ) {}
 
   async ngOnInit() {
@@ -220,6 +222,10 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges{
         // Cargar la cola y el historial iniciales
         await this.cargarCola();
         await this.cargarHistorial();
+
+        // Conectar al socket después de obtener el establecimiento
+        this.musicaSocketService.connect(this.establecimientoId);
+        this.setupSocketListeners();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento en lista:', error);
@@ -241,6 +247,33 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges{
         this.cargarCola(); // Solo recargar la cola, no el historial
       }
     });
+
+    // Escuchar eventos de actualización del historial
+    window.addEventListener('historyUpdated', () => {
+      if (!this.isDeleting) {
+        this.cargarHistorial(); // Solo recargar el historial, no la cola
+      }
+    });
+
+    // Conectar al socket y escuchar eventos en tiempo real
+    if (this.establecimientoId) {
+      this.musicaSocketService.connect(this.establecimientoId);
+    }
+  }
+
+  ngOnDestroy() {
+    // Desconectar socket al destruir el componente
+    this.musicaSocketService.disconnect();
+  }
+
+  private setupSocketListeners() {
+    // El socket service ya tiene listeners configurados en su conexión
+    // Los eventos ya se manejan en el servicio, solo necesitamos que se
+    // disparen los eventos window que ya están configurados
+    
+    // Nota: El backend ya emite queue_update y history_update via Socket.IO
+    // El MusicaSocketService ya tiene los listeners configurados
+    // Los componentes se actualizarán vía los window.dispatchEvent existentes
   }
 
   async cargarCola() {

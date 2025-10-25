@@ -19,14 +19,10 @@
                 <div class="artista" 
                      *ngFor="let artist of artists; let i = index" 
                      [class.menu-abierto]="menuArtistaAbierto === i" 
-                     [class.bloqueada]="isArtistaBlocked(artist.nombre)"
                      (click)="selectArtist(artist)">
                 <div class="portada-artista">
                     <img *ngIf="artist.imagen_url" [src]="artist.imagen_url" [alt]="artist.nombre">
                     <i *ngIf="!artist.imagen_url" class="fa-solid fa-user"></i>
-                    <div *ngIf="isArtistaBlocked(artist.nombre)" class="blocked-overlay">
-                        <span class="material-symbols-outlined">block</span>
-                    </div>
                 </div>
                 <div class="infoArtista">
                     <p class="nombreArtista">{{artist.nombre}}</p>

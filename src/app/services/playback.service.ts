@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { SpotifyTrack } from '../models/musica.interfaces';
+import { MusicaSocketService } from './musica-socket.service';
 
 // Declaración de tipos para Spotify Web Playback SDK
 // Usamos any para evitar conflictos con los tipos del SDK de Spotify
@@ -55,10 +56,95 @@ export class PlaybackService {
   private isReadySubject = new BehaviorSubject<boolean>(false);
   public isReady$ = this.isReadySubject.asObservable();
 
+  private progressInterval: any = null;
+
   constructor(
     private http: HttpClient,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private musicaSocketService: MusicaSocketService
   ) {}
+
+  /**
+   * Emitir actualización de estado de reproducción al backend
+   */
+  private notifyPlaybackStateChange(isPlaying: boolean, position: number = 0): void {
+    if (!this.establecimientoId) return;
+    
+    this.http.post(`${environment.apiUrl}/musica/playback/state`, {
+      establecimientoId: this.establecimientoId,
+      isPlaying,
+      position
+    }).subscribe({
+      next: () => console.log('📡 Estado de reproducción notificado al backend'),
+      error: (err) => console.error('Error notificando estado:', err)
+    });
+  }
+
+  /**
+   * Emitir actualización completa de estado al backend
+   */
+  private notifyFullPlaybackUpdate(state: any, track: SpotifyTrack): void {
+    if (!this.establecimientoId) return;
+    
+    // Emitir a través del backend que distribuye vía Socket.IO
+    this.http.post(`${environment.apiUrl}/musica/playback/state`, {
+      establecimientoId: this.establecimientoId,
+      isPlaying: !state.paused,
+      position: state.position,
+      duration: state.duration,
+      currentTrack: {
+        spotify_id: track.spotify_id,
+        titulo: track.titulo,
+        artista: track.artista,
+        album: track.album,
+        duracion: Math.floor(state.duration / 1000),
+        imagen_url: track.imagen_url
+      }
+    }).subscribe({
+      error: (err) => console.error('Error notificando estado:', err)
+    });
+  }
+
+  /**
+   * Iniciar emisión periódica de progreso (cada 1 segundo)
+   * Esto es necesario porque player_state_changed NO se emite continuamente
+   */
+  private startProgressEmission(): void {
+    // Limpiar intervalo anterior si existe
+    this.stopProgressEmission();
+    
+    // Emitir progreso cada 1 segundo
+    this.progressInterval = setInterval(() => {
+      if (this.player) {
+        this.player.getCurrentState().then((state: any) => {
+          if (state && !state.paused) {
+            const track = state.track_window.current_track;
+            const currentTrack: SpotifyTrack = {
+              spotify_id: track.id || track.uri.split(':')[2],
+              titulo: track.name,
+              artista: track.artists.map((a: any) => a.name).join(', '),
+              album: track.album.name,
+              duracion: Math.floor(track.duration_ms / 1000),
+              imagen_url: track.album.images[0]?.url || '',
+            };
+            
+            // Emitir el estado actual
+            this.notifyFullPlaybackUpdate(state, currentTrack);
+          }
+        });
+      }
+    }, 1000); // Cada 1 segundo
+  }
+
+  /**
+   * Detener emisión periódica de progreso
+   */
+  private stopProgressEmission(): void {
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+  }
 
   /**
    * Inicializa el reproductor de Spotify con las credenciales del establecimiento
@@ -110,6 +196,9 @@ export class PlaybackService {
       this.isInitializedSubject.next(true);
       console.log('✅✅✅ Spotify Playback initialized successfully! ✅✅✅');
       console.log('Device ID:', this.deviceId);
+      
+      // Conectar al servicio de Socket para emitir eventos
+      this.musicaSocketService.connect(establecimientoId);
     } catch (error) {
       console.error('❌❌❌ Error initializing Spotify Playback:', error);
       console.error('Error stack:', error);
@@ -272,7 +361,8 @@ export class PlaybackService {
           });
         });
 
-        // Player state changed
+        // Player state changed - Se dispara cuando cambia play/pause/canción
+        // NO se dispara continuamente durante reproducción
         this.player.addListener('player_state_changed', (state: any) => {
           if (!state) {
             return;
@@ -280,6 +370,27 @@ export class PlaybackService {
 
           this.ngZone.run(() => {
             this.updatePlaybackState(state);
+            
+            // Obtener track actual
+            const track = state.track_window.current_track;
+            const currentTrack: SpotifyTrack = {
+              spotify_id: track.id || track.uri.split(':')[2],
+              titulo: track.name,
+              artista: track.artists.map((a: any) => a.name).join(', '),
+              album: track.album.name,
+              duracion: Math.floor(track.duration_ms / 1000),
+              imagen_url: track.album.images[0]?.url || '',
+            };
+            
+            // Emitir estado inicial
+            this.notifyFullPlaybackUpdate(state, currentTrack);
+            
+            // Manejar emisión periódica según el estado
+            if (!state.paused) {
+              this.startProgressEmission();
+            } else {
+              this.stopProgressEmission();
+            }
           });
         });
 
@@ -412,6 +523,9 @@ export class PlaybackService {
         isPaused: false
       });
 
+      // Iniciar emisión periódica de progreso
+      this.startProgressEmission();
+      
       console.log('✅ Playing');
     } catch (error) {
       console.error('❌ Error playing:', error);
@@ -462,6 +576,9 @@ export class PlaybackService {
         isPlaying: false,
         isPaused: true
       });
+      
+      // Detener emisión periódica
+      this.stopProgressEmission();
     } catch (error) {
       console.error('Error pausing:', error);
     }
@@ -483,6 +600,9 @@ export class PlaybackService {
         isPlaying: true,
         isPaused: false
       });
+      
+      // Iniciar emisión periódica
+      this.startProgressEmission();
     } catch (error) {
       console.error('Error resuming:', error);
     }
@@ -617,6 +737,9 @@ export class PlaybackService {
    */
   disconnect(): void {
     if (this.player) {
+      // Detener emisión de progreso
+      this.stopProgressEmission();
+      
       this.player.disconnect();
       this.player = null;
       this.deviceId = null;
@@ -631,6 +754,9 @@ export class PlaybackService {
         duration: 0,
         volume: 0.75
       });
+      
+      // Desconectar socket
+      this.musicaSocketService.disconnect();
     }
   }
 }
