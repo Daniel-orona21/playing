@@ -105,16 +105,104 @@ header {
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
 
             p {
                 text-align: center;
                 white-space: nowrap;      
                 overflow: hidden;        
-                text-overflow: ellipsis; 
+                text-overflow: ellipsis;
+                margin: 2px 0;
             }
 
             .artista {
                 color: $textoSecundario;
+            }
+
+            .progressContainer {
+                display: flex;
+                align-items: center;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                position: absolute;
+
+                .tiempo {
+                    font-size: 11px;
+                    color: $textoSecundario;
+                    min-width: 35px;
+                    text-align: center;
+                }
+
+                .progress-slider {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    flex: 1;
+                    height: 4px;
+                    background: linear-gradient(to right, $colorSecundario 0%, $colorSecundario var(--progress-value, 0%), #555 var(--progress-value, 0%), #555 100%);
+                    outline: none;
+                    cursor: pointer;
+
+                    &::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        appearance: none;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: $colorSecundario;
+                        cursor: grab;
+                        transition: transform 0.1s ease;
+
+                        &:hover {
+                        }
+
+                        &:active {
+                            cursor: grabbing;
+                        }
+                    }
+
+                    &::-moz-range-thumb {
+                        width: 8px;
+                        height: 8px;
+                        border: none;
+                        border-radius: 50%;
+                        background: $colorSecundario;
+                        cursor: grab;
+                        transition: transform 0.1s ease;
+
+                        &:hover {
+                            transform: scale(1.2);
+                        }
+
+                        &:active {
+                            cursor: grabbing;
+                        }
+                    }
+
+                    &::-moz-range-progress {
+                        background-color: $colorSecundario;
+                        height: 4px;
+                    }
+
+                    &::-moz-range-track {
+                        background-color: #555;
+                        height: 4px;
+                        border-radius: 2px;
+                    }
+
+                    &:disabled {
+                        opacity: 0;
+                        cursor: not-allowed;
+
+                        &::-webkit-slider-thumb {
+                            cursor: not-allowed;
+                        }
+
+                        &::-moz-range-thumb {
+                            cursor: not-allowed;
+                        }
+                    }
+                }
             }
         }
     }

@@ -31,6 +31,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   isPlaying = false;
   establecimientoId: number | null = null;
   
+  // Progress tracking
+  currentPosition = 0; // en milisegundos
+  duration = 0; // en milisegundos
+  progressPercent = 0;
+  private progressInterval: any = null;
+  
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -59,10 +65,25 @@ export class LayoutComponent implements OnInit, OnDestroy {
       .subscribe(state => {
         this.currentTrack = state.currentTrack;
         this.isPlaying = state.isPlaying;
+        this.currentPosition = state.position;
+        this.duration = state.duration;
+        
+        // Calcular porcentaje de progreso
+        if (this.duration > 0) {
+          this.progressPercent = (this.currentPosition / this.duration) * 100;
+        }
         
         // Actualizar el valor del volumen en el slider
         this.value = Math.round(state.volume * 100);
         this.updateVolumeSlider();
+        this.updateProgressSlider();
+        
+        // Manejar el intervalo de actualización de progreso
+        if (state.isPlaying && !this.progressInterval) {
+          this.startProgressInterval();
+        } else if (!state.isPlaying && this.progressInterval) {
+          this.stopProgressInterval();
+        }
       });
 
     // Obtener establecimiento y restaurar reproducción
@@ -140,6 +161,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopProgressInterval();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -212,5 +234,71 @@ export class LayoutComponent implements OnInit, OnDestroy {
     }
 
     await this.playbackService.previousTrack();
+  }
+
+  /**
+   * Actualiza el progreso de la canción cada segundo mientras está reproduciendo
+   */
+  private startProgressInterval() {
+    this.stopProgressInterval(); // Asegurar que no haya múltiples intervalos
+    
+    this.progressInterval = setInterval(() => {
+      if (this.isPlaying && this.duration > 0) {
+        // Incrementar posición
+        this.currentPosition = Math.min(this.currentPosition + 1000, this.duration);
+        this.progressPercent = (this.currentPosition / this.duration) * 100;
+        this.updateProgressSlider();
+      }
+    }, 1000);
+  }
+
+  /**
+   * Detiene el intervalo de actualización de progreso
+   */
+  private stopProgressInterval() {
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+  }
+
+  /**
+   * Maneja el cambio de posición en el slider de progreso
+   */
+  async updateProgress(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const percent = ((+input.value - +input.min) / (+input.max - +input.min)) * 100;
+    input.style.setProperty('--progress-value', percent + '%');
+    
+    // Calcular nueva posición en milisegundos
+    const newPosition = (this.duration * +input.value) / 100;
+    this.currentPosition = newPosition;
+    this.progressPercent = +input.value;
+    
+    // Buscar en la canción
+    await this.playbackService.seek(Math.floor(newPosition));
+  }
+
+  /**
+   * Actualiza visualmente el slider de progreso
+   */
+  private updateProgressSlider() {
+    setTimeout(() => {
+      const slider = document.querySelector('.progress-slider') as HTMLInputElement;
+      if (slider) {
+        const percent = this.progressPercent;
+        slider.style.setProperty('--progress-value', percent + '%');
+      }
+    }, 0);
+  }
+
+  /**
+   * Formatea el tiempo de milisegundos a MM:SS
+   */
+  formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 }

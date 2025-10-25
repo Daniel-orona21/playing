@@ -25,6 +25,19 @@
             <div class="infoCancion">
                 <p class="nombre">{{ currentTrack?.titulo || 'Selecciona una canción' }}</p>
                 <p class="artista">{{ currentTrack?.artista || 'Para comenzar a reproducir' }}</p>
+                <div class="progressContainer">
+                    <!-- <span class="tiempo">{{ formatTime(currentPosition) }}</span> -->
+                    <input
+                        type="range"
+                        class="progress-slider"
+                        min="0"
+                        max="100"
+                        [value]="progressPercent"
+                        (input)="updateProgress($event)"
+                        [disabled]="!currentTrack"
+                    />
+                    <!-- <span class="tiempo">{{ formatTime(duration) }}</span> -->
+                </div>
             </div>
         </div>
 

@@ -555,6 +555,29 @@ export class PlaybackService {
   }
 
   /**
+   * Cambia la posición de reproducción (seek)
+   * @param positionMs Posición en milisegundos
+   */
+  async seek(positionMs: number): Promise<void> {
+    if (!this.player) {
+      return;
+    }
+
+    try {
+      await this.player.seek(positionMs);
+      
+      // Actualizar el estado inmediatamente para feedback visual
+      const currentState = this.playbackStateSubject.value;
+      this.playbackStateSubject.next({
+        ...currentState,
+        position: positionMs
+      });
+    } catch (error) {
+      console.error('Error seeking:', error);
+    }
+  }
+
+  /**
    * Obtiene el estado actual de reproducción
    */
   getCurrentState(): PlaybackState {
