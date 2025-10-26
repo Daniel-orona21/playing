@@ -384,9 +384,10 @@
     
     .letrasContenido {
         flex: 1;
+        position: relative;
+        height: 100%;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 0 0.5rem 70vh 0; // No top padding, bottom for scrolling last lines
         
         // Custom scrollbar
         &::-webkit-scrollbar {
@@ -415,8 +416,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 0;
+    flex: 1;
+    height: 100%;
+    width: 100%;
     gap: 1rem;
+    position: absolute;
     
     .spinner {
         width: 40px;
