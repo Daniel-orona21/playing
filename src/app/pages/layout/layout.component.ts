@@ -309,10 +309,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
       ? `/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`
       : `/vista/${this.establecimientoId}`;
 
-    // Abre una nueva ventana (no una pestaña)
     window.open(
       url,
-      'VistaNueva', // nombre de la ventana
+      'VistaNueva', 
       'width=900,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
     );
   } else {

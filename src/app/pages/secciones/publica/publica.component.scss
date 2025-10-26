@@ -16,7 +16,7 @@
 
 .logoApp {
     right: 20%;
-    top: 10%;
+    bottom: 0;
     position: absolute;
     z-index: 1;
 }
@@ -24,7 +24,7 @@
 .logoEstablecimiento {
     position: absolute;
     z-index: 3;
-    top: 1rem;
+    top: 3rem;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -41,10 +41,33 @@
 .cuerpo {
     // background-color: green;
     display: flex;
-    width: 85vw;
-    height: 80vh;
+    width: 86vw;
+    height: 72vh;
+    max-width: 1840px;
     z-index: 3;
     gap: 1rem;
+
+    // Layout especial cuando no hay letras
+    &.sin-letras {
+        .izq {
+            width: 60%;
+            transition: width 0.5s ease;
+            
+            .cancion {
+                height: 100%;
+                flex: 1;
+                
+                img {
+                    object-fit: cover;
+                }
+            }
+        }
+        
+        .der {
+            width: 40%;
+            transition: width 0.5s ease;
+        }
+    }
 }
 
 .cont {
@@ -113,8 +136,27 @@
     }
 }
 
+// Cuando no hay letras, hacer la info más grande y visible
+.cuerpo.sin-letras .infoCancion {
+    z-index: 10;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    padding: 2rem 1rem 1rem;
+    width: 100%;
+    bottom: 0rem;
+    
+    p {
+        font-size: 1.5rem;
+    }
+    
+    .cancionNombre {
+        font-weight: 600;
+        line-height: 1.2;
+        font-size: 2rem;
+    }
+}
+
 .cuadrado {
-    aspect-ratio: 1/1;
+    aspect-ratio: 1/1 !important;
     flex: 1;
     overflow: hidden;
 
@@ -213,6 +255,28 @@
     }
 }
 
+// Hora horizontal para el panel alternativo (sin letras)
+.horaHorizontal {
+    .horas {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    p {
+        font-size: 1.2rem;
+    }
+
+    h1 {
+        &.separador {
+            color: white;
+            margin: 0;
+        }
+    }
+}
+
 // Placeholder for missing images
 .no-image {
     position: absolute;
@@ -262,6 +326,22 @@
             color: rgba(255, 255, 255, 0.6);
             font-weight: 400;
         }
+    }
+}
+
+// Ajustar progress bar cuando no hay letras (solo se muestra en este caso)
+.cuerpo.sin-letras .progressContainer {
+    bottom: 1rem;
+    left: 2rem;
+    right: 2rem;
+    
+    .progressBar {
+        height: 6px;
+    }
+    
+    .timeLabels span {
+        font-size: 0.9rem;
+        font-weight: 500;
     }
 }
 
@@ -435,3 +515,180 @@
             color: white;
         }
     }
+
+// Panel alternativo cuando no hay letras
+.panelAlternativo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    
+    .hora, .siguiente {
+        flex: 1;
+    }
+    
+    .contenedorInfoAlternativo {
+        height: min-content;
+        padding: 1rem;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+
+
+        .contenedorPequeno {
+            height: min-content;
+            aspect-ratio: unset;
+            padding: 0rem !important;
+        }
+
+        h2, span {
+            font-size: 2rem;
+        }
+        .usuario {
+        }
+    }
+}
+
+.horaHorizontal {
+    position: relative;
+    .fecha {
+        bottom: 1rem;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .horas {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    p {
+        font-size: 1.5rem;
+    }
+
+    h1 {
+        &.separador {
+            color: white;
+            margin: 0;
+        }
+        font-size: 6.5rem;
+    }
+}
+
+    @media screen and (min-width: 2560px) {
+        .cuerpo {
+        }
+
+        .letras {
+    gap: 0;
+    &.synced {
+        .lyricLine {
+            font-size: 2rem;
+            line-height: 2.2;
+            margin: 0.8rem 0;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.4);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: left center;
+            max-width: 80%;
+            
+            &.current {
+                font-weight: 600;
+                color: white;
+                transform: scale(1.25) translateX(0px);
+            }
+            
+            &.past {
+                opacity: 0.3;
+                transform: scale(0.95);
+            }
+            
+            &.future {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+        }
+    }
+    
+    &.plain {
+        .lyricLine {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin: 0.5rem 0;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    }
+}
+
+.hora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    color: white;
+
+    .horas {
+        // margin-bottom: 1.5rem;
+    }
+
+    p {
+        font-weight: 100;
+        font-family: "Michroma", sans-serif;
+    }
+
+    h1 {
+        color: white;
+        text-align: center;
+        font-family: "Michroma", sans-serif;
+        font-size: 6.5rem;
+        line-height: 1;
+        font-weight: 100;
+
+        &:last-child {
+            color: $colorSecundario;
+        }
+    }
+}
+
+// Hora horizontal para el panel alternativo en pantallas grandes
+.horaHorizontal {
+    position: relative;
+    .fecha {
+        bottom: 1rem;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .horas {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    p {
+        font-size: 1.5rem;
+    }
+
+    h1 {
+        &.separador {
+            color: white;
+            margin: 0;
+        }
+        font-size: 9rem;
+    }
+}
+
+.logoApp {
+    right: 20%;
+    bottom: 0;
+    position: absolute;
+    z-index: 1;
+    transform: scale(1.2);
+}
+}

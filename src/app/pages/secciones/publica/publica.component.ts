@@ -508,4 +508,19 @@ export class PublicaComponent implements OnInit, OnDestroy {
   getSkipsCount(): number {
     return this.currentTrack?.skips_count || 0;
   }
+
+  // Check if lyrics are available and valid
+  // Solo consideramos válidas las letras sincronizadas con timestamps
+  hasValidLyrics(): boolean {
+    if (this.loading) return true; // Keep normal layout while loading
+    
+    // Solo aceptar letras sincronizadas (con timestamps para scroll y highlight)
+    if (this.isSynced && this.lyrics.length > 0) {
+      return true;
+    }
+    
+    // Las letras planas (sin sincronización) no son válidas para el panel
+    // Se manejan como si no hubiera letras
+    return false;
+  }
 }

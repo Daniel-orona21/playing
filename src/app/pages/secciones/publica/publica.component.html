@@ -2,9 +2,8 @@
     <img class="logoApp" src="images/logo-2.png" alt="">
     <img class="logoEstablecimiento" src="images/wings.png" alt="">
     <div class="overlay"></div>
-    <div class="cuerpo">
+    <div class="cuerpo" [class.sin-letras]="!hasValidLyrics()">
         <div class="cont izq">
-            <!-- Current Track -->
             <div class="blur cancion cuadrado">
                 <img *ngIf="currentTrack?.imagen_url" 
                      [src]="currentTrack!.imagen_url" 
@@ -12,13 +11,15 @@
                 <div *ngIf="!currentTrack?.imagen_url" class="no-image">
                     <span class="material-symbols-outlined">music_note</span>
                 </div>
-                <!-- <div class="infoCancion">
+                
+                <!-- Info de canción cuando no hay letras -->
+                <div class="infoCancion" *ngIf="!hasValidLyrics() && currentTrack">
                     <p class="cancionNombre">{{ currentTrack?.titulo || 'Sin reproducción' }}</p>
                     <p class="artistaNombre">{{ currentTrack?.artista || 'Esperando...' }}</p>
-                </div> -->
+                </div>
                 
-                <!-- Progress Bar -->
-                <!-- <div class="progressContainer" *ngIf="currentTrack">
+                <!-- Progress Bar when no lyrics -->
+                <!-- <div class="progressContainer" *ngIf="currentTrack && !hasValidLyrics()">
                     <div class="progressBar">
                         <div class="progressFill" [style.width.%]="getProgress()"></div>
                     </div>
@@ -29,8 +30,7 @@
                 </div> -->
             </div>
 
-            <!-- User Info, Likes, Skips -->
-            <div class="blur contenedorInfo">
+            <div class="blur contenedorInfo" *ngIf="hasValidLyrics()">
                 <div class="contenedorPequeno">
                     <div class="usuario">
                         <h2>{{ getUserInitials().charAt(0) }}</h2>
@@ -47,8 +47,7 @@
                 </div>
             </div>
 
-            <!-- Clock and Next Track -->
-            <div class="contenedorHoraSiguiente">
+            <div class="contenedorHoraSiguiente" *ngIf="hasValidLyrics()">
                 <div class="blur hora cuadrado">
                     <div class="horas">
                         <h1>{{ getFormattedTime().hours }}</h1>
@@ -69,10 +68,6 @@
                         <div class="overlaySiguiente">
                             <span class="material-symbols-outlined">queue_music</span>
                         </div>
-                        <!-- <div class="infoCancion">
-                            <p class="cancionNombre">{{ nextTrack.titulo }}</p>
-                            <p class="artistaNombre">{{ nextTrack.artista }}</p>
-                        </div> -->
                     </ng-container>
                     <ng-template #noNextTrack>
                         <div class="no-image">
@@ -86,8 +81,7 @@
             </div>
         </div>
 
-        <!-- Lyrics Panel -->
-        <div class="cont der blur letrasPanel">
+        <div class="cont der blur letrasPanel" *ngIf="hasValidLyrics()">
             <div class="letrasHeader">
                 <div *ngIf="currentTrack" class="trackInfo">
                     <p class="trackTitle">{{ currentTrack.titulo }}</p>
@@ -96,13 +90,11 @@
             </div>
             
             <div class="letrasContenido">
-                <!-- Loading State -->
                 <div *ngIf="loading" class="loadingContainer">
                     <div class="spinner"></div>
                     <p>Cargando letras...</p>
                 </div>
 
-                <!-- Synced Lyrics -->
                 <div *ngIf="!loading && isSynced" class="letras synced">
                     <p *ngFor="let line of lyrics; let i = index" 
                        [class.current]="isCurrentLine(i)"
@@ -113,18 +105,69 @@
                     </p>
                 </div>
 
-                <!-- Plain Lyrics -->
                 <div *ngIf="!loading && !isSynced" class="letras plain">
                     <p *ngFor="let line of plainLyrics" class="lyricLine">
                         {{ line }}
                     </p>
                 </div>
 
-                <!-- No Lyrics / No Track -->
                 <div *ngIf="!loading && !currentTrack" class="noLetras">
                     <span class="material-symbols-outlined">music_off</span>
                     <p>Esperando reproducción...</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Panel derecho alternativo cuando NO hay letras -->
+        <div class="cont der panelAlternativo" *ngIf="!hasValidLyrics()">
+            <div class="blur hora horaHorizontal cuadrado">
+                <div class="horas">
+                    <h1>{{ getFormattedTime().hours }}</h1>
+                    <h1 class="separador">:</h1>
+                    <h1>{{ getFormattedTime().minutes }}</h1>
+                </div>
+                <div class="fecha">
+                    <p>{{ getFormattedDate() }}</p>
+                </div>
+            </div>
+            
+            <div class="blur contenedorInfo contenedorInfoAlternativo">
+                <div class="contenedorPequeno">
+                    <div class="usuario">
+                        <h2>{{ getUserInitials().charAt(0) }}</h2>
+                        <h2>{{ getUserInitials().charAt(1) }}</h2>
+                    </div>
+                </div>
+                <div class="contenedorPequeno">
+                    <span class="material-symbols-outlined">favorite</span>
+                    <h2 class="cuentaLikes">{{ getLikesCount() }}</h2>
+                </div>
+                <div class="contenedorPequeno">
+                    <span class="material-symbols-outlined skip">fast_forward</span>
+                    <h2 class="cuentaSkip">{{ getSkipsCount() }}</h2>
+                </div>
+            </div>
+            
+            <div class="blur siguiente cuadrado">
+                <ng-container *ngIf="nextTrack; else noNextTrack2">
+                    <img *ngIf="nextTrack.imagen_url" 
+                         [src]="nextTrack.imagen_url" 
+                         alt="siguiente_cancion">
+                    <div *ngIf="!nextTrack.imagen_url" class="no-image">
+                        <span class="material-symbols-outlined">music_note</span>
+                    </div>
+                    <div class="overlaySiguiente">
+                        <span class="material-symbols-outlined">queue_music</span>
+                    </div>
+                </ng-container>
+                <ng-template #noNextTrack2>
+                    <div class="no-image">
+                        <span class="material-symbols-outlined">queue_music</span>
+                    </div>
+                    <div class="infoCancion">
+                        <p class="cancionNombre siguiente">Siguiente</p>
+                    </div>
+                </ng-template>
             </div>
         </div>
     </div>
