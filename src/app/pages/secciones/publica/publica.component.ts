@@ -40,6 +40,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
   isSynced: boolean = false;
   loading: boolean = false;
   currentLineIndex: number = 0;
+  lyricsAttempted: boolean = false; // Flag para evitar reintentos constantes
   
   // Lyrics offset for sync adjustment (in seconds)
   private readonly LYRICS_OFFSET = -1.8;
@@ -91,7 +92,6 @@ export class PublicaComponent implements OnInit, OnDestroy {
           // Listen for queue updates from window events (cross-tab/component communication)
           window.addEventListener('queueUpdated', () => {
             this.ngZone.run(() => {
-              console.log('🔄 Vista pública: Actualización de cola recibida (window event)');
               this.fetchNextTrack();
             });
           });
@@ -131,9 +131,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
       this.subscribeToSocketEvents();
       
       // Then connect to socket
-      console.log('🔌 Vista pública: Conectando al socket para establecimiento:', this.establecimientoId);
       this.musicaSocketService.connect(this.establecimientoId);
-      console.log('✅ Vista pública: Socket conectado:', this.musicaSocketService.isConnected());
 
       // Prepare headers with token if available
       const headers: any = {};
@@ -153,12 +151,10 @@ export class PublicaComponent implements OnInit, OnDestroy {
         this.totalDuration = response.currentPlaying.duracion || 0;
         this.isPlaying = true;
         
-        console.log('🎵 Track inicial con datos completos:', this.currentTrack);
+        console.log('🎵 Track inicial:', response.currentPlaying.titulo);
         
         // Load lyrics for current track
-        if (this.currentTrack) {
-          this.loadLyrics(this.currentTrack);
-        }
+        this.loadLyrics(response.currentPlaying);
       }
 
       // Fetch next track in queue
@@ -184,12 +180,14 @@ export class PublicaComponent implements OnInit, OnDestroy {
       ).toPromise();
 
       if (response?.success && response.currentPlaying) {
-        console.log('✅ Current track details obtenidos:', response.currentPlaying);
         // Merge with existing track data to preserve all fields
         this.currentTrack = {
           ...this.currentTrack,
           ...response.currentPlaying
         };
+        if (response.currentPlaying.usuario_nombre) {
+          console.log('✅ Datos de usuario actualizados:', response.currentPlaying.usuario_nombre);
+        }
       }
     } catch (error) {
       console.error('Error fetching current track details:', error);
@@ -197,7 +195,6 @@ export class PublicaComponent implements OnInit, OnDestroy {
   }
 
   private async fetchNextTrack(): Promise<void> {
-    console.log('🔄 Fetching next track...');
     try {
       // Prepare headers with token if available
       const headers: any = {};
@@ -211,13 +208,6 @@ export class PublicaComponent implements OnInit, OnDestroy {
       ).toPromise();
 
       if (response?.success && response.queue && response.queue.length > 0) {
-        console.log('📋 Cola completa recibida:', response.queue.map((t: any) => ({
-          titulo: t.titulo,
-          spotify_id: t.spotify_id,
-          posicion: t.posicion
-        })));
-        console.log('🎵 Current track spotify_id:', this.currentTrack?.spotify_id);
-        
         // La cola puede venir con la canción actual incluida o no
         // Intentar filtrar primero por spotify_id
         let queue = response.queue.filter((track: any) => 
@@ -231,19 +221,15 @@ export class PublicaComponent implements OnInit, OnDestroy {
           // Cola vacía después de filtrar, la cola no incluía la actual
           // Tomar la primera
           this.nextTrack = response.queue[0];
-          console.log('✅ Next track (primera de cola):', this.nextTrack?.titulo);
         } else if (queue.length === response.queue.length && queue.length > 1) {
           // No filtró nada (no encontró la actual en la cola)
           // Probablemente posición 0 = actual, tomar posición 1
           this.nextTrack = response.queue[1];
-          console.log('✅ Next track (posición 1):', this.nextTrack?.titulo);
         } else {
           // Filtró correctamente, tomar la primera del filtrado
           this.nextTrack = queue.length > 0 ? queue[0] : null;
-          console.log('✅ Next track (después de filtrar):', this.nextTrack?.titulo);
         }
       } else {
-        console.log('⚠️ No hay canciones en la cola');
         this.nextTrack = null;
       }
     } catch (error) {
@@ -256,14 +242,33 @@ export class PublicaComponent implements OnInit, OnDestroy {
     const unsubPlaybackUpdate = this.musicaSocketService.on('playback_update', (data: any) => {
       this.ngZone.run(() => {
         if (data.currentTrack) {
-          console.log('📻 playback_update data.currentTrack:', data.currentTrack);
-          
           // Check if it's a new track
-          if (this.currentTrack?.spotify_id !== data.currentTrack.spotify_id) {
+          const isNewTrack = this.currentTrack?.spotify_id !== data.currentTrack.spotify_id;
+          
+          if (isNewTrack) {
+            console.log('🆕 Nueva canción detectada:', data.currentTrack.titulo);
             this.currentTrack = data.currentTrack;
+            this.lyricsAttempted = false; // Resetear flag para nueva canción
             this.loadLyrics(data.currentTrack);
             this.fetchNextTrack(); // Actualizar siguiente canción cuando cambia
             this.fetchCurrentTrackDetails(); // Obtener detalles completos incluyendo usuario
+          } else {
+            // Same track, but check if we need to load lyrics
+            // (in case they weren't loaded initially) - pero solo intentar UNA VEZ
+            if (!this.loading && !this.lyricsAttempted && !this.isSynced && this.lyrics.length === 0) {
+              console.log('⚠️ Misma canción pero sin letras cargadas, cargando ahora...');
+              this.loadLyrics(data.currentTrack);
+            }
+            
+            // Merge new data with existing (preservar usuario_nombre si ya existe)
+            this.currentTrack = {
+              ...this.currentTrack,
+              ...data.currentTrack,
+              // Preservar campos que podrían no venir en playback_update
+              usuario_nombre: data.currentTrack.usuario_nombre || this.currentTrack?.usuario_nombre,
+              likes_count: data.currentTrack.likes_count ?? this.currentTrack?.likes_count,
+              skips_count: data.currentTrack.skips_count ?? this.currentTrack?.skips_count
+            };
           }
           
           this.isPlaying = data.isPlaying || false;
@@ -279,13 +284,14 @@ export class PublicaComponent implements OnInit, OnDestroy {
     const unsubTrackStarted = this.musicaSocketService.on('track_started', (data: any) => {
       this.ngZone.run(() => {
         if (data.track) {
-          console.log('🎵 track_started data.track:', data.track);
+          console.log('🎵 Canción iniciada:', data.track.titulo);
           
           this.currentTrack = data.track;
           this.isPlaying = true;
           this.currentTime = 0;
           this.totalDuration = data.track.duracion || 0;
           this.currentLineIndex = 0;
+          this.lyricsAttempted = false; // Resetear flag para nueva canción
           
           this.loadLyrics(data.track);
           this.fetchNextTrack(); // Actualizar siguiente canción
@@ -319,7 +325,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
     // Listen for queue updates
     const unsubQueueUpdate = this.musicaSocketService.on('queue_update', (data: any) => {
       this.ngZone.run(() => {
-        console.log('📋 Vista pública: Actualización de cola recibida (socket event)', data);
+        console.log('📋 Actualización de cola');
         this.fetchNextTrack();
       });
     });
@@ -340,8 +346,13 @@ export class PublicaComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Resetear estado de letras antes de cargar nuevas
     this.loading = true;
     this.currentLineIndex = 0;
+    this.lyrics = [];
+    this.plainLyrics = [];
+    this.isSynced = false;
+    this.lyricsAttempted = true; // Marcar que se intentó cargar
 
     this.lyricsService.getLyrics(
       track.titulo,
@@ -358,26 +369,33 @@ export class PublicaComponent implements OnInit, OnDestroy {
             this.isSynced = true;
             this.plainLyrics = [];
             this.currentLineIndex = 0;
+            console.log('✅ Letras sincronizadas:', track.titulo, '-', this.lyrics.length, 'líneas');
           } else {
-            // Plain lyrics without timestamps
-            this.plainLyrics = response.lyrics as string[];
+            // Plain lyrics without timestamps (tratadas como no disponibles)
+            this.plainLyrics = [];
             this.isSynced = false;
             this.lyrics = [];
+            console.log('⚠️ Letras no sincronizadas (sin timestamps):', track.titulo);
           }
         } else {
           // No lyrics found
-          this.plainLyrics = ['Letras no disponibles para esta canción'];
+          this.plainLyrics = [];
           this.isSynced = false;
           this.lyrics = [];
+          console.log('❌ Sin letras:', track.titulo);
         }
         this.loading = false;
+        
+        // Forzar detección de cambios para actualizar la vista
+        this.ngZone.run(() => {});
       },
       error: (error) => {
-        console.error('Error loading lyrics:', error);
-        this.plainLyrics = ['No se pudieron cargar las letras'];
+        console.error('❌ Error cargando letras:', error);
+        this.plainLyrics = [];
         this.isSynced = false;
         this.lyrics = [];
         this.loading = false;
+        // El flag ya está en true, no se volverá a intentar
       }
     });
   }
@@ -490,11 +508,6 @@ export class PublicaComponent implements OnInit, OnDestroy {
     // Try to get user name from current track
     const userName = this.currentTrack?.usuario_nombre;
     
-    // Debug: log what we're receiving
-    if (!userName) {
-      console.log('⚠️ No usuario_nombre en currentTrack:', this.currentTrack);
-    }
-    
     if (userName && userName.trim().length > 0) {
       const nombres = userName.trim().split(' ');
       if (nombres.length >= 2) {
@@ -524,15 +537,12 @@ export class PublicaComponent implements OnInit, OnDestroy {
   // Check if lyrics are available and valid
   // Solo consideramos válidas las letras sincronizadas con timestamps
   hasValidLyrics(): boolean {
-    if (this.loading) return true; // Keep normal layout while loading
-    
-    // Solo aceptar letras sincronizadas (con timestamps para scroll y highlight)
-    if (this.isSynced && this.lyrics.length > 0) {
+    // Keep normal layout while loading
+    if (this.loading) {
       return true;
     }
     
-    // Las letras planas (sin sincronización) no son válidas para el panel
-    // Se manejan como si no hubiera letras
-    return false;
+    // Solo aceptar letras sincronizadas (con timestamps para scroll y highlight)
+    return this.isSynced && this.lyrics.length > 0;
   }
 }
