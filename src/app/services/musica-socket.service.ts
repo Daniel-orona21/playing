@@ -146,6 +146,19 @@ export class MusicaSocketService {
   }
 
   /**
+   * Emitir un evento de actualización de cola
+   * @param establecimientoId - ID del establecimiento
+   */
+  emitQueueUpdate(establecimientoId: number): void {
+    if (this.socket && this.socket.connected) {
+      console.log('📡 Emitiendo actualización de cola al servidor para establecimiento:', establecimientoId);
+      this.socket.emit('queue_updated', { establecimientoId });
+    } else {
+      console.warn('⚠️ Socket no conectado, no se puede emitir actualización de cola');
+    }
+  }
+
+  /**
    * Verificar si está conectado
    * @returns boolean
    */

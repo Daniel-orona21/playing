@@ -602,5 +602,13 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     console.log('🔄 Queue reordered, reloading and refreshing animations...');
     // Recargar para tener el orden correcto desde el backend
     await this.cargarCola();
+    
+    // Emitir evento de socket para notificar a todos los clientes (incluyendo vista pública)
+    this.musicaSocketService.emitQueueUpdate(this.establecimientoId);
+    
+    // Disparar evento window para misma pestaña/ventana
+    window.dispatchEvent(new CustomEvent('queueUpdated'));
+    
+    console.log('✅ Queue updated events dispatched');
   }
 }

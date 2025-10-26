@@ -87,6 +87,14 @@ export class PublicaComponent implements OnInit, OnDestroy {
 
           // Initialize socket connection and fetch current playback state
           this.initializePlayback();
+          
+          // Listen for queue updates from window events (cross-tab/component communication)
+          window.addEventListener('queueUpdated', () => {
+            this.ngZone.run(() => {
+              console.log('🔄 Vista pública: Actualización de cola recibida (window event)');
+              this.fetchNextTrack();
+            });
+          });
         });
       } else {
         console.error('❌ No se proporcionó establecimientoId en la ruta');
@@ -123,7 +131,9 @@ export class PublicaComponent implements OnInit, OnDestroy {
       this.subscribeToSocketEvents();
       
       // Then connect to socket
+      console.log('🔌 Vista pública: Conectando al socket para establecimiento:', this.establecimientoId);
       this.musicaSocketService.connect(this.establecimientoId);
+      console.log('✅ Vista pública: Socket conectado:', this.musicaSocketService.isConnected());
 
       // Prepare headers with token if available
       const headers: any = {};
@@ -187,6 +197,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
   }
 
   private async fetchNextTrack(): Promise<void> {
+    console.log('🔄 Fetching next track...');
     try {
       // Prepare headers with token if available
       const headers: any = {};
@@ -306,8 +317,9 @@ export class PublicaComponent implements OnInit, OnDestroy {
     });
 
     // Listen for queue updates
-    const unsubQueueUpdate = this.musicaSocketService.on('queue_update', () => {
+    const unsubQueueUpdate = this.musicaSocketService.on('queue_update', (data: any) => {
       this.ngZone.run(() => {
+        console.log('📋 Vista pública: Actualización de cola recibida (socket event)', data);
         this.fetchNextTrack();
       });
     });
