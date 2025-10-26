@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { PlaybackService } from './playback.service';
 import { SpotifyService } from './spotify.service';
+import { MusicaSocketService } from './musica-socket.service';
 import { SpotifyTrack } from '../models/musica.interfaces';
 
 @Injectable({
@@ -17,7 +18,8 @@ export class QueueManagerService {
 
   constructor(
     private playbackService: PlaybackService,
-    private spotifyService: SpotifyService
+    private spotifyService: SpotifyService,
+    private musicaSocketService: MusicaSocketService
   ) {}
 
   /**
@@ -36,6 +38,39 @@ export class QueueManagerService {
         this.isPlaying = true;
         this.hasStartedPlaying = true;
         this.lastPosition = state.position;
+      }
+    });
+
+    // Suscribirse a playback_update para reproducir nuevas canciones
+    this.musicaSocketService.on('playback_update', async (data: any) => {
+      if (data.currentTrack && data.establecimientoId === this.establecimientoId) {
+        // Verificar si es una canción diferente
+        const newTrackColaId = data.currentTrack.cola_id || data.currentTrack.id;
+        
+        if (newTrackColaId && newTrackColaId !== this.currentQueueItemId) {
+          console.log('🎵 QueueManager: Nueva canción detectada vía playback_update:', data.currentTrack.titulo);
+          
+          // Actualizar el ID de la canción actual
+          this.currentQueueItemId = newTrackColaId;
+          this.hasStartedPlaying = false;
+          this.lastPosition = 0;
+          
+          // Crear objeto SpotifyTrack
+          const track: SpotifyTrack = {
+            spotify_id: data.currentTrack.spotify_id,
+            titulo: data.currentTrack.titulo,
+            artista: data.currentTrack.artista,
+            album: data.currentTrack.album,
+            duracion: data.currentTrack.duracion,
+            imagen_url: data.currentTrack.imagen_url,
+            genero: data.currentTrack.genero,
+            preview_url: data.currentTrack.preview_url
+          };
+          
+          // Reproducir la canción en Spotify
+          console.log('▶️ QueueManager: Reproduciendo en Spotify:', track.titulo);
+          await this.playbackService.playTrack(data.currentTrack.spotify_id, track);
+        }
       }
     });
 
@@ -117,6 +152,14 @@ export class QueueManagerService {
   }
 
   /**
+   * Salta a la siguiente canción (usado para skip automático por votos)
+   */
+  async skipToNext(): Promise<void> {
+    console.log('⏭️ QueueManager: Skip manual/automático activado');
+    await this.onSongEnded();
+  }
+
+  /**
    * Reproduce la siguiente canción en la cola
    */
   async playNextInQueue(): Promise<void> {
@@ -177,6 +220,7 @@ export class QueueManagerService {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
+    
     this.establecimientoId = null;
     this.currentQueueItemId = null;
     this.isPlaying = false;

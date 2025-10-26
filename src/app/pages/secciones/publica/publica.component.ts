@@ -330,13 +330,41 @@ export class PublicaComponent implements OnInit, OnDestroy {
       });
     });
 
+    // Listen for votes updates
+    const unsubVotesUpdate = this.musicaSocketService.on('votes_update', (data: any) => {
+      this.ngZone.run(() => {
+        console.log('🗳️ Actualización de votos recibida en vista pública:', data);
+        console.log('🎵 Track actual:', this.currentTrack);
+        if (this.currentTrack) {
+          // Actualizar los contadores independientemente del cola_id
+          // ya que solo hay una canción sonando a la vez
+          this.currentTrack = {
+            ...this.currentTrack,
+            likes_count: data.likes,
+            skips_count: data.skips
+          };
+          console.log('✅ Contadores actualizados:', { likes: data.likes, skips: data.skips });
+        }
+      });
+    });
+
+    // Listen for track skipped event
+    const unsubTrackSkipped = this.musicaSocketService.on('track_skipped', (data: any) => {
+      this.ngZone.run(() => {
+        console.log('⏭️ Canción skipeada automáticamente:', data);
+        // La canción fue skipeada, la vista se actualizará con el siguiente playback_update
+      });
+    });
+
     // Store unsubscribe functions
     this.unsubscribers.push(
       unsubPlaybackUpdate,
       unsubTrackStarted,
       unsubPlaybackState,
       unsubProgress,
-      unsubQueueUpdate
+      unsubQueueUpdate,
+      unsubVotesUpdate,
+      unsubTrackSkipped
     );
   }
 

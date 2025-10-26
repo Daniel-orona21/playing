@@ -75,6 +75,14 @@ export class MusicaSocketService {
       window.dispatchEvent(new CustomEvent('historyUpdated'));
     });
 
+    this.socket.on('votes_update', (data: any) => {
+      console.log('🗳️ Actualización de votos (confirmación en servicio):', data);
+    });
+
+    this.socket.on('track_skipped', (data: any) => {
+      console.log('⏭️ Canción skipeada (confirmación en servicio):', data);
+    });
+
     // Setup listeners for custom event handlers
     this.setupCustomEventHandlers();
   }
@@ -86,7 +94,16 @@ export class MusicaSocketService {
     if (!this.socket) return;
 
     // Listen for all possible events and call registered handlers
-    const events = ['playback_update', 'track_started', 'playback_state_change', 'playback_progress', 'queue_update', 'history_update'];
+    const events = [
+      'playback_update', 
+      'track_started', 
+      'playback_state_change', 
+      'playback_progress', 
+      'queue_update', 
+      'history_update',
+      'votes_update',
+      'track_skipped'
+    ];
     
     events.forEach(eventName => {
       this.socket!.on(eventName, (data: any) => {

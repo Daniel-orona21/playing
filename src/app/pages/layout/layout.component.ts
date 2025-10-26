@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
@@ -8,6 +8,7 @@ import { PlaybackService } from '../../services/playback.service';
 import { SpotifyService } from '../../services/spotify.service';
 import { EstablecimientosService } from '../../services/establecimientos.service';
 import { QueueManagerService } from '../../services/queue-manager.service';
+import { MusicaSocketService } from '../../services/musica-socket.service';
 import { SpotifyTrack } from '../../models/musica.interfaces';
 
 @Component({
@@ -39,12 +40,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
   
   private destroy$ = new Subject<void>();
 
+  private unsubscribeTrackSkipped: (() => void) | null = null;
+
   constructor(
     private router: Router,
     private playbackService: PlaybackService,
     private spotifyService: SpotifyService,
     private estService: EstablecimientosService,
-    private queueManager: QueueManagerService
+    private queueManager: QueueManagerService,
+    private musicaSocketService: MusicaSocketService,
+    private ngZone: NgZone
   ) {}
 
   async ngOnInit() {
@@ -90,6 +95,22 @@ export class LayoutComponent implements OnInit, OnDestroy {
     await this.restorePlayback();
   }
 
+  private setupSkipListener(): void {
+    this.unsubscribeTrackSkipped = this.musicaSocketService.on('track_skipped', (data: any) => {
+      this.ngZone.run(async () => {
+        console.log('⏭️ Layout: Recibido evento track_skipped:', data);
+        
+        // Verificar si es para el establecimiento actual
+        if (data.establecimientoId === this.establecimientoId) {
+          console.log('⏭️ Layout: Ejecutando skipToNext() automáticamente...');
+          
+          // Ejecutar el skip usando el QueueManager que maneja toda la lógica
+          await this.queueManager.skipToNext();
+        }
+      });
+    });
+  }
+
   async restorePlayback() {
     try {
       // Obtener el establecimiento actual
@@ -97,6 +118,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('🔄 Establecimiento ID obtenido:', this.establecimientoId);
+        
+        // Configurar listener de skip DESPUÉS de tener el establecimientoId
+        this.setupSkipListener();
         
         // Inicializar el reproductor de Spotify
         let isInitialized = false;
@@ -162,6 +186,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopProgressInterval();
+    
+    // Desuscribirse del evento de skip
+    if (this.unsubscribeTrackSkipped) {
+      this.unsubscribeTrackSkipped();
+      this.unsubscribeTrackSkipped = null;
+    }
+    
     this.destroy$.next();
     this.destroy$.complete();
   }
