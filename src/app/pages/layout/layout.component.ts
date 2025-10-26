@@ -303,17 +303,20 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   abrirVista() {
-    if (this.establecimientoId) {
-      // Get token from localStorage
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Pass token as query parameter
-        window.open(`/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`, '_blank');
-      } else {
-        window.open(`/vista/${this.establecimientoId}`, '_blank');
-      }
-    } else {
-      console.error('No hay establecimientoId disponible');
-    }
+  if (this.establecimientoId) {
+    const token = localStorage.getItem('token');
+    const url = token
+      ? `/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`
+      : `/vista/${this.establecimientoId}`;
+
+    // Abre una nueva ventana (no una pestaña)
+    window.open(
+      url,
+      'VistaNueva', // nombre de la ventana
+      'width=900,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
+    );
+  } else {
+    console.error('No hay establecimientoId disponible');
   }
+}
 }
