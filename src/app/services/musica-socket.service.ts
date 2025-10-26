@@ -8,6 +8,7 @@ import { environment } from '../../environments/environment';
 export class MusicaSocketService {
   private socket: Socket | null = null;
   private establecimientoId: number | null = null;
+  private eventListeners: Map<string, Set<Function>> = new Map();
 
   constructor() {}
 
@@ -73,6 +74,50 @@ export class MusicaSocketService {
       // Disparar evento window para que los componentes se actualicen
       window.dispatchEvent(new CustomEvent('historyUpdated'));
     });
+
+    // Setup listeners for custom event handlers
+    this.setupCustomEventHandlers();
+  }
+
+  /**
+   * Setup custom event handlers
+   */
+  private setupCustomEventHandlers(): void {
+    if (!this.socket) return;
+
+    // Listen for all possible events and call registered handlers
+    const events = ['playback_update', 'track_started', 'playback_state_change', 'playback_progress', 'queue_update', 'history_update'];
+    
+    events.forEach(eventName => {
+      this.socket!.on(eventName, (data: any) => {
+        const listeners = this.eventListeners.get(eventName);
+        if (listeners) {
+          listeners.forEach(callback => callback(data));
+        }
+      });
+    });
+  }
+
+  /**
+   * Subscribe to a socket event
+   * @param eventName - Name of the event to listen to
+   * @param callback - Callback function to execute when event is received
+   * @returns Unsubscribe function
+   */
+  on(eventName: string, callback: Function): () => void {
+    if (!this.eventListeners.has(eventName)) {
+      this.eventListeners.set(eventName, new Set());
+    }
+    
+    this.eventListeners.get(eventName)!.add(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      const listeners = this.eventListeners.get(eventName);
+      if (listeners) {
+        listeners.delete(callback);
+      }
+    };
   }
 
   /**
@@ -84,6 +129,7 @@ export class MusicaSocketService {
       this.socket.disconnect();
       this.socket = null;
       this.establecimientoId = null;
+      this.eventListeners.clear();
     }
   }
 

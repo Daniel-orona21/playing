@@ -4,46 +4,128 @@
     <div class="overlay"></div>
     <div class="cuerpo">
         <div class="cont izq">
+            <!-- Current Track -->
             <div class="blur cancion cuadrado">
-                <img src="" alt="portada">
-                <div class="infoCancion">
-                    <p class="cancionNombre">Cancion</p>
-                    <p class="artistaNombre">Artista</p>
+                <img *ngIf="currentTrack?.imagen_url" 
+                     [src]="currentTrack!.imagen_url" 
+                     alt="portada_cancion_actual">
+                <div *ngIf="!currentTrack?.imagen_url" class="no-image">
+                    <span class="material-symbols-outlined">music_note</span>
                 </div>
+                <!-- <div class="infoCancion">
+                    <p class="cancionNombre">{{ currentTrack?.titulo || 'Sin reproducción' }}</p>
+                    <p class="artistaNombre">{{ currentTrack?.artista || 'Esperando...' }}</p>
+                </div> -->
+                
+                <!-- Progress Bar -->
+                <!-- <div class="progressContainer" *ngIf="currentTrack">
+                    <div class="progressBar">
+                        <div class="progressFill" [style.width.%]="getProgress()"></div>
+                    </div>
+                    <div class="timeLabels">
+                        <span>{{ formatTime(currentTime) }}</span>
+                        <span>-{{ formatTime(getRemainingTime()) }}</span>
+                    </div>
+                </div> -->
             </div>
+
+            <!-- User Info, Likes, Skips -->
             <div class="blur contenedorInfo">
                 <div class="contenedorPequeno">
                     <div class="usuario">
-                        <h2>D</h2>
-                        <h2>O</h2>
+                        <h2>{{ getUserInitials().charAt(0) }}</h2>
+                        <h2>{{ getUserInitials().charAt(1) }}</h2>
                     </div>
                 </div>
                 <div class="contenedorPequeno">
                     <span class="material-symbols-outlined">favorite</span>
-                    <h2 class="cuentaLikes">1</h2>
+                    <h2 class="cuentaLikes">{{ getLikesCount() }}</h2>
                 </div>
                 <div class="contenedorPequeno">
                     <span class="material-symbols-outlined skip">fast_forward</span>
-                    <h2 class="cuentaSkip">1</h2>
+                    <h2 class="cuentaSkip">{{ getSkipsCount() }}</h2>
                 </div>
             </div>
+
+            <!-- Clock and Next Track -->
             <div class="contenedorHoraSiguiente">
                 <div class="blur hora cuadrado">
                     <div class="horas">
-                        <h1>21</h1>
-                        <h1>12</h1>
+                        <h1>{{ getFormattedTime().hours }}</h1>
+                        <h1>{{ getFormattedTime().minutes }}</h1>
                     </div>
                     <div class="fecha">
-                        <p>Vie 20 Oct</p>
+                        <p>{{ getFormattedDate() }}</p>
                     </div>
                 </div>
                 <div class="blur siguiente cuadrado">
-                    <img src="" alt="portada">
+                    <ng-container *ngIf="nextTrack; else noNextTrack">
+                        <img *ngIf="nextTrack.imagen_url" 
+                             [src]="nextTrack.imagen_url" 
+                             alt="siguiente_cancion">
+                        <div *ngIf="!nextTrack.imagen_url" class="no-image">
+                            <span class="material-symbols-outlined">music_note</span>
+                        </div>
+                        <div class="overlaySiguiente">
+                            <span class="material-symbols-outlined">queue_music</span>
+                        </div>
+                        <!-- <div class="infoCancion">
+                            <p class="cancionNombre">{{ nextTrack.titulo }}</p>
+                            <p class="artistaNombre">{{ nextTrack.artista }}</p>
+                        </div> -->
+                    </ng-container>
+                    <ng-template #noNextTrack>
+                        <div class="no-image">
+                            <span class="material-symbols-outlined">queue_music</span>
+                        </div>
+                        <div class="infoCancion">
+                            <p class="cancionNombre siguiente">Siguiente</p>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
         </div>
-        <div class="cont der blur">
 
+        <!-- Lyrics Panel -->
+        <div class="cont der blur letrasPanel">
+            <div class="letrasHeader">
+                <div *ngIf="currentTrack" class="trackInfo">
+                    <p class="trackTitle">{{ currentTrack.titulo }}</p>
+                    <p class="trackArtist">{{ currentTrack.artista }}</p>
+                </div>
+            </div>
+            
+            <div class="letrasContenido">
+                <!-- Loading State -->
+                <div *ngIf="loading" class="loadingContainer">
+                    <div class="spinner"></div>
+                    <p>Cargando letras...</p>
+                </div>
+
+                <!-- Synced Lyrics -->
+                <div *ngIf="!loading && isSynced" class="letras synced">
+                    <p *ngFor="let line of lyrics; let i = index" 
+                       [class.current]="isCurrentLine(i)"
+                       [class.past]="i < currentLineIndex"
+                       [class.future]="i > currentLineIndex"
+                       class="lyricLine">
+                        {{ line.text }}
+                    </p>
+                </div>
+
+                <!-- Plain Lyrics -->
+                <div *ngIf="!loading && !isSynced" class="letras plain">
+                    <p *ngFor="let line of plainLyrics" class="lyricLine">
+                        {{ line }}
+                    </p>
+                </div>
+
+                <!-- No Lyrics / No Track -->
+                <div *ngIf="!loading && !currentTrack" class="noLetras">
+                    <span class="material-symbols-outlined">music_off</span>
+                    <p>Esperando reproducción...</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -48,6 +48,6 @@ export const routes: Routes = [
     ]
   },
   { path: 'callback/spotify', component: CallbackSpotifyComponent },
-  { path: 'vista', component: PublicaComponent },
+  { path: 'vista/:establecimientoId', component: PublicaComponent },
   { path: '**', component: LoginComponent },
 ];

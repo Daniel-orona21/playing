@@ -303,6 +303,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   abrirVista() {
-  window.open('/vista', '_blank');
-}
+    if (this.establecimientoId) {
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Pass token as query parameter
+        window.open(`/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`, '_blank');
+      } else {
+        window.open(`/vista/${this.establecimientoId}`, '_blank');
+      }
+    } else {
+      console.error('No hay establecimientoId disponible');
+    }
+  }
 }
