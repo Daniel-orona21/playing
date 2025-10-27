@@ -41,11 +41,25 @@
       </div>
       <div class="card-body">
         <div class="alertas">
-            <h3>LLamando a la mesa</h3>
-            <div class="noAlertas">
-                <img src="images/alerta.png" alt="">
-                <h3>Sin alertas</h3>
+          <h1>Llamando a la mesa</h1>
+          <div class="noAlertas" *ngIf="llamadasPendientes.length === 0">
+            <img src="images/alerta.png" alt="">
+            <h3 class="textonoalertas">Sin alertas</h3>
+          </div>
+          <div class="alertas-lista" *ngIf="llamadasPendientes.length > 0">
+            <div class="alerta-item" *ngFor="let llamada of llamadasPendientes">
+              <div class="alerta-info">
+                <div class="led"></div>
+                <div class="alerta-texto">
+                  <strong>{{ llamada.usuario_nombre }}</strong>
+                  <span>Mesa {{ llamada.numero_mesa }}</span>
+                </div>
+              </div>
+              <button class="btn-atender" (click)="atenderLlamada(llamada.id_llamada)">
+                <span class="material-symbols-outlined">check_circle</span>
+              </button>
             </div>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table">
@@ -64,9 +78,12 @@
                 <td>{{ user.nombre }}</td>
                 <td>{{ user.mesa }}</td>
                 <td>{{ user.estado }}</td>
+                <!-- <td class="llamando-cell">
+                  <span *ngIf="user.llamando" class="material-symbols-outlined llamando-icon">notifications_active</span>
+                </td> -->
               </tr>
               <tr *ngIf="filteredUsers.length === 0">
-                <td colspan="3" class="no-results">
+                <td colspan="4" class="no-results">
                   <div class="no-results-content">
                     <span class="material-symbols-outlined">search_off</span>
                     <p>No se encontraron coincidencias</p>

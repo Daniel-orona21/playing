@@ -53,4 +53,8 @@ export class EstablecimientosService {
     if (!token) return {};
     return { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) };
   }
+
+  getBaseUrl(): string {
+    return environment.apiUrl;
+  }
 }

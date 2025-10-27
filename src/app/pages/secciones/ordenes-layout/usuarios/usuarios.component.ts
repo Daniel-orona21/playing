@@ -5,12 +5,15 @@ import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { OrdenesService } from '../../../../services/ordenes.service';
+import { LlamadasService, Llamada } from '../../../../services/llamadas.service';
+import { ToastService } from '../../../../services/toast.service';
 
 interface User {
   id: number;
   nombre: string;
   mesa: number;
   estado: string;
+  llamando?: boolean;
 }
 
 @Component({
@@ -38,6 +41,7 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   users: User[] = [];
   private establecimientoId: number | null = null;
+  llamadasPendientes: Llamada[] = [];
 
   
   searchTerm: string = '';
@@ -68,8 +72,8 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     // Apply sorting
     if (this.sortBy) {
         filtered.sort((a: User, b: User) => {
-            const aValue = a[this.sortBy];
-            const bValue = b[this.sortBy];
+            const aValue = a[this.sortBy] ?? '';
+            const bValue = b[this.sortBy] ?? '';
 
             let comparison = 0;
             if (aValue > bValue) {
@@ -89,7 +93,9 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient, 
     private auth: AuthService,
-    private ordenesService: OrdenesService
+    private ordenesService: OrdenesService,
+    private llamadasService: LlamadasService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -99,10 +105,53 @@ export class UsuariosComponent implements OnInit, OnDestroy {
       .subscribe(({ establecimiento }) => {
         if (!establecimiento) return;
         this.establecimientoId = establecimiento.id_establecimiento;
+        
+        // Cargar llamadas pendientes iniciales
+        this.loadLlamadasPendientes();
+        
         import('socket.io-client').then(({ io }) => {
-          this.socket = io((environment.apiUrl as any).replace('/api',''), { transports: ['websocket'] });
-          this.socket.emit('join_establecimiento', this.establecimientoId!);
+          const baseUrl = (environment.apiUrl as any).replace('/api','');
+          console.log('🔌 Usuarios: Conectando socket a:', baseUrl);
+          this.socket = io(baseUrl, { 
+            transports: ['websocket', 'polling'],
+            reconnection: true 
+          });
+          
+          // Esperar a que el socket se conecte ANTES de unirse a la sala
+          this.socket.on('connect', () => {
+            console.log('✅ Usuarios: Socket conectado');
+            this.socket.emit('join_establecimiento', this.establecimientoId!);
+            console.log('📍 Usuarios: Unido a sala establecimiento:', this.establecimientoId);
+          });
+          
+          this.socket.on('connect_error', (error: any) => {
+            console.error('❌ Usuarios: Error de conexión socket:', error);
+          });
+          
           this.socket.on('establecimiento:clientes_actualizados', () => this.loadClientes());
+          
+          // Escuchar eventos de llamadas
+          this.socket.on('llamada_created', (llamada: Llamada) => {
+            console.log('✅ Usuarios: llamada_created recibida', llamada);
+            this.llamadasPendientes.push(llamada);
+            this.actualizarEstadoLlamadas();
+          });
+          
+          this.socket.on('llamada_atendida', (data: { id_llamada: number }) => {
+            console.log('✅ Usuarios: llamada_atendida recibida', data);
+            this.llamadasPendientes = this.llamadasPendientes.filter(l => l.id_llamada !== data.id_llamada);
+            this.actualizarEstadoLlamadas();
+            // También cerrar el toast correspondiente
+            this.toastService.closeByLlamadaId(data.id_llamada);
+          });
+          
+          this.socket.on('llamada_cancelada', (data: { id_llamada: number }) => {
+            console.log('✅ Usuarios: llamada_cancelada recibida', data);
+            this.llamadasPendientes = this.llamadasPendientes.filter(l => l.id_llamada !== data.id_llamada);
+            this.actualizarEstadoLlamadas();
+            // También cerrar el toast correspondiente
+            this.toastService.closeByLlamadaId(data.id_llamada);
+          });
         });
       });
   }
@@ -138,8 +187,10 @@ export class UsuariosComponent implements OnInit, OnDestroy {
                   id: u.id,
                   nombre: u.nombre,
                   mesa: u.mesa,
-                  estado: u.estado
+                  estado: u.estado,
+                  llamando: false
                 }));
+                this.actualizarEstadoLlamadas();
               }
             },
             error: (error) => {
@@ -148,6 +199,45 @@ export class UsuariosComponent implements OnInit, OnDestroy {
             }
           });
       });
+  }
+
+  loadLlamadasPendientes(): void {
+    if (!this.establecimientoId) return;
+    
+    this.llamadasService.getLlamadasPendientes(this.establecimientoId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.llamadasPendientes = response.llamadas;
+          this.actualizarEstadoLlamadas();
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar llamadas pendientes:', error);
+      }
+    });
+  }
+
+  actualizarEstadoLlamadas(): void {
+    // Marcar usuarios que están llamando
+    this.users.forEach(user => {
+      user.llamando = this.llamadasPendientes.some(l => l.usuario_id === user.id);
+    });
+  }
+
+  atenderLlamada(idLlamada: number): void {
+    this.llamadasService.marcarLlamadaAtendida(idLlamada).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Remover de la lista local
+          this.llamadasPendientes = this.llamadasPendientes.filter(l => l.id_llamada !== idLlamada);
+          this.actualizarEstadoLlamadas();
+        }
+      },
+      error: (error) => {
+        console.error('Error al atender llamada:', error);
+        alert('Error al atender la llamada. Por favor, intenta de nuevo.');
+      }
+    });
   }
 
   // Removed order-related methods

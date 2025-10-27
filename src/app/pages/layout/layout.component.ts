@@ -10,10 +10,13 @@ import { EstablecimientosService } from '../../services/establecimientos.service
 import { QueueManagerService } from '../../services/queue-manager.service';
 import { MusicaSocketService } from '../../services/musica-socket.service';
 import { SpotifyTrack } from '../../models/musica.interfaces';
+import { ToastsComponent } from '../../components/toasts/toasts.component';
+import { ToastService } from '../../services/toast.service';
+import { LlamadasService, Llamada } from '../../services/llamadas.service';
 
 @Component({
   selector: 'app-layout',
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterOutlet, ToastsComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',
   animations: [
@@ -41,6 +44,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   private unsubscribeTrackSkipped: (() => void) | null = null;
+  private socket: any;
 
   constructor(
     private router: Router,
@@ -49,7 +53,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
     private estService: EstablecimientosService,
     private queueManager: QueueManagerService,
     private musicaSocketService: MusicaSocketService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private toastService: ToastService,
+    private llamadasService: LlamadasService
   ) {}
 
   async ngOnInit() {
@@ -93,6 +99,66 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // Obtener establecimiento y restaurar reproducción
     await this.restorePlayback();
+    
+    // Configurar socket para llamadas
+    this.setupLlamadasSocket();
+  }
+
+  private setupLlamadasSocket(): void {
+    this.estService.getMiEstablecimiento().subscribe({
+      next: async (response) => {
+        if (response.success && response.establecimiento) {
+          const establecimientoId = response.establecimiento.id_establecimiento;
+          
+          // Conectar socket
+          const { io } = await import('socket.io-client');
+          const baseUrl = this.estService.getBaseUrl().replace('/api', '');
+          console.log('🔌 Conectando socket a:', baseUrl);
+          this.socket = io(baseUrl, { 
+            transports: ['websocket', 'polling'],
+            reconnection: true 
+          });
+          
+          // IMPORTANTE: Esperar a que el socket se conecte ANTES de unirse a la sala
+          this.socket.on('connect', () => {
+            console.log('✅ Socket conectado en layout');
+            // Unirse a la sala del establecimiento DESPUÉS de conectar
+            this.socket.emit('join_establecimiento', establecimientoId);
+            console.log('📍 Unido a sala establecimiento:', establecimientoId);
+          });
+          
+          this.socket.on('connect_error', (error: any) => {
+            console.error('❌ Error de conexión socket:', error);
+          });
+          
+          this.socket.on('disconnect', (reason: string) => {
+            console.warn('⚠️ Socket desconectado:', reason);
+          });
+          
+          // Escuchar eventos de llamadas
+          this.socket.on('llamada_created', (llamada: Llamada) => {
+            console.log('🔔 Layout: llamada_created recibida', llamada);
+            this.ngZone.run(() => {
+              console.log('📢 Emitiendo toast para llamada');
+              this.toastService.showLlamada(
+                llamada.usuario_nombre,
+                llamada.numero_mesa,
+                llamada.id_llamada
+              );
+            });
+          });
+          
+          // Escuchar cuando una llamada es atendida para cerrar toasts
+          this.socket.on('llamada_atendida', (data: { id_llamada: number }) => {
+            console.log('✅ Layout: llamada_atendida recibida', data);
+            // El toast se cerrará automáticamente por el componente de usuarios o por el propio toast
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error al obtener establecimiento para sockets:', error);
+      }
+    });
   }
 
   private setupSkipListener(): void {
@@ -191,6 +257,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
     if (this.unsubscribeTrackSkipped) {
       this.unsubscribeTrackSkipped();
       this.unsubscribeTrackSkipped = null;
+    }
+    
+    // Cerrar socket de llamadas
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
     }
     
     this.destroy$.next();
