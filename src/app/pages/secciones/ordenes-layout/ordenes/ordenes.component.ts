@@ -16,6 +16,7 @@ interface Order {
   total: number;
   fechaCreacion: Date;
   tiempoOriginal: number;
+  tiempoAnadido: number;
 }
 
 interface NewOrder {
@@ -149,13 +150,14 @@ export class OrdenesComponent implements OnInit, OnDestroy {
 
     const fechaCreacion = new Date(orden.creada_en);
     const tiempoOriginal = orden.tiempo_estimado;
+    const tiempoAnadido = orden.tiempo_anadido || 0;
     
     // Calcular cuántos minutos han transcurrido desde la creación
     const ahora = new Date();
     const minutosTranscurridos = Math.floor((ahora.getTime() - fechaCreacion.getTime()) / 60000);
     
-    // Calcular el tiempo restante (original - transcurrido)
-    let tiempoRestante = tiempoOriginal - minutosTranscurridos;
+    // Calcular el tiempo restante ((original + añadido) - transcurrido)
+    let tiempoRestante = (tiempoOriginal + tiempoAnadido) - minutosTranscurridos;
     if (tiempoRestante < 0) tiempoRestante = 0;
 
     return {
@@ -168,7 +170,8 @@ export class OrdenesComponent implements OnInit, OnDestroy {
       numeroOrden: orden.numero_orden || '',
       total: orden.total_monto,
       fechaCreacion: fechaCreacion,
-      tiempoOriginal: tiempoOriginal
+      tiempoOriginal: tiempoOriginal,
+      tiempoAnadido: tiempoAnadido
     };
   }
 
@@ -362,22 +365,20 @@ export class OrdenesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Al presionar el botón -, guarda el nuevo tiempo deseado y actualiza la fecha base
+  // Al presionar el botón -, envía el ajuste -1 (NO cambia la hora de creación)
   decreaseTime(order: Order): void {
     if (order.estado !== 'Entregada' && order.tiempoEspera > 0) {
-      // El nuevo tiempo será simplemente el tiempo actual mostrado - 1
-      const nuevoTiempo = order.tiempoEspera - 1;
+      const ajuste = -1; // Restar 1 minuto
       
       this.ordenesService.updateOrdenTiempo(
         order.id, 
-        nuevoTiempo, 
+        ajuste, 
         this.establecimientoId
       ).subscribe({
         next: () => {
-          // Actualizar la fecha de creación a "ahora" y el tiempo original al nuevo valor
-          order.fechaCreacion = new Date();
-          order.tiempoOriginal = nuevoTiempo;
-          order.tiempoEspera = nuevoTiempo;
+          // Actualizar el tiempo añadido localmente (NO cambia fechaCreacion ni tiempoOriginal)
+          order.tiempoAnadido += ajuste;
+          order.tiempoEspera -= 1;
         },
         error: (error) => {
           console.error('Error al actualizar tiempo:', error);
@@ -386,22 +387,20 @@ export class OrdenesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Al presionar el botón +, guarda el nuevo tiempo deseado y actualiza la fecha base
+  // Al presionar el botón +, envía el ajuste +1 (NO cambia la hora de creación)
   increaseTime(order: Order): void {
     if (order.estado !== 'Entregada') {
-      // El nuevo tiempo será simplemente el tiempo actual mostrado + 1
-      const nuevoTiempo = order.tiempoEspera + 1;
+      const ajuste = 1; // Sumar 1 minuto
       
       this.ordenesService.updateOrdenTiempo(
         order.id, 
-        nuevoTiempo, 
+        ajuste, 
         this.establecimientoId
       ).subscribe({
         next: () => {
-          // Actualizar la fecha de creación a "ahora" y el tiempo original al nuevo valor
-          order.fechaCreacion = new Date();
-          order.tiempoOriginal = nuevoTiempo;
-          order.tiempoEspera = nuevoTiempo;
+          // Actualizar el tiempo añadido localmente (NO cambia fechaCreacion ni tiempoOriginal)
+          order.tiempoAnadido += ajuste;
+          order.tiempoEspera += 1;
         },
         error: (error) => {
           console.error('Error al actualizar tiempo:', error);
@@ -496,16 +495,17 @@ export class OrdenesComponent implements OnInit, OnDestroy {
   }
 
   // Recalcular tiempos de espera basándose en la fecha de creación
+  // Usa tiempo_estimado + tiempo_anadido para cálculos correctos
   private updateOrderTimes(): void {
     const ahora = new Date();
     
     this.orders.forEach(order => {
       if (order.estado !== 'Entregada' && order.estado !== 'Pagada') {
-        // Calcular minutos transcurridos desde la creación
+        // Calcular minutos transcurridos desde la creación REAL
         const minutosTranscurridos = Math.floor((ahora.getTime() - order.fechaCreacion.getTime()) / 60000);
         
-        // Calcular tiempo restante
-        let tiempoRestante = order.tiempoOriginal - minutosTranscurridos;
+        // Calcular tiempo restante: (tiempo original + tiempo añadido) - transcurrido
+        let tiempoRestante = (order.tiempoOriginal + order.tiempoAnadido) - minutosTranscurridos;
         if (tiempoRestante < 0) tiempoRestante = 0;
         
         // Actualizar solo localmente

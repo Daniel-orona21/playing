@@ -10,6 +10,7 @@ export interface Orden {
   status: 'pendiente' | 'en_preparacion' | 'entregada' | 'pagada';
   total_monto: number;
   tiempo_estimado: number;
+  tiempo_anadido: number;
   creada_en: string;
   actualizado_en: string;
   usuario_id: number;
@@ -102,15 +103,15 @@ export class OrdenesService {
     );
   }
 
-  // Actualizar el tiempo estimado de una orden
+  // Actualizar el tiempo añadido de una orden (envía el ajuste +/-)
   updateOrdenTiempo(
     id: number, 
-    tiempo_estimado: number, 
+    ajuste: number, 
     establecimientoId?: number
   ): Observable<{ success: boolean; mensaje: string }> {
     return this.http.put<{ success: boolean; mensaje: string }>(
       `${this.API_URL}/${id}/tiempo`,
-      { tiempo_estimado, establecimientoId },
+      { ajuste, establecimientoId },
       { headers: this.getHeaders() }
     );
   }
