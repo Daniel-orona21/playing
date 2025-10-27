@@ -63,11 +63,7 @@
                   (click)="selectUser(user)">
                 <td>{{ user.nombre }}</td>
                 <td>{{ user.mesa }}</td>
-                <td>
-                  <span>
-                    {{ user.estado }}
-                  </span>
-                </td>
+                <td>{{ user.estado }}</td>
               </tr>
               <tr *ngIf="filteredUsers.length === 0">
                 <td colspan="3" class="no-results">

@@ -1,6 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, Renderer2 } from '@angular/core';
+import { Component, Renderer2, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { OrdenesService, Orden, UsuarioActivo } from '../../../../services/ordenes.service';
+import { EstablecimientosService } from '../../../../services/establecimientos.service';
+import { Subscription } from 'rxjs';
 
 interface Order {
   id: number;
@@ -13,6 +16,17 @@ interface Order {
   total: number;
 }
 
+interface NewOrder {
+  id: number;
+  numeroOrden: string;
+  total: number | null;
+  tiempoEspera: number | null;
+  usuario: string;
+  mesa: number;
+  estado: string;
+  monto: number;
+}
+
 @Component({
   selector: 'app-ordenes',
   standalone: true,
@@ -20,15 +34,27 @@ interface Order {
   templateUrl: './ordenes.component.html',
   styleUrl: './ordenes.component.scss'
 })
-export class OrdenesComponent {
+export class OrdenesComponent implements OnInit, OnDestroy {
   isModalVisible = false;
   selectedUser: any = null;
   modalAction = '';
   isUserSelectionModalVisible: boolean = false;
-  newOrder: Order = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
+  newOrder: NewOrder = { id: 0, numeroOrden: '', total: null, tiempoEspera: null, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
   currentStep: number = 1;
+  establecimientoId: number = 0;
+  loading: boolean = false;
+  private subscriptions: Subscription = new Subscription();
+  private timerInterval: any;
+  
+  // Variables de validación
+  totalInvalid: boolean = false;
+  tiempoInvalid: boolean = false;
 
-  constructor(private renderer: Renderer2) {}
+  constructor(
+    private renderer: Renderer2,
+    private ordenesService: OrdenesService,
+    private establecimientosService: EstablecimientosService
+  ) {}
   estatus = [
     { label: 'En preparación', active: false, value: 'En preparación' },
     { label: 'Entregada', active: false, value: 'Entregada' },
@@ -38,35 +64,96 @@ export class OrdenesComponent {
   deletionMode: boolean = false;
   selectedOrders: Order[] = [];
 
-  users = [
-    { id: 1, nombre: 'Mylthon Sánchez', mesa: 1 },
-    { id: 2, nombre: 'Alejandro Monreal', mesa: 2 },
-    { id: 3, nombre: 'Alan Gurrola', mesa: 3 },
-    { id: 4, nombre: 'Daniel Orona', mesa: 4 },
-    { id: 5, nombre: 'Marco Valdéz', mesa: 5 },
-    { id: 6, nombre: 'Zabdiel Morales', mesa: 6 },
-    { id: 7, nombre: 'Kevin', mesa: 7 },
-    { id: 8, nombre: 'Blanca Romero', mesa: 8 },
-    { id: 9, nombre: 'Rafita', mesa: 9 },
-    { id: 10, nombre: 'Bravito', mesa: 10 },
-  ];
-
-  orders: Order[] = [
-    { id: 31, mesa: 6, usuario: 'Zabdiel Morales', estado: 'En preparación', monto: 295, tiempoEspera: 14, numeroOrden: '31', total: 295 },
-    { id: 32, mesa: 1, usuario: 'Mylthon Sánchez', estado: 'En preparación', monto: 310, tiempoEspera: 13, numeroOrden: '32', total: 310 },
-    { id: 33, mesa: 3, usuario: 'Alan Gurrola', estado: 'Entregada', monto: 420, tiempoEspera: 0, numeroOrden: '33', total: 420 },
-    { id: 34, mesa: 2, usuario: 'Alejandro Monreal', estado: 'En preparación', monto: 300, tiempoEspera: 21, numeroOrden: '34', total: 300 },
-    { id: 35, mesa: 4, usuario: 'Daniel Orona', estado: 'Entregada', monto: 180, tiempoEspera: 0, numeroOrden: '35', total: 180 },
-    { id: 36, mesa: 5, usuario: 'Marco Valdéz', estado: 'Entregada', monto: 350, tiempoEspera: 0, numeroOrden: '36', total: 350 },
-    { id: 37, mesa: 7, usuario: 'Kevin', estado: 'En preparación', monto: 400, tiempoEspera: 6, numeroOrden: '37', total: 400 },
-    { id: 38, mesa: 9, usuario: 'Rafita', estado: 'En preparación', monto: 9999, tiempoEspera: 15, numeroOrden: '38', total: 9999 },
-    { id: 39, mesa: 8, usuario: 'Blanca Romero', estado: 'Entregada', monto: 170, tiempoEspera: 0, numeroOrden: '39', total: 170 },
-    { id: 40, mesa: 10, usuario: 'Bravito', estado: 'En preparación', monto: 20, tiempoEspera: 7, numeroOrden: '40', total: 20 },
-  ];
+  users: any[] = [];
+  orders: Order[] = [];
 
   searchTerm: string = '';
-  sortBy: keyof Order = 'numeroOrden'; // Default sort by numeroOrden
-  sortDirection: 'asc' | 'desc' = 'asc'; // Default sort direction
+  sortBy: keyof Order = 'numeroOrden'; 
+  sortDirection: 'asc' | 'desc' = 'asc'; 
+
+  ngOnInit(): void {
+    this.loading = true;
+    this.establecimientosService.getMiEstablecimiento().subscribe({
+      next: (response) => {
+        if (response.success && response.establecimiento) {
+          this.establecimientoId = response.establecimiento.id_establecimiento;
+          this.loadOrdenes();
+        } else {
+          console.error('No se encontró establecimiento para el usuario');
+          this.loading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error al obtener establecimiento:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+  }
+
+  loadOrdenes(): void {
+    this.loading = true;
+    this.ordenesService.getOrdenes(this.establecimientoId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.orders = response.ordenes.map(orden => this.mapOrdenToOrder(orden));
+          this.startTimer();
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar órdenes:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  loadUsuariosActivos(): void {
+    this.loading = true;
+    this.ordenesService.getUsuariosActivos(this.establecimientoId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.users = response.usuarios.map(usuario => ({
+            id: usuario.id_user,
+            nombre: usuario.nombre,
+            mesa: parseInt(usuario.numero_mesa),
+            id_mesa: usuario.id_mesa
+          }));
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar usuarios activos:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  private mapOrdenToOrder(orden: Orden): Order {
+    const estadoMap: { [key: string]: string } = {
+      'pendiente': 'Pendiente',
+      'en_preparacion': 'En preparación',
+      'entregada': 'Entregada',
+      'pagada': 'Pagada'
+    };
+
+    return {
+      id: orden.id_orden,
+      mesa: parseInt(orden.mesa_numero),
+      usuario: orden.usuario_nombre,
+      estado: estadoMap[orden.status] || orden.status,
+      monto: orden.total_monto,
+      tiempoEspera: orden.tiempo_estimado,
+      numeroOrden: orden.numero_orden || '',
+      total: orden.total_monto
+    };
+  }
 
   get filteredOrders() {
     let filtered = [...this.orders];
@@ -111,8 +198,11 @@ export class OrdenesComponent {
   openUserSelectionModal() {
     this.isUserSelectionModalVisible = true;
     this.currentStep = 1;
-    this.newOrder = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
+    this.newOrder = { id: 0, numeroOrden: '', total: null, tiempoEspera: null, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
+    this.totalInvalid = false;
+    this.tiempoInvalid = false;
     this.renderer.addClass(document.body, 'modal-open');
+    this.loadUsuariosActivos();
   }
 
   selectEstatus(estatus: any): void {
@@ -122,13 +212,13 @@ export class OrdenesComponent {
   }
 
   updateDataForPeriod() {
-    // The filtering is now reactive through filteredOrders
+
   }
 
   selectUserForOrder(user: any) {
     this.newOrder.usuario = user.nombre;
     this.newOrder.mesa = user.mesa;
-    this.selectedUser = user; // Assign the selected user to selectedUser
+    this.selectedUser = user; 
     this.currentStep = 2;
   }
 
@@ -153,53 +243,143 @@ export class OrdenesComponent {
     this.isUserSelectionModalVisible = false; 
     this.selectedUser = null;
     this.modalAction = '';
-    this.newOrder = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
+    this.newOrder = { id: 0, numeroOrden: '', total: null, tiempoEspera: null, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
     this.currentStep = 1;
+    this.totalInvalid = false;
+    this.tiempoInvalid = false;
     this.renderer.removeClass(document.body, 'modal-open');
   }
 
   createOrder() {
-    if (this.newOrder.usuario && this.newOrder.numeroOrden) {
-      const newId = this.orders.length > 0 ? Math.max(...this.orders.map(o => o.id)) + 1 : 1;
-      this.orders.push({
-        id: newId,
-        mesa: this.newOrder.mesa,
-        usuario: this.newOrder.usuario,
-        estado: this.newOrder.estado,
-        monto: this.newOrder.total,
-        tiempoEspera: this.newOrder.tiempoEspera,
-        numeroOrden: this.newOrder.numeroOrden, // Add numeroOrden here
-        total: this.newOrder.total
-      });
-      this.closeModal();
-    } else {
-      alert('Por favor, completa todos los campos de la orden.');
+    this.totalInvalid = false;
+    this.tiempoInvalid = false;
+
+    let hasErrors = false;
+
+    if (!this.selectedUser) {
+      this.currentStep = 1;
+      return;
     }
+
+    if (this.newOrder.total === null || this.newOrder.total === undefined || this.newOrder.total <= 0) {
+      this.totalInvalid = true;
+      hasErrors = true;
+    }
+
+    if (this.newOrder.tiempoEspera === null || this.newOrder.tiempoEspera === undefined || this.newOrder.tiempoEspera < 0) {
+      this.tiempoInvalid = true;
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      return;
+    }
+
+    this.loading = true;
+    
+    const ordenData = {
+      usuario_id: this.selectedUser.id,
+      mesa_id: this.selectedUser.id_mesa,
+      numero_orden: this.newOrder.numeroOrden || undefined,
+      total_monto: this.newOrder.total!,
+      tiempo_estimado: this.newOrder.tiempoEspera!,
+      establecimientoId: this.establecimientoId
+    };
+
+    this.ordenesService.createOrden(ordenData).subscribe({
+      next: (response) => {
+        if (response.success && response.orden) {
+          this.orders.push(this.mapOrdenToOrder(response.orden));
+          this.startTimer();
+          this.closeModal();
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error al crear orden:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  onTotalChange(): void {
+    this.totalInvalid = false;
+  }
+
+  onTiempoChange(): void {
+    this.tiempoInvalid = false;
   }
 
   goBackToUserSelection() {
     this.currentStep = 1;
     this.newOrder.numeroOrden = '';
-    this.newOrder.total = 0;
-    this.newOrder.tiempoEspera = 0;
+    this.newOrder.total = null;
+    this.newOrder.tiempoEspera = null;
+    this.totalInvalid = false;
+    this.tiempoInvalid = false;
   }
 
   toggleOrderStatus(order: Order): void {
     if (order.estado !== 'Entregada') {
-      order.estado = 'Entregada';
-      order.tiempoEspera = 0;
+      const statusMap: { [key: string]: string } = {
+        'Pendiente': 'pendiente',
+        'En preparación': 'en_preparacion',
+        'Entregada': 'entregada',
+        'Pagada': 'pagada'
+      };
+
+      this.ordenesService.updateOrdenStatus(
+        order.id, 
+        'entregada', 
+        this.establecimientoId
+      ).subscribe({
+        next: () => {
+          order.estado = 'Entregada';
+          order.tiempoEspera = 0;
+        },
+        error: (error) => {
+          console.error('Error al actualizar estado:', error);
+          alert('Error al actualizar el estado de la orden.');
+        }
+      });
     }
   }
 
   decreaseTime(order: Order): void {
     if (order.estado !== 'Entregada' && order.tiempoEspera > 0) {
-      order.tiempoEspera--;
+      const newTime = order.tiempoEspera - 1;
+      
+      this.ordenesService.updateOrdenTiempo(
+        order.id, 
+        newTime, 
+        this.establecimientoId
+      ).subscribe({
+        next: () => {
+          order.tiempoEspera = newTime;
+        },
+        error: (error) => {
+          console.error('Error al actualizar tiempo:', error);
+        }
+      });
     }
   }
 
   increaseTime(order: Order): void {
     if (order.estado !== 'Entregada') {
-      order.tiempoEspera++;
+      const newTime = order.tiempoEspera + 1;
+      
+      this.ordenesService.updateOrdenTiempo(
+        order.id, 
+        newTime, 
+        this.establecimientoId
+      ).subscribe({
+        next: () => {
+          order.tiempoEspera = newTime;
+        },
+        error: (error) => {
+          console.error('Error al actualizar tiempo:', error);
+        }
+      });
     }
   }
 
@@ -231,8 +411,85 @@ export class OrdenesComponent {
   }
 
   confirmDeletion(): void {
-    this.orders = this.orders.filter(order => !this.selectedOrders.some(selected => selected.id === order.id));
-    this.deletionMode = false;
-    this.selectedOrders = [];
+    if (this.selectedOrders.length === 0) {
+      return;
+    }
+
+    const ids = this.selectedOrders.map(order => order.id);
+    this.loading = true;
+
+    this.ordenesService.deleteOrdenes(ids, this.establecimientoId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Eliminar las órdenes de la lista local
+          this.orders = this.orders.filter(order => !ids.includes(order.id));
+          this.deletionMode = false;
+          this.selectedOrders = [];
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error al eliminar órdenes:', error);
+        alert('Error al eliminar las órdenes. Por favor, intenta de nuevo.');
+        this.loading = false;
+      }
+    });
+  }
+
+  // Prevenir entrada de letras en campos numéricos
+  onlyNumbers(event: KeyboardEvent): boolean {
+    const charCode = event.which ? event.which : event.keyCode;
+    // Permitir: números (0-9), punto decimal (46), Enter (13), Backspace (8), Tab (9)
+    if (
+      (charCode >= 48 && charCode <= 57) || // 0-9
+      charCode === 46 || // punto decimal
+      charCode === 13 || // Enter
+      charCode === 8 ||  // Backspace
+      charCode === 9     // Tab
+    ) {
+      return true;
+    }
+    event.preventDefault();
+    return false;
+  }
+
+  // Iniciar timer para actualizar tiempos automáticamente
+  private startTimer(): void {
+    // Limpiar timer anterior si existe
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+
+    // Actualizar cada minuto (60000 ms)
+    this.timerInterval = setInterval(() => {
+      this.updateOrderTimes();
+    }, 60000);
+  }
+
+  // Actualizar tiempos de espera de las órdenes (restar 1 minuto)
+  private updateOrderTimes(): void {
+    this.orders.forEach(order => {
+      // Solo actualizar órdenes que no estén entregadas y tengan tiempo > 0
+      if (order.estado !== 'Entregada' && order.estado !== 'Pagada' && order.tiempoEspera > 0) {
+        const nuevoTiempo = order.tiempoEspera - 1;
+        const tiempoAnterior = order.tiempoEspera;
+        
+        // Actualizar localmente primero
+        order.tiempoEspera = nuevoTiempo;
+        
+        // Actualizar en la base de datos
+        this.ordenesService.updateOrdenTiempo(
+          order.id, 
+          nuevoTiempo, 
+          this.establecimientoId
+        ).subscribe({
+          error: (error) => {
+            console.error('Error al actualizar tiempo automático:', error);
+            // Revertir el cambio local si falla
+            order.tiempoEspera = tiempoAnterior;
+          }
+        });
+      }
+    });
   }
 }

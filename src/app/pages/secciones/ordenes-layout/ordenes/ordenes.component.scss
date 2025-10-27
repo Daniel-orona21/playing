@@ -681,6 +681,20 @@
   color: #2196f3;
 }
 
+// Estilos para campos inválidos
+.input.invalid {
+  border: 1px solid #f44336;
+}
+
+.user-label.invalid {
+  color: #f44336;
+}
+
+.input.invalid:focus ~ .user-label.invalid,
+.input.invalid:valid ~ .user-label.invalid {
+  color: #f44336;
+}
+
 .modal-footer {
   display: flex;
   justify-content: center;

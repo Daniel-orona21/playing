@@ -4,6 +4,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../services/auth.service';
 import { FormsModule } from '@angular/forms';
+import { OrdenesService } from '../../../../services/ordenes.service';
 
 interface User {
   id: number;
@@ -85,7 +86,11 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   private socket: any;
 
-  constructor(private http: HttpClient, private auth: AuthService) {}
+  constructor(
+    private http: HttpClient, 
+    private auth: AuthService,
+    private ordenesService: OrdenesService
+  ) {}
 
   ngOnInit(): void {
     this.loadClientes();
@@ -123,9 +128,24 @@ export class UsuariosComponent implements OnInit, OnDestroy {
           return;
         }
         this.establecimientoId = establecimiento.id_establecimiento;
-        this.http.get<{ success: boolean; clientes: any[] }>(`${environment.apiUrl}/establecimientos/${establecimiento.id_establecimiento}/clientes`, { headers: this.buildHeaders() })
-          .subscribe(({ clientes }) => {
-            this.users = (clientes || []).map(c => ({ id: c.id, nombre: c.nombre, mesa: c.mesa, estado: c.estado || 'Inactiva' }));
+        
+        // Obtener el estado de las órdenes de los usuarios
+        this.ordenesService.getEstadoOrdenesUsuarios(establecimiento.id_establecimiento)
+          .subscribe({
+            next: (response) => {
+              if (response.success) {
+                this.users = response.usuarios.map(u => ({
+                  id: u.id,
+                  nombre: u.nombre,
+                  mesa: u.mesa,
+                  estado: u.estado
+                }));
+              }
+            },
+            error: (error) => {
+              console.error('Error al cargar usuarios con estado:', error);
+              this.users = [];
+            }
           });
       });
   }

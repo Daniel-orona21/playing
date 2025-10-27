@@ -52,7 +52,32 @@
         </div>
       </div>
       <div class="card-body">
-        <div class="table-responsive">
+        <!-- Loader de carga -->
+        <div *ngIf="loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem; gap: 1rem;">
+          <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+            <circle
+              class="active"
+              pathLength="360"
+              fill="transparent"
+              stroke-width="32"
+              cx="192"
+              cy="192"
+              r="176"
+            ></circle>
+            <circle
+              class="track"
+              pathLength="360"
+              fill="transparent"
+              stroke-width="32"
+              cx="192"
+              cy="192"
+              r="176"
+            ></circle>
+          </svg>
+          <p>Cargando órdenes...</p>
+        </div>
+
+        <div class="table-responsive" *ngIf="!loading">
           <table class="table">
             <thead>
               <tr>
@@ -69,7 +94,7 @@
                   [class.selected-for-deletion]="isOrderSelected(order)"
                   [class.deletion-hover]="deletionMode"
                   (click)="selectOrder(order)">
-                <td>{{ order.numeroOrden }}</td>
+                <td>{{ order.numeroOrden || '--' }}</td>
                 <td>{{ order.mesa }}</td>
                 <td>{{ order.usuario }}</td>
                 <td>
@@ -160,16 +185,39 @@
         <div *ngIf="currentStep === 2">
           <p class="modal-subtitle">Completa la orden de: <strong>{{ selectedUser?.nombre }} Mesa {{ selectedUser?.mesa }}</strong></p>
           <div class="input-group">
-            <input required="" type="text" id="numeroOrden" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.numeroOrden">
-            <label class="user-label" for="numeroOrden">Número de orden</label>
+            <input type="text" id="numeroOrden" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.numeroOrden">
+            <label class="user-label" for="numeroOrden">Número de orden (opcional)</label>
           </div>
           <div class="input-group">
-            <input required="" type="number" id="total" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.total">
-            <label class="user-label" for="total">Total $</label>
+            <input 
+              required 
+              type="number" 
+              id="total" 
+              class="input" 
+              [class.invalid]="totalInvalid"
+              autocomplete="off" 
+              placeholder="" 
+              [(ngModel)]="newOrder.total" 
+              (ngModelChange)="onTotalChange()"
+              step="0.01" 
+              min="0.01" 
+              (keypress)="onlyNumbers($event)">
+            <label class="user-label" [class.invalid]="totalInvalid" for="total">Total $</label>
           </div>
           <div class="input-group">
-            <input required="" type="number" id="tiempoEspera" class="input" autocomplete="off" placeholder="" [(ngModel)]="newOrder.tiempoEspera">
-            <label class="user-label" for="tiempoEspera">Tiempo de espera aprox. (min)</label>
+            <input 
+              required 
+              type="number" 
+              id="tiempoEspera" 
+              class="input" 
+              [class.invalid]="tiempoInvalid"
+              autocomplete="off" 
+              placeholder="" 
+              [(ngModel)]="newOrder.tiempoEspera" 
+              (ngModelChange)="onTiempoChange()"
+              min="0" 
+              (keypress)="onlyNumbers($event)">
+            <label class="user-label" [class.invalid]="tiempoInvalid" for="tiempoEspera">Tiempo de espera aprox. (min)</label>
           </div>
         </div>
       </div>
