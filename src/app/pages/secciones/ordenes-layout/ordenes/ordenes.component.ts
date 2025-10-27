@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Renderer2 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 interface Order {
@@ -27,6 +27,8 @@ export class OrdenesComponent {
   isUserSelectionModalVisible: boolean = false;
   newOrder: Order = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
   currentStep: number = 1;
+
+  constructor(private renderer: Renderer2) {}
   estatus = [
     { label: 'En preparación', active: false, value: 'En preparación' },
     { label: 'Entregada', active: false, value: 'Entregada' },
@@ -110,6 +112,7 @@ export class OrdenesComponent {
     this.isUserSelectionModalVisible = true;
     this.currentStep = 1;
     this.newOrder = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
+    this.renderer.addClass(document.body, 'modal-open');
   }
 
   selectEstatus(estatus: any): void {
@@ -152,6 +155,7 @@ export class OrdenesComponent {
     this.modalAction = '';
     this.newOrder = { id: 0, numeroOrden: '', total: 0, tiempoEspera: 0, usuario: '', mesa: 0, estado: 'En proceso', monto: 0 };
     this.currentStep = 1;
+    this.renderer.removeClass(document.body, 'modal-open');
   }
 
   createOrder() {

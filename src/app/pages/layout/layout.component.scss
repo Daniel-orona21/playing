@@ -353,3 +353,13 @@ header {
       }
 }
 
+// Prevenir scroll cuando el modal está abierto
+:host ::ng-deep body.modal-open {
+    overflow: hidden;
+}
+
+// Alternativa: Bloquear el scroll en el contenido específicamente
+.contenido.modal-open {
+    overflow: hidden;
+}
+
