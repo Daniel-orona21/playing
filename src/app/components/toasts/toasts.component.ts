@@ -94,7 +94,9 @@ import { Subscription } from 'rxjs';
     }
 
     .toast-llamada {
-      background-color: #212121ff;
+      background-color: #2121216b;
+      backdrop-filter: blur(10px);
+      border: 1px solid #83838345;
     }
 
 
