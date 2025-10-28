@@ -36,7 +36,9 @@ export class PlaybackService {
   private player: any = null;
   private deviceId: string | null = null;
   private accessToken: string | null = null;
+  private tokenExpiresAt: Date | null = null;
   private establecimientoId: number | null = null;
+  private isRefreshingToken: boolean = false;
   
   // Estados del reproductor
   private playbackStateSubject = new BehaviorSubject<PlaybackState>({
@@ -57,6 +59,7 @@ export class PlaybackService {
   public isReady$ = this.isReadySubject.asObservable();
 
   private progressInterval: any = null;
+  private tokenRefreshInterval: any = null;
 
   constructor(
     private http: HttpClient,
@@ -174,8 +177,12 @@ export class PlaybackService {
 
       // Manejar ambos formatos: camelCase y snake_case
       this.accessToken = credentials.accessToken || credentials.access_token || '';
+      const expiresAtString = credentials.expiresAt || credentials.expires_at;
+      this.tokenExpiresAt = expiresAtString ? new Date(expiresAtString) : null;
+      
       console.log('Access token value:', this.accessToken);
       console.log('Access token type:', typeof this.accessToken);
+      console.log('Token expires at:', this.tokenExpiresAt);
       
       if (!this.accessToken) {
         throw new Error('Access token is missing in credentials');
@@ -199,11 +206,42 @@ export class PlaybackService {
       
       // Conectar al servicio de Socket para emitir eventos
       this.musicaSocketService.connect(establecimientoId);
+      
+      // Iniciar monitoreo de expiración del token
+      this.startTokenRefreshMonitor();
     } catch (error) {
       console.error('❌❌❌ Error initializing Spotify Playback:', error);
       console.error('Error stack:', error);
       throw error;
     }
+  }
+
+  /**
+   * Monitorea la expiración del token y lo refresca automáticamente
+   */
+  private startTokenRefreshMonitor(): void {
+    // Limpiar intervalo anterior si existe
+    if (this.tokenRefreshInterval) {
+      clearInterval(this.tokenRefreshInterval);
+    }
+
+    // Revisar cada minuto si el token está por expirar
+    this.tokenRefreshInterval = setInterval(async () => {
+      if (!this.tokenExpiresAt || this.isRefreshingToken) {
+        return;
+      }
+
+      const now = new Date();
+      const tenMinutesFromNow = new Date(now.getTime() + (10 * 60 * 1000));
+      
+      // Si el token expira en menos de 10 minutos, refrescarlo
+      if (this.tokenExpiresAt < tenMinutesFromNow) {
+        console.log('⏰ Token expiring soon, auto-refreshing...');
+        await this.refreshToken();
+      }
+    }, 60000); // Revisar cada minuto
+    
+    console.log('🔄 Token refresh monitor started');
   }
 
   /**
@@ -310,8 +348,18 @@ export class PlaybackService {
       try {
         this.player = new w.Spotify.Player({
           name: 'Playing Web Player',
-          getOAuthToken: (cb: (token: string) => void) => {
+          getOAuthToken: async (cb: (token: string) => void) => {
             console.log('getOAuthToken callback called');
+            
+            // Verificar si el token está por expirar (menos de 5 minutos)
+            const now = new Date();
+            const fiveMinutesFromNow = new Date(now.getTime() + (5 * 60 * 1000));
+            
+            if (this.tokenExpiresAt && this.tokenExpiresAt < fiveMinutesFromNow && !this.isRefreshingToken) {
+              console.log('⚠️ Token expired or expiring soon, refreshing...');
+              await this.refreshToken();
+            }
+            
             cb(this.accessToken!);
           },
           volume: 0.75
@@ -708,12 +756,14 @@ export class PlaybackService {
    * Refresca el token de acceso
    */
   private async refreshToken(): Promise<void> {
-    if (!this.establecimientoId) {
+    if (!this.establecimientoId || this.isRefreshingToken) {
       return;
     }
 
+    this.isRefreshingToken = true;
+
     try {
-      console.log('Refreshing access token...');
+      console.log('🔄 Refreshing access token...');
       const response = await this.http.post<any>(
         `${environment.apiUrl}/spotify-establecimiento/refresh/${this.establecimientoId}`,
         {}
@@ -724,11 +774,17 @@ export class PlaybackService {
         if (credentials) {
           // Manejar ambos formatos: camelCase y snake_case
           this.accessToken = credentials.accessToken || credentials.access_token || '';
-          console.log('Access token refreshed successfully');
+          const expiresAtString = credentials.expiresAt || credentials.expires_at;
+          this.tokenExpiresAt = expiresAtString ? new Date(expiresAtString) : null;
+          
+          console.log('✅ Access token refreshed successfully');
+          console.log('New token expires at:', this.tokenExpiresAt);
         }
       }
     } catch (error) {
-      console.error('Error refreshing token:', error);
+      console.error('❌ Error refreshing token:', error);
+    } finally {
+      this.isRefreshingToken = false;
     }
   }
 
@@ -736,6 +792,13 @@ export class PlaybackService {
    * Desconecta el reproductor
    */
   disconnect(): void {
+    // Limpiar intervalo de refresh del token
+    if (this.tokenRefreshInterval) {
+      clearInterval(this.tokenRefreshInterval);
+      this.tokenRefreshInterval = null;
+      console.log('🛑 Token refresh monitor stopped');
+    }
+
     if (this.player) {
       // Detener emisión de progreso
       this.stopProgressEmission();
@@ -744,6 +807,7 @@ export class PlaybackService {
       this.player = null;
       this.deviceId = null;
       this.accessToken = null;
+      this.tokenExpiresAt = null;
       this.isInitializedSubject.next(false);
       this.isReadySubject.next(false);
       this.playbackStateSubject.next({
