@@ -162,6 +162,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   private setupSkipListener(): void {
+    // Limpiar listener anterior si existe
+    if (this.unsubscribeTrackSkipped) {
+      this.unsubscribeTrackSkipped();
+      this.unsubscribeTrackSkipped = null;
+    }
+    
     this.unsubscribeTrackSkipped = this.musicaSocketService.on('track_skipped', (data: any) => {
       this.ngZone.run(async () => {
         console.log('⏭️ Layout: Recibido evento track_skipped:', data);
@@ -185,9 +191,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('🔄 Establecimiento ID obtenido:', this.establecimientoId);
         
-        // Configurar listener de skip DESPUÉS de tener el establecimientoId
-        this.setupSkipListener();
-        
         // Inicializar el reproductor de Spotify
         let isInitialized = false;
         this.playbackService.isInitialized$.subscribe(value => {
@@ -201,6 +204,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
           // Inicializar el gestor de cola
           console.log('🔄 Initializing queue manager...');
           await this.queueManager.initialize(this.establecimientoId);
+          
+          // Configurar listener de skip DESPUÉS de inicializar el playback service
+          this.setupSkipListener();
+        } else {
+          // Ya estaba inicializado, solo configurar el listener
+          this.setupSkipListener();
         }
         
         // Buscar si hay una canción actualmente en reproducción

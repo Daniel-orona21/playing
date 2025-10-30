@@ -276,13 +276,81 @@ export class PlaybackService {
           console.log('Using direct format');
           return response;
         }
+        
+        // Si el token está expirado, intentar refrescarlo automáticamente
+        if (response.needsRefresh || response.error === 'token_expired') {
+          console.log('🔄 Token expired detected, attempting automatic refresh...');
+          const refreshedCredentials = await this.refreshTokenForCredentials();
+          if (refreshedCredentials) {
+            console.log('✅ Token refreshed successfully during initialization');
+            return refreshedCredentials;
+          }
+          console.error('❌ Failed to refresh expired token');
+        }
       }
 
       console.error('No valid credentials format found in response');
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting establishment credentials:', error);
+      
+      // Si es un error 401 (no autorizado), intentar refrescar el token
+      if (error.status === 401) {
+        console.log('🔄 Got 401 error, attempting automatic refresh...');
+        const refreshedCredentials = await this.refreshTokenForCredentials();
+        if (refreshedCredentials) {
+          console.log('✅ Token refreshed successfully after 401 error');
+          return refreshedCredentials;
+        }
+      }
+      
       return null;
+    }
+  }
+  
+  /**
+   * Refresca el token cuando se están obteniendo credenciales
+   */
+  private async refreshTokenForCredentials(): Promise<SpotifyCredentialsResponse | null> {
+    if (!this.establecimientoId || this.isRefreshingToken) {
+      return null;
+    }
+
+    this.isRefreshingToken = true;
+
+    try {
+      console.log('🔄 Refreshing access token for initialization...');
+      const response = await this.http.post<any>(
+        `${environment.apiUrl}/spotify-establecimiento/refresh/${this.establecimientoId}`,
+        {}
+      ).toPromise();
+
+      if (response && response.success) {
+        // Reintentar obtener las credenciales después del refresh
+        const credentialsResponse = await this.http.get<any>(
+          `${environment.apiUrl}/spotify-establecimiento/credentials/${this.establecimientoId}`
+        ).toPromise();
+
+        if (credentialsResponse) {
+          // Manejar diferentes formatos
+          if (credentialsResponse.success && credentialsResponse.credentials) {
+            return credentialsResponse.credentials;
+          }
+          if (Array.isArray(credentialsResponse) && credentialsResponse.length > 0) {
+            return credentialsResponse[0];
+          }
+          if (credentialsResponse.access_token || credentialsResponse.accessToken) {
+            return credentialsResponse;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Error refreshing token for credentials:', error);
+      return null;
+    } finally {
+      this.isRefreshingToken = false;
     }
   }
 

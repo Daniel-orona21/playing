@@ -4,7 +4,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 import { routes } from './app.routes';
-import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
+import { SimpleRouteReuseStrategy } from './utils/simple-route-reuse-strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,6 +12,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes), 
     provideAnimations(),
     provideHttpClient(withInterceptorsFromDi()),
-    { provide: RouteReuseStrategy, useClass: CustomRouteReuseStrategy }
+    { provide: RouteReuseStrategy, useClass: SimpleRouteReuseStrategy }
   ]
 };

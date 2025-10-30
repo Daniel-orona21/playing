@@ -1,9 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, Renderer2, OnInit, OnDestroy } from '@angular/core';
+import { Component, Renderer2, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrdenesService, Orden, UsuarioActivo } from '../../../../services/ordenes.service';
 import { EstablecimientosService } from '../../../../services/establecimientos.service';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../../services/auth.service';
+import { ToastService } from '../../../../services/toast.service';
 
 interface Order {
   id: number;
@@ -48,6 +52,7 @@ export class OrdenesComponent implements OnInit, OnDestroy {
   loading: boolean = false;
   private subscriptions: Subscription = new Subscription();
   private timerInterval: any;
+  private socket: any;
   
   // Variables de validación
   totalInvalid: boolean = false;
@@ -56,7 +61,11 @@ export class OrdenesComponent implements OnInit, OnDestroy {
   constructor(
     private renderer: Renderer2,
     private ordenesService: OrdenesService,
-    private establecimientosService: EstablecimientosService
+    private establecimientosService: EstablecimientosService,
+    private ngZone: NgZone,
+    private http: HttpClient,
+    private auth: AuthService,
+    private toastService: ToastService
   ) {}
   estatus = [
     { label: 'En preparación', active: false, value: 'En preparación' },
@@ -81,6 +90,7 @@ export class OrdenesComponent implements OnInit, OnDestroy {
         if (response.success && response.establecimiento) {
           this.establecimientoId = response.establecimiento.id_establecimiento;
           this.loadOrdenes();
+          this.setupSocketListeners();
         } else {
           console.error('No se encontró establecimiento para el usuario');
           this.loading = false;
@@ -98,6 +108,42 @@ export class OrdenesComponent implements OnInit, OnDestroy {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
     }
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+  }
+  
+  setupSocketListeners(): void {
+    import('socket.io-client').then(({ io }) => {
+      const baseUrl = (environment.apiUrl as any).replace('/api','');
+      this.socket = io(baseUrl, { 
+        transports: ['websocket', 'polling'],
+        reconnection: true 
+      });
+      
+      this.socket.on('connect', () => {
+        this.socket.emit('join_establecimiento', this.establecimientoId);
+      });
+      
+      this.socket.on('ordenes_deleted', (data: { ids: number[] }) => {
+        this.ngZone.run(() => {
+          this.orders = this.orders.filter(order => !data.ids.includes(order.id));
+        });
+      });
+      
+      this.socket.on('orden_created', () => {
+        this.ngZone.run(() => {
+          this.loadOrdenes();
+        });
+      });
+      
+      this.socket.on('establecimiento:clientes_actualizados', () => {
+        this.ngZone.run(() => {
+          this.loadOrdenes();
+        });
+      });
+    });
   }
 
   loadOrdenes(): void {
@@ -413,6 +459,9 @@ export class OrdenesComponent implements OnInit, OnDestroy {
     this.deletionMode = !this.deletionMode;
     if (!this.deletionMode) {
       this.selectedOrders = [];
+    } else {
+      // Mostrar toast de instrucciones cuando se activa el modo de eliminación
+      this.toastService.info('Selecciona una o más órdenes y confirma para eliminarlas', 5000);
     }
   }
 

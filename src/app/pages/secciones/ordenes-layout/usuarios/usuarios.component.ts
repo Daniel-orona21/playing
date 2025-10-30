@@ -291,6 +291,9 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     this.deletionMode = !this.deletionMode;
     if (!this.deletionMode) {
       this.selectedUsers = [];
+    } else {
+      // Mostrar toast de instrucciones cuando se activa el modo de eliminación
+      this.toastService.info('Selecciona uno o más usuarios y confirma para eliminarlos', 5000);
     }
   }
 

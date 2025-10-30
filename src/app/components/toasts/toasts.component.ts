@@ -89,8 +89,9 @@ import { Subscription } from 'rxjs';
     }
 
     .toast-info {
-      border-left-color: #3b82f6;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, white 100%);
+         background-color: #2121216b;
+      backdrop-filter: blur(10px);
+      border: 1px solid #83838345;
     }
 
     .toast-llamada {
@@ -163,7 +164,7 @@ import { Subscription } from 'rxjs';
 
     .toast-message {
       margin: 0;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 500;
       color: white;
       line-height: 1.4;

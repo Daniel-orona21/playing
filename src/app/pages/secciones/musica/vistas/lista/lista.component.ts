@@ -255,15 +255,12 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       }
     });
 
-    // Conectar al socket y escuchar eventos en tiempo real
-    if (this.establecimientoId) {
-      this.musicaSocketService.connect(this.establecimientoId);
-    }
+    // El socket ya está conectado por el LayoutComponent/PlaybackService
+    // No debemos conectarnos ni desconectarnos aquí
   }
 
   ngOnDestroy() {
-    // Desconectar socket al destruir el componente
-    this.musicaSocketService.disconnect();
+    // No desconectar el socket aquí porque es compartido entre componentes
   }
 
   private setupSocketListeners() {

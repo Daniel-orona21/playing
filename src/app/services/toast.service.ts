@@ -35,7 +35,7 @@ export class ToastService {
   showLlamada(nombre: string, mesa: string, id_llamada: number) {
     console.log('📢 ToastService.showLlamada llamado:', { nombre, mesa, id_llamada });
     return this.show(
-      `${nombre} está llamando desde la mesa ${mesa}`,
+      `Mesa ${mesa} llamando`,
       'llamada',
       60000,
       { id_llamada }
