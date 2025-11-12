@@ -42,158 +42,184 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
   }
 
   ngAfterViewInit(): void {
-    // Animaciones GSAP desactivadas
-    // gsap.registerPlugin(ScrollTrigger);
+    
+    gsap.registerPlugin(ScrollTrigger);
 
-    // if (isPlatformBrowser(this.platformId)) {
-    //   // Solo configurar animaciones si el componente está visible
-    //   setTimeout(() => {
-    //     if (!this.hidden) {
-    //       this._setupContinuacionAnimations();
-    //       this._setupHistorialAnimations();
-    //       this.animationsInitialized = true;
-    //     }
-    //   }, 100);
-    // }
+    if (isPlatformBrowser(this.platformId)) {
+      // Solo configurar animaciones si el componente está visible
+      setTimeout(() => {
+        if (!this.hidden) {
+          this._setupContinuacionAnimations();
+          this._setupHistorialAnimations();
+          this.animationsInitialized = true;
+        }
+      }, 100);
+    }
   }
 
   private _refreshAnimations(): void {
-    // Animaciones GSAP desactivadas
-    // console.log('🔄 Refreshing ALL lista animations');
-    // this._refreshContinuacionAnimations();
-    // this._refreshHistorialAnimations();
-    // this.animationsInitialized = true;
+    
+    console.log('🔄 Refreshing ALL lista animations');
+    this._refreshContinuacionAnimations();
+    this._refreshHistorialAnimations();
+    this.animationsInitialized = true;
   }
 
   private _refreshContinuacionAnimations(): void {
-    // Animaciones GSAP desactivadas
-    // console.log('🔄 Refreshing CONTINUACION animations only');
-    // 
-    // // Matar solo las animaciones de la cola/continuación
-    // ScrollTrigger.getAll().forEach(st => {
-    //   const trigger = st.trigger as HTMLElement;
-    //   if (trigger && trigger.closest('.side.continuacion')) {
-    //     st.kill();
-    //   }
-    // });
-    // 
-    // // Reconfigurar solo las animaciones de continuación
-    // this._setupContinuacionAnimations();
-    // 
-    // // Refrescar ScrollTrigger
-    // ScrollTrigger.refresh();
+    console.log('🔄 Refreshing CONTINUACION animations only');
+    
+    // Matar solo las animaciones de la cola/continuación
+    ScrollTrigger.getAll().forEach(st => {
+      const trigger = st.trigger as HTMLElement;
+      if (trigger && trigger.closest('.side.continuacion')) {
+        st.kill();
+      }
+    });
+    
+    // Reconfigurar solo las animaciones de continuación
+    this._setupContinuacionAnimations();
+    
+    // Refrescar ScrollTrigger
+    ScrollTrigger.refresh();
   }
 
   private _refreshHistorialAnimations(): void {
-    // Animaciones GSAP desactivadas
-    // console.log('🔄 Refreshing HISTORIAL animations only');
-    // 
-    // // Matar solo las animaciones del historial
-    // ScrollTrigger.getAll().forEach(st => {
-    //   const trigger = st.trigger as HTMLElement;
-    //   if (trigger && trigger.closest('.side.historial')) {
-    //     st.kill();
-    //   }
-    // });
-    // 
-    // // Reconfigurar solo las animaciones de historial
-    // this._setupHistorialAnimations();
-    // 
-    // // Refrescar ScrollTrigger
-    // ScrollTrigger.refresh();
+    console.log('🔄 Refreshing HISTORIAL animations only');
+    
+    // Matar solo las animaciones del historial
+    ScrollTrigger.getAll().forEach(st => {
+      const trigger = st.trigger as HTMLElement;
+      if (trigger && trigger.closest('.side.historial')) {
+        st.kill();
+      }
+    });
+    
+    // Reconfigurar solo las animaciones de historial
+    this._setupHistorialAnimations();
+    
+    // Refrescar ScrollTrigger
+    ScrollTrigger.refresh();
   }
 
   private _setupContinuacionAnimations(): void {
-    // Animaciones GSAP desactivadas
-    // const scroller = document.querySelector(".side.continuacion .canciones");
-    // if (!scroller) {
-    //   console.warn("Scroller continuacion not found");
-    //   return;
-    // }
+    // Esperar activamente a que los elementos existan
+    const checkAndSetup = (attempts = 0) => {
+      const scroller = document.querySelector(".side.continuacion .canciones");
+      if (!scroller) {
+        if (attempts < 10) {
+          setTimeout(() => checkAndSetup(attempts + 1), 50);
+        } else {
+          console.warn("Scroller continuacion not found after 10 attempts");
+        }
+        return;
+      }
 
-    // const elementos = gsap.utils.toArray(".side.continuacion .canciones .cancion");
-    // console.log(`Setting up continuacion animations for ${elementos.length} elements`);
-    // 
-    // elementos.forEach((element: any) => {
-    //   // Limpiar cualquier animación GSAP previa en este elemento
-    //   gsap.killTweensOf(element);
-    //   
-    //   if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-    //     gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
-    //   } else {
-    //     // Si ya está visible, establecer directamente
-    //     gsap.set(element, { opacity: 1, y: 0, scale: 1 });
-    //   }
-    //   
-    //   gsap.to(element,
-    //     {
-    //       opacity: 1,
-    //       y: 0,
-    //       scale: 1,
-    //       ease: "power2.out",
-    //       scrollTrigger: {
-    //         trigger: element,
-    //         scroller: scroller,
-    //         start: "top 100%",
-    //         toggleActions: "play none none reverse",
-    //         id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
-    //       }
-    //     }
-    //   );
-    // });
+      const elementos = gsap.utils.toArray(".side.continuacion .canciones .cancion");
+      console.log(`Setting up continuacion animations for ${elementos.length} elements`);
+      
+      if (elementos.length === 0 && attempts < 10) {
+        setTimeout(() => checkAndSetup(attempts + 1), 50);
+        return;
+      }
+      
+      elementos.forEach((element: any) => {
+        // Matar cualquier ScrollTrigger existente en este elemento
+        ScrollTrigger.getAll().forEach(st => {
+          if (st.trigger === element) {
+            st.kill();
+          }
+        });
+        gsap.killTweensOf(element);
+
+        // Verificar si el elemento ya está visible en el viewport
+        const elementRect = element.getBoundingClientRect();
+        const scrollerRect = (scroller as HTMLElement).getBoundingClientRect();
+        const isAlreadyVisible = elementRect.top < scrollerRect.bottom && elementRect.bottom > scrollerRect.top;
+
+        if (isAlreadyVisible) {
+          // Si ya está visible, establecer directamente en estado final sin animación
+          gsap.set(element, { opacity: 1, y: 0, scale: 1 });
+        } else {
+          // Si no está visible, configurar animación que se activará con scroll
+          gsap.set(element, { opacity: 0, y: 50, scale: 0.65 });
+
+          gsap.to(element, {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: element,
+              scroller: scroller,
+              start: "top 95%",
+              end: "top 90%",
+              scrub: 1,
+              id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
+            }
+          });
+        }
+      });
+      
+      // Forzar refresh de ScrollTrigger
+      ScrollTrigger.refresh();
+    };
+    
+    requestAnimationFrame(() => {
+      setTimeout(() => checkAndSetup(), 100);
+    });
   }
 
   private _setupHistorialAnimations(): void {
-    // Animaciones GSAP desactivadas
-    // const scroller = document.querySelector(".side.historial .canciones");
-    // if (!scroller) {
-    //   console.warn("Scroller historial not found");
-    //   return;
-    // }
+    const scroller = document.querySelector(".side.historial .canciones");
+    if (!scroller) {
+      console.warn("Scroller historial not found");
+      return;
+    }
 
-    // const elementos = gsap.utils.toArray(".side.historial .canciones .cancion");
-    // console.log(`Setting up historial animations for ${elementos.length} elements`);
-    // 
-    // elementos.forEach((element: any) => {
-    //   // Limpiar cualquier animación GSAP previa en este elemento
-    //   gsap.killTweensOf(element);
-    //   
-    //   if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-    //     gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
-    //   } else {
-    //     // Si ya está visible, establecer directamente
-    //     gsap.set(element, { opacity: 1, y: 0, scale: 1 });
-    //   }
-    //   
-    //   gsap.to(element,
-    //     {
-    //       opacity: 1,
-    //       y: 0,
-    //       scale: 1,
-    //       ease: "power2.out",
-    //       scrollTrigger: {
-    //         trigger: element,
-    //         scroller: scroller,
-    //         start: "top 100%",
-    //         toggleActions: "play none none reverse",
-    //         id: `historial-${Math.random()}`
-    //       }
-    //     }
-    //   );
-    // });
+    const elementos = gsap.utils.toArray(".side.historial .canciones .cancion");
+    console.log(`📜 Setting up historial animations for ${elementos.length} elements`);
+    
+    if (elementos.length === 0) {
+      console.warn("No elements found for historial animations");
+      return;
+    }
+    
+    elementos.forEach((element: any) => {
+      gsap.killTweensOf(element);
+
+      // Verificar si el elemento ya está visible en el viewport
+      const elementRect = element.getBoundingClientRect();
+      const scrollerRect = (scroller as HTMLElement).getBoundingClientRect();
+      const isAlreadyVisible = elementRect.top < scrollerRect.bottom && elementRect.bottom > scrollerRect.top;
+
+      if (isAlreadyVisible) {
+        // Si ya está visible, establecer directamente en estado final sin animación
+        gsap.set(element, { opacity: 1, y: 0, scale: 1 });
+      } else {
+        // Si no está visible, configurar animación que se activará con scroll
+        gsap.set(element, { opacity: 0, y: 50, scale: 0.65 });
+
+        gsap.to(element, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: element,
+            scroller: scroller,
+            start: "top 95%",
+            end: "top 85%", // hasta dónde llega el efecto
+            scrub: 1, // <- esta es la clave
+            // markers: true,
+            id: `historial-${Math.random()}`
+          }
+        });
+      }
+    });
+    
+    console.log('✅ Historial animations setup complete');
   }
 
-  private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {
-    const scrollerRect = scroller.getBoundingClientRect();
-    const elementRect = element.getBoundingClientRect();
-
-    return (
-      elementRect.top >= scrollerRect.top - (scrollerRect.height * threshold) &&
-      elementRect.left >= scrollerRect.left - (scrollerRect.width * threshold) &&
-      elementRect.bottom <= scrollerRect.bottom + (scrollerRect.height * threshold) &&
-      elementRect.right <= scrollerRect.right + (scrollerRect.width * threshold)
-    );
-  }
 
   aContinuacion: any[] = [];
   establecimientoId: number | null = null;
@@ -242,7 +268,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     window.addEventListener('spotifyTrackPlayed', () => {
       if (!this.isDeleting) {
         setTimeout(() => {
-          this.cargarCola();
+          this.cargarCola(false); // No refrescar animaciones al hacer skip
           this.cargarHistorial();
         }, 100);
       }
@@ -251,7 +277,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     window.addEventListener('queueUpdated', () => {
       if (!this.isDeleting) {
         setTimeout(() => {
-          this.cargarCola();
+          this.cargarCola(false); // No refrescar animaciones al actualizar cola
         }, 100);
       }
     });
@@ -282,7 +308,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     // Los componentes se actualizarán vía los window.dispatchEvent existentes
   }
 
-  async cargarCola() {
+  async cargarCola(refreshAnimations: boolean = true) {
     if (!this.establecimientoId) {
       console.error('No establecimiento ID available');
       return;
@@ -309,13 +335,13 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           agregada_en: item.agregada_en
         }));
         
-        // Animaciones GSAP desactivadas
-        // // Refrescar SOLO las animaciones de la cola/continuación
-        // if (isPlatformBrowser(this.platformId) && !this.hidden) {
-        //   setTimeout(() => {
-        //     this._refreshContinuacionAnimations();
-        //   }, 100);
-        // }
+        // Refrescar SOLO las animaciones de la cola/continuación (solo si se solicita)
+        if (refreshAnimations && isPlatformBrowser(this.platformId) && !this.hidden) {
+          // Dar tiempo suficiente para que Angular renderice con *ngIf
+          setTimeout(() => {
+            this._refreshContinuacionAnimations();
+          }, 200);
+        }
       }
     } catch (error) {
       console.error('Error loading queue:', error);
@@ -342,13 +368,13 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           usuario_nombre: item.usuario_nombre
         }));
         
-        // Animaciones GSAP desactivadas
-        // // Refrescar SOLO las animaciones del historial
-        // if (isPlatformBrowser(this.platformId) && !this.hidden) {
-        //   setTimeout(() => {
-        //     this._refreshHistorialAnimations();
-        //   }, 100);
-        // }
+        
+        // Refrescar SOLO las animaciones del historial
+        if (isPlatformBrowser(this.platformId) && !this.hidden) {
+          setTimeout(() => {
+            this._refreshHistorialAnimations();
+          }, 100);
+        }
       }
     } catch (error) {
       console.error('Error loading history:', error);
@@ -399,7 +425,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       }
       
       this.menuAbierto = null;
-      // Animaciones GSAP desactivadas
+      // 
       // ScrollTrigger.refresh();
       
     } catch (error) {
@@ -600,9 +626,9 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
         throw new Error(response?.error || 'Failed to reorder queue');
       }
 
-      console.log('🔄 Queue reordered, reloading and refreshing animations...');
-      // Recargar para tener el orden correcto desde el backend
-      await this.cargarCola();
+      console.log('🔄 Queue reordered, reloading without refreshing animations...');
+      // Recargar para tener el orden correcto desde el backend (sin refrescar animaciones)
+      await this.cargarCola(false);
       
       // Emitir evento de socket para notificar a todos los clientes (incluyendo vista pública)
       this.musicaSocketService.emitQueueUpdate(this.establecimientoId);
