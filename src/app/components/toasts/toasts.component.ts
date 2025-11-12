@@ -55,7 +55,7 @@ import { Subscription } from 'rxjs';
     .toast {
       background: white;
       border-radius: 99px;
-      padding: 16px;
+      padding: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -90,13 +90,13 @@ import { Subscription } from 'rxjs';
 
     .toast-info {
          background-color: #2121216b;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
       border: 1px solid #83838345;
     }
 
     .toast-llamada {
       background-color: #2121216b;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
       border: 1px solid #83838345;
     }
 
@@ -164,7 +164,7 @@ import { Subscription } from 'rxjs';
 
     .toast-message {
       margin: 0;
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 500;
       color: white;
       line-height: 1.4;
