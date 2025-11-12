@@ -126,15 +126,25 @@ export class OrdenesComponent implements OnInit, OnDestroy {
         this.socket.emit('join_establecimiento', this.establecimientoId);
       });
       
-      this.socket.on('ordenes_deleted', (data: { ids: number[] }) => {
+      this.socket.on('ordenes_deleted', (data: { ids: number[], usuarios: { [key: number]: number } }) => {
         this.ngZone.run(() => {
-          this.orders = this.orders.filter(order => !data.ids.includes(order.id));
+          // Filtrar órdenes eliminadas localmente
+          if (data && data.ids) {
+            this.orders = this.orders.filter(order => !data.ids.includes(order.id));
+          }
         });
       });
       
       this.socket.on('orden_created', () => {
         this.ngZone.run(() => {
           this.loadOrdenes();
+        });
+      });
+      
+      this.socket.on('orden_updated', (data: { id: number, status?: string, tiempo_anadido?: number, usuario_id: number }) => {
+        this.ngZone.run(() => {
+          // Actualizar solo la orden específica sin recargar todo
+          this.updateOrdenLocal(data);
         });
       });
       
@@ -561,5 +571,39 @@ export class OrdenesComponent implements OnInit, OnDestroy {
         order.tiempoEspera = tiempoRestante;
       }
     });
+  }
+
+  // Actualizar una orden específica localmente sin recargar todas
+  private updateOrdenLocal(data: { id: number, status?: string, tiempo_anadido?: number }): void {
+    const order = this.orders.find(o => o.id === data.id);
+    if (!order) return;
+
+    // Si es una actualización de estado
+    if (data.status) {
+      const estadoMap: { [key: string]: string } = {
+        'pendiente': 'Pendiente',
+        'en_preparacion': 'En preparación',
+        'entregada': 'Entregada',
+        'pagada': 'Pagada'
+      };
+      order.estado = estadoMap[data.status] || data.status;
+      
+      // Si se marca como entregada, poner tiempo en 0
+      if (data.status === 'entregada') {
+        order.tiempoEspera = 0;
+      }
+    }
+
+    // Si es una actualización de tiempo añadido (valor absoluto)
+    if (data.tiempo_anadido !== undefined) {
+      order.tiempoAnadido = data.tiempo_anadido;
+      
+      // Recalcular el tiempo restante
+      const ahora = new Date();
+      const minutosTranscurridos = Math.floor((ahora.getTime() - order.fechaCreacion.getTime()) / 60000);
+      let tiempoRestante = (order.tiempoOriginal + order.tiempoAnadido) - minutosTranscurridos;
+      if (tiempoRestante < 0) tiempoRestante = 0;
+      order.tiempoEspera = tiempoRestante;
+    }
   }
 }
