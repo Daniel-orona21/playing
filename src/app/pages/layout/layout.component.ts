@@ -35,6 +35,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   currentTrack: SpotifyTrack | null = null;
   isPlaying = false;
   establecimientoId: number | null = null;
+  isChangingTrack = false; // Flag para mostrar loader durante cambio de canción
   
   // Progress tracking
   currentPosition = 0; // en milisegundos
@@ -46,6 +47,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   private unsubscribeTrackSkipped: (() => void) | null = null;
   private socket: any;
+  private trackChangeListeners: Array<((event: any) => void) | (() => void)> = [];
 
   constructor(
     private router: Router,
@@ -76,10 +78,21 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.playbackService.playbackState$
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
+        const previousTrackId = this.currentTrack?.spotify_id;
         this.currentTrack = state.currentTrack;
         this.isPlaying = state.isPlaying;
         this.currentPosition = state.position;
         this.duration = state.duration;
+        
+        // Si cambió la canción, ocultar el loader después de un breve delay
+        if (this.isChangingTrack && state.currentTrack) {
+          // Si cambió la canción o si es la misma canción pero ya está reproduciéndose
+          if (previousTrackId !== state.currentTrack.spotify_id || (state.isPlaying && previousTrackId === state.currentTrack.spotify_id)) {
+            setTimeout(() => {
+              this.isChangingTrack = false;
+            }, 500); // Ocultar después de 500ms para que se vea el cambio
+          }
+        }
         
         // Calcular porcentaje de progreso
         if (this.duration > 0) {
@@ -104,6 +117,33 @@ export class LayoutComponent implements OnInit, OnDestroy {
     
     // Configurar socket para llamadas
     this.setupLlamadasSocket();
+    
+    // Escuchar eventos de cambio de canción desde otros componentes
+    this.setupTrackChangeListener();
+  }
+
+  private setupTrackChangeListener(): void {
+    // Escuchar cuando otros componentes inician la reproducción de una canción
+    const trackChangingHandler = (event: any) => {
+      this.ngZone.run(() => {
+        this.isChangingTrack = true;
+        console.log('🔄 Track changing event received from another component');
+      });
+    };
+    
+    // Escuchar cuando falla el cambio de canción
+    const trackChangeFailedHandler = () => {
+      this.ngZone.run(() => {
+        this.isChangingTrack = false;
+        console.log('❌ Track change failed, hiding loader');
+      });
+    };
+    
+    window.addEventListener('trackChanging', trackChangingHandler);
+    window.addEventListener('trackChangeFailed', trackChangeFailedHandler);
+    
+    // Guardar los handlers para poder removerlos después
+    this.trackChangeListeners = [trackChangingHandler, trackChangeFailedHandler];
   }
 
   private setupLlamadasSocket(): void {
@@ -270,6 +310,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.unsubscribeTrackSkipped = null;
     }
     
+    // Remover event listeners de cambio de canción
+    if (this.trackChangeListeners.length > 0) {
+      window.removeEventListener('trackChanging', this.trackChangeListeners[0]);
+      window.removeEventListener('trackChangeFailed', this.trackChangeListeners[1]);
+      this.trackChangeListeners = [];
+    }
+    
     // Cerrar socket de llamadas
     if (this.socket) {
       this.socket.close();
@@ -339,14 +386,25 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Usar el QueueManager para saltar a la siguiente canción de la cola de la base de datos
-    await this.queueManager.skipToNext();
+    // Mostrar loader mientras cambia la canción
+    this.isChangingTrack = true;
+    
+    try {
+      // Usar el QueueManager para saltar a la siguiente canción de la cola de la base de datos
+      await this.queueManager.skipToNext();
+    } catch (error) {
+      console.error('Error al cambiar de canción:', error);
+      this.isChangingTrack = false;
+    }
   }
 
   async previousTrack() {
     if (!this.currentTrack || !this.establecimientoId) {
       return;
     }
+
+    // Mostrar loader mientras cambia la canción
+    this.isChangingTrack = true;
 
     try {
       // Obtener el historial de reproducción
@@ -375,12 +433,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
           await this.spotifyService.addToQueueAndPlayNow(track, this.establecimientoId, currentUser.id).toPromise();
         } else {
           console.error('❌ No se pudo obtener el usuario actual para reproducir canción anterior');
+          this.isChangingTrack = false;
         }
       } else {
         console.log('ℹ️ No hay canciones anteriores en el historial');
+        this.isChangingTrack = false;
       }
     } catch (error) {
       console.error('❌ Error al reproducir canción anterior:', error);
+      this.isChangingTrack = false;
     }
   }
 
