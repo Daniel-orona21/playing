@@ -1,9 +1,9 @@
 import { RouteReuseStrategy, ActivatedRouteSnapshot, DetachedRouteHandle } from '@angular/router';
 
 /**
- * Estrategia simple de reutilización de rutas
- * Solo cachea los tabs principales (music, ordenes, games, settings) para evitar recrearlos
- * PERO sin detectar si los datos deben refrescarse
+ * Estrategia de reutilización de rutas
+ * Cachea los tabs principales (music, ordenes, games, settings) y sus rutas anidadas
+ * para evitar recrearlos y mantener su estado
  */
 export class SimpleRouteReuseStrategy implements RouteReuseStrategy {
   private storedRoutes = new Map<string, DetachedRouteHandle>();
@@ -13,46 +13,71 @@ export class SimpleRouteReuseStrategy implements RouteReuseStrategy {
   }
 
   private getRouteKey(route: ActivatedRouteSnapshot): string | null {
-    let path = '';
+    const segments: string[] = [];
     let current: ActivatedRouteSnapshot | null = route;
     
     while (current) {
       if (current.routeConfig?.path) {
-        path = current.routeConfig.path + (path ? '/' + path : '');
+        segments.unshift(current.routeConfig.path);
       }
       current = current.parent;
     }
     
-    return path || null;
+    return segments.length > 0 ? segments.join('/') : null;
   }
 
-  private isMainTab(route: ActivatedRouteSnapshot): boolean {
+  private shouldCacheRoute(route: ActivatedRouteSnapshot): boolean {
     const routeKey = this.getRouteKey(route);
     if (!routeKey) return false;
     
     const mainTabs = ['music', 'ordenes', 'games', 'settings'];
-    return mainTabs.includes(routeKey);
+    const nestedRoutes = ['lista', 'busqueda', 'filtro', 'ordenes', 'usuarios'];
+    
+    const segments = routeKey.split('/').filter(s => s && s !== 'layout');
+    
+    if (segments.length === 0) return false;
+    
+    const firstSegment = segments[0];
+    const isMainTab = mainTabs.includes(firstSegment);
+    
+    if (!isMainTab) return false;
+    
+    if (segments.length === 1) {
+      return true;
+    }
+    
+    if (segments.length === 2) {
+      const secondSegment = segments[1];
+      if (firstSegment === 'music') {
+        return nestedRoutes.includes(secondSegment);
+      }
+      if (firstSegment === 'ordenes') {
+        return nestedRoutes.includes(secondSegment);
+      }
+    }
+    
+    return false;
   }
 
   shouldDetach(route: ActivatedRouteSnapshot): boolean {
-    return this.isMainTab(route);
+    return this.shouldCacheRoute(route);
   }
 
   store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle | null): void {
     const key = this.getRouteKey(route);
-    if (key && handle && this.isMainTab(route)) {
+    if (key && handle && this.shouldCacheRoute(route)) {
       this.storedRoutes.set(key, handle);
     }
   }
 
   shouldAttach(route: ActivatedRouteSnapshot): boolean {
     const key = this.getRouteKey(route);
-    return !!(key && this.storedRoutes.has(key) && this.isMainTab(route));
+    return !!(key && this.storedRoutes.has(key) && this.shouldCacheRoute(route));
   }
 
   retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null {
     const key = this.getRouteKey(route);
-    if (!key || !this.isMainTab(route)) return null;
+    if (!key || !this.shouldCacheRoute(route)) return null;
     
     return this.storedRoutes.get(key) || null;
   }
