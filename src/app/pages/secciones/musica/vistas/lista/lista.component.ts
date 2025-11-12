@@ -42,139 +42,145 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
   }
 
   ngAfterViewInit(): void {
-    gsap.registerPlugin(ScrollTrigger);
+    // Animaciones GSAP desactivadas
+    // gsap.registerPlugin(ScrollTrigger);
 
-    if (isPlatformBrowser(this.platformId)) {
-      // Solo configurar animaciones si el componente está visible
-      setTimeout(() => {
-        if (!this.hidden) {
-          this._setupContinuacionAnimations();
-          this._setupHistorialAnimations();
-          this.animationsInitialized = true;
-        }
-      }, 100);
-    }
+    // if (isPlatformBrowser(this.platformId)) {
+    //   // Solo configurar animaciones si el componente está visible
+    //   setTimeout(() => {
+    //     if (!this.hidden) {
+    //       this._setupContinuacionAnimations();
+    //       this._setupHistorialAnimations();
+    //       this.animationsInitialized = true;
+    //     }
+    //   }, 100);
+    // }
   }
 
   private _refreshAnimations(): void {
-    console.log('🔄 Refreshing ALL lista animations');
-    this._refreshContinuacionAnimations();
-    this._refreshHistorialAnimations();
-    this.animationsInitialized = true;
+    // Animaciones GSAP desactivadas
+    // console.log('🔄 Refreshing ALL lista animations');
+    // this._refreshContinuacionAnimations();
+    // this._refreshHistorialAnimations();
+    // this.animationsInitialized = true;
   }
 
   private _refreshContinuacionAnimations(): void {
-    console.log('🔄 Refreshing CONTINUACION animations only');
-    
-    // Matar solo las animaciones de la cola/continuación
-    ScrollTrigger.getAll().forEach(st => {
-      const trigger = st.trigger as HTMLElement;
-      if (trigger && trigger.closest('.side.continuacion')) {
-        st.kill();
-      }
-    });
-    
-    // Reconfigurar solo las animaciones de continuación
-    this._setupContinuacionAnimations();
-    
-    // Refrescar ScrollTrigger
-    ScrollTrigger.refresh();
+    // Animaciones GSAP desactivadas
+    // console.log('🔄 Refreshing CONTINUACION animations only');
+    // 
+    // // Matar solo las animaciones de la cola/continuación
+    // ScrollTrigger.getAll().forEach(st => {
+    //   const trigger = st.trigger as HTMLElement;
+    //   if (trigger && trigger.closest('.side.continuacion')) {
+    //     st.kill();
+    //   }
+    // });
+    // 
+    // // Reconfigurar solo las animaciones de continuación
+    // this._setupContinuacionAnimations();
+    // 
+    // // Refrescar ScrollTrigger
+    // ScrollTrigger.refresh();
   }
 
   private _refreshHistorialAnimations(): void {
-    console.log('🔄 Refreshing HISTORIAL animations only');
-    
-    // Matar solo las animaciones del historial
-    ScrollTrigger.getAll().forEach(st => {
-      const trigger = st.trigger as HTMLElement;
-      if (trigger && trigger.closest('.side.historial')) {
-        st.kill();
-      }
-    });
-    
-    // Reconfigurar solo las animaciones de historial
-    this._setupHistorialAnimations();
-    
-    // Refrescar ScrollTrigger
-    ScrollTrigger.refresh();
+    // Animaciones GSAP desactivadas
+    // console.log('🔄 Refreshing HISTORIAL animations only');
+    // 
+    // // Matar solo las animaciones del historial
+    // ScrollTrigger.getAll().forEach(st => {
+    //   const trigger = st.trigger as HTMLElement;
+    //   if (trigger && trigger.closest('.side.historial')) {
+    //     st.kill();
+    //   }
+    // });
+    // 
+    // // Reconfigurar solo las animaciones de historial
+    // this._setupHistorialAnimations();
+    // 
+    // // Refrescar ScrollTrigger
+    // ScrollTrigger.refresh();
   }
 
   private _setupContinuacionAnimations(): void {
-    const scroller = document.querySelector(".side.continuacion .canciones");
-    if (!scroller) {
-      console.warn("Scroller continuacion not found");
-      return;
-    }
+    // Animaciones GSAP desactivadas
+    // const scroller = document.querySelector(".side.continuacion .canciones");
+    // if (!scroller) {
+    //   console.warn("Scroller continuacion not found");
+    //   return;
+    // }
 
-    const elementos = gsap.utils.toArray(".side.continuacion .canciones .cancion");
-    console.log(`Setting up continuacion animations for ${elementos.length} elements`);
-    
-    elementos.forEach((element: any) => {
-      // Limpiar cualquier animación GSAP previa en este elemento
-      gsap.killTweensOf(element);
-      
-      if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-        gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
-      } else {
-        // Si ya está visible, establecer directamente
-        gsap.set(element, { opacity: 1, y: 0, scale: 1 });
-      }
-      
-      gsap.to(element,
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: element,
-            scroller: scroller,
-            start: "top 100%",
-            toggleActions: "play none none reverse",
-            id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
-          }
-        }
-      );
-    });
+    // const elementos = gsap.utils.toArray(".side.continuacion .canciones .cancion");
+    // console.log(`Setting up continuacion animations for ${elementos.length} elements`);
+    // 
+    // elementos.forEach((element: any) => {
+    //   // Limpiar cualquier animación GSAP previa en este elemento
+    //   gsap.killTweensOf(element);
+    //   
+    //   if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
+    //     gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+    //   } else {
+    //     // Si ya está visible, establecer directamente
+    //     gsap.set(element, { opacity: 1, y: 0, scale: 1 });
+    //   }
+    //   
+    //   gsap.to(element,
+    //     {
+    //       opacity: 1,
+    //       y: 0,
+    //       scale: 1,
+    //       ease: "power2.out",
+    //       scrollTrigger: {
+    //         trigger: element,
+    //         scroller: scroller,
+    //         start: "top 100%",
+    //         toggleActions: "play none none reverse",
+    //         id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
+    //       }
+    //     }
+    //   );
+    // });
   }
 
   private _setupHistorialAnimations(): void {
-    const scroller = document.querySelector(".side.historial .canciones");
-    if (!scroller) {
-      console.warn("Scroller historial not found");
-      return;
-    }
+    // Animaciones GSAP desactivadas
+    // const scroller = document.querySelector(".side.historial .canciones");
+    // if (!scroller) {
+    //   console.warn("Scroller historial not found");
+    //   return;
+    // }
 
-    const elementos = gsap.utils.toArray(".side.historial .canciones .cancion");
-    console.log(`Setting up historial animations for ${elementos.length} elements`);
-    
-    elementos.forEach((element: any) => {
-      // Limpiar cualquier animación GSAP previa en este elemento
-      gsap.killTweensOf(element);
-      
-      if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-        gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
-      } else {
-        // Si ya está visible, establecer directamente
-        gsap.set(element, { opacity: 1, y: 0, scale: 1 });
-      }
-      
-      gsap.to(element,
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: element,
-            scroller: scroller,
-            start: "top 100%",
-            toggleActions: "play none none reverse",
-            id: `historial-${Math.random()}`
-          }
-        }
-      );
-    });
+    // const elementos = gsap.utils.toArray(".side.historial .canciones .cancion");
+    // console.log(`Setting up historial animations for ${elementos.length} elements`);
+    // 
+    // elementos.forEach((element: any) => {
+    //   // Limpiar cualquier animación GSAP previa en este elemento
+    //   gsap.killTweensOf(element);
+    //   
+    //   if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
+    //     gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
+    //   } else {
+    //     // Si ya está visible, establecer directamente
+    //     gsap.set(element, { opacity: 1, y: 0, scale: 1 });
+    //   }
+    //   
+    //   gsap.to(element,
+    //     {
+    //       opacity: 1,
+    //       y: 0,
+    //       scale: 1,
+    //       ease: "power2.out",
+    //       scrollTrigger: {
+    //         trigger: element,
+    //         scroller: scroller,
+    //         start: "top 100%",
+    //         toggleActions: "play none none reverse",
+    //         id: `historial-${Math.random()}`
+    //       }
+    //     }
+    //   );
+    // });
   }
 
   private _isElementInScrollerViewport(element: HTMLElement, scroller: Element, threshold: number = 0): boolean {
@@ -191,7 +197,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
 
   aContinuacion: any[] = [];
   establecimientoId: number | null = null;
-  loading = true;
+  loading = true; // Solo para la carga inicial
 
   historial: Cancion[] = [];
 
@@ -302,12 +308,13 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
         }));
         console.log('Queue loaded:', this.aContinuacion.length, 'songs');
         
-        // Refrescar SOLO las animaciones de la cola/continuación
-        if (isPlatformBrowser(this.platformId) && !this.hidden) {
-          setTimeout(() => {
-            this._refreshContinuacionAnimations();
-          }, 100);
-        }
+        // Animaciones GSAP desactivadas
+        // // Refrescar SOLO las animaciones de la cola/continuación
+        // if (isPlatformBrowser(this.platformId) && !this.hidden) {
+        //   setTimeout(() => {
+        //     this._refreshContinuacionAnimations();
+        //   }, 100);
+        // }
       }
     } catch (error) {
       console.error('Error loading queue:', error);
@@ -336,12 +343,13 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
         }));
         console.log('History loaded:', this.historial.length, 'songs');
         
-        // Refrescar SOLO las animaciones del historial
-        if (isPlatformBrowser(this.platformId) && !this.hidden) {
-          setTimeout(() => {
-            this._refreshHistorialAnimations();
-          }, 100);
-        }
+        // Animaciones GSAP desactivadas
+        // // Refrescar SOLO las animaciones del historial
+        // if (isPlatformBrowser(this.platformId) && !this.hidden) {
+        //   setTimeout(() => {
+        //     this._refreshHistorialAnimations();
+        //   }, 100);
+        // }
       }
     } catch (error) {
       console.error('Error loading history:', error);
@@ -384,31 +392,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       
       console.log('✅ Deleted from database');
       
-      // 3. Encontrar el elemento DOM correcto por su ID (no por index)
-      const cancionElement = document.querySelector(`.side.continuacion .canciones .cancion[data-song-id="${cancion.id}"]`) as HTMLElement;
-      console.log('🎯 Found element to animate:', cancionElement ? 'YES' : 'NO');
-      
-      if (cancionElement) {
-        // 4. Animar el elemento
-        await new Promise<void>((resolve) => {
-          gsap.to(cancionElement, {
-            opacity: 0,
-            height: 0,
-            marginTop: 0,
-            marginBottom: 0,
-            paddingTop: 0,
-            paddingBottom: 0,
-            duration: 0.3,
-            ease: "power1.out",
-            onComplete: () => {
-              console.log('✅ Animation completed');
-              resolve();
-            }
-          });
-        });
-      }
-      
-      // 5. Eliminar del array local después de la animación
+      // 3. Eliminar del array local directamente (sin animación GSAP)
       const indexToRemove = this.aContinuacion.findIndex(item => item.id === cancion.id);
       if (indexToRemove !== -1) {
         this.aContinuacion.splice(indexToRemove, 1);
@@ -416,7 +400,8 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       }
       
       this.menuAbierto = null;
-      ScrollTrigger.refresh();
+      // Animaciones GSAP desactivadas
+      // ScrollTrigger.refresh();
       
     } catch (error) {
       console.error('❌ Error removing song from queue:', error);

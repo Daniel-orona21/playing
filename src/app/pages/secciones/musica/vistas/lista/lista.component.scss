@@ -276,6 +276,23 @@
 }
 }
 
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 1rem;
+    color: $textoPrincipal;
+    flex: 1;
+    height: 100%;
+    
+    p {
+        font-size: 1rem;
+        color: $textoSecundario;
+    }
+}
+
 .no-songs {
     display: flex;
     flex-direction: column;

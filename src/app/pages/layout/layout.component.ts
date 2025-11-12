@@ -13,6 +13,7 @@ import { SpotifyTrack } from '../../models/musica.interfaces';
 import { ToastsComponent } from '../../components/toasts/toasts.component';
 import { ToastService } from '../../services/toast.service';
 import { LlamadasService, Llamada } from '../../services/llamadas.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -55,7 +56,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
     private musicaSocketService: MusicaSocketService,
     private ngZone: NgZone,
     private toastService: ToastService,
-    private llamadasService: LlamadasService
+    private llamadasService: LlamadasService,
+    private authService: AuthService
   ) {}
 
   async ngOnInit() {
@@ -337,15 +339,49 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    await this.playbackService.nextTrack();
+    // Usar el QueueManager para saltar a la siguiente canción de la cola de la base de datos
+    await this.queueManager.skipToNext();
   }
 
   async previousTrack() {
-    if (!this.currentTrack) {
+    if (!this.currentTrack || !this.establecimientoId) {
       return;
     }
 
-    await this.playbackService.previousTrack();
+    try {
+      // Obtener el historial de reproducción
+      const historyResponse = await this.spotifyService.getHistory(this.establecimientoId, 1).toPromise();
+      
+      if (historyResponse?.success && historyResponse.history && historyResponse.history.length > 0) {
+        const previousSong = historyResponse.history[0]; // La última canción reproducida
+        
+        console.log('⏮️ Reproduciendo canción anterior del historial:', previousSong.titulo);
+        
+        // Crear objeto SpotifyTrack
+        const track: SpotifyTrack = {
+          spotify_id: previousSong.spotify_id,
+          titulo: previousSong.titulo,
+          artista: previousSong.artista,
+          album: previousSong.album,
+          duracion: previousSong.duracion,
+          imagen_url: previousSong.imagen_url,
+          genero: previousSong.genero,
+          preview_url: previousSong.preview_url
+        };
+        
+        // Agregar la canción al principio de la cola y reproducirla inmediatamente
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser && currentUser.id) {
+          await this.spotifyService.addToQueueAndPlayNow(track, this.establecimientoId, currentUser.id).toPromise();
+        } else {
+          console.error('❌ No se pudo obtener el usuario actual para reproducir canción anterior');
+        }
+      } else {
+        console.log('ℹ️ No hay canciones anteriores en el historial');
+      }
+    } catch (error) {
+      console.error('❌ Error al reproducir canción anterior:', error);
+    }
   }
 
   /**

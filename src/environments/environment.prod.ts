@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:3000/api',
-  // apiUrl: 'https://playing-svrw.onrender.com/api',
+  // apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://playing-svrw.onrender.com/api',
   googleClientId: 'TU_GOOGLE_CLIENT_ID_AQUI'
 };

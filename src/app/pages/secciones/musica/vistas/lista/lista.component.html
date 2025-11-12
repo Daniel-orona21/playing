@@ -2,6 +2,30 @@
     <div class="side continuacion">
         <h2>A continuación...</h2>
         <div class="canciones">
+            <div *ngIf="loading" class="loading">
+                <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                    <circle
+                        class="active"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="32"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                    <circle
+                        class="track"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="32"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                </svg>
+                <p>Cargando fila...</p>
+            </div>
+            <ng-container *ngIf="!loading">
             <ng-container *ngFor="let cancion of aContinuacion; let i = index">
                 <div 
                     *ngIf="cancion.posicion !== 1"
@@ -57,15 +81,40 @@
                     </div>
                 </div>
                 </ng-container>
-            <div *ngIf="!loading && aContinuacion.length < 2" class="no-songs">
+                <div *ngIf="aContinuacion.length < 2" class="no-songs">
                 <i class="fa-solid fa-music"></i>
                 <p>No hay canciones en la cola</p>
             </div>
+            </ng-container>
         </div>
     </div>
     <div class="side historial">
         <h2>Historial</h2>
         <div class="canciones">
+            <div *ngIf="loading" class="loading">
+                <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                    <circle
+                        class="active"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="32"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                    <circle
+                        class="track"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="32"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                </svg>
+                <p>Cargando historial...</p>
+            </div>
+            <ng-container *ngIf="!loading">
             <div 
                 *ngFor="let cancion of historial; let i = index" 
                 class="cancion cancionHistorial">
@@ -81,10 +130,11 @@
                     </div>
                     </div>
             </div>
-            <div *ngIf="!loading && historial.length === 0" class="no-songs">
+                <div *ngIf="historial.length === 0" class="no-songs">
                 <i class="fa-solid fa-history"></i>
                 <p>No hay historial de reproducción</p>
             </div>
+            </ng-container>
         </div>
     </div>
 </div>
