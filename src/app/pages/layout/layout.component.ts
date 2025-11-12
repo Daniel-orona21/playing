@@ -35,11 +35,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   currentTrack: SpotifyTrack | null = null;
   isPlaying = false;
   establecimientoId: number | null = null;
-  isChangingTrack = false; // Flag para mostrar loader durante cambio de canción
-  
-  // Progress tracking
-  currentPosition = 0; // en milisegundos
-  duration = 0; // en milisegundos
+  isChangingTrack = false;
+  currentPosition = 0;
+  duration = 0;
   progressPercent = 0;
   private progressInterval: any = null;
   
@@ -74,7 +72,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.updateSelectedNavFromUrl();
       });
 
-    // Suscribirse al estado del reproductor
     this.playbackService.playbackState$
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
@@ -84,27 +81,22 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.currentPosition = state.position;
         this.duration = state.duration;
         
-        // Si cambió la canción, ocultar el loader después de un breve delay
         if (this.isChangingTrack && state.currentTrack) {
-          // Si cambió la canción o si es la misma canción pero ya está reproduciéndose
           if (previousTrackId !== state.currentTrack.spotify_id || (state.isPlaying && previousTrackId === state.currentTrack.spotify_id)) {
             setTimeout(() => {
               this.isChangingTrack = false;
-            }, 500); // Ocultar después de 500ms para que se vea el cambio
+            }, 500);
           }
         }
         
-        // Calcular porcentaje de progreso
         if (this.duration > 0) {
           this.progressPercent = (this.currentPosition / this.duration) * 100;
         }
         
-        // Actualizar el valor del volumen en el slider
         this.value = Math.round(state.volume * 100);
         this.updateVolumeSlider();
         this.updateProgressSlider();
         
-        // Manejar el intervalo de actualización de progreso
         if (state.isPlaying && !this.progressInterval) {
           this.startProgressInterval();
         } else if (!state.isPlaying && this.progressInterval) {
@@ -112,37 +104,27 @@ export class LayoutComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Obtener establecimiento y restaurar reproducción
     await this.restorePlayback();
-    
-    // Configurar socket para llamadas
     this.setupLlamadasSocket();
-    
-    // Escuchar eventos de cambio de canción desde otros componentes
     this.setupTrackChangeListener();
   }
 
   private setupTrackChangeListener(): void {
-    // Escuchar cuando otros componentes inician la reproducción de una canción
     const trackChangingHandler = (event: any) => {
       this.ngZone.run(() => {
         this.isChangingTrack = true;
-        console.log('🔄 Track changing event received from another component');
       });
     };
     
-    // Escuchar cuando falla el cambio de canción
     const trackChangeFailedHandler = () => {
       this.ngZone.run(() => {
         this.isChangingTrack = false;
-        console.log('❌ Track change failed, hiding loader');
       });
     };
     
     window.addEventListener('trackChanging', trackChangingHandler);
     window.addEventListener('trackChangeFailed', trackChangeFailedHandler);
     
-    // Guardar los handlers para poder removerlos después
     this.trackChangeListeners = [trackChangingHandler, trackChangeFailedHandler];
   }
 
@@ -212,13 +194,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     
     this.unsubscribeTrackSkipped = this.musicaSocketService.on('track_skipped', (data: any) => {
       this.ngZone.run(async () => {
-        console.log('⏭️ Layout: Recibido evento track_skipped:', data);
-        
-        // Verificar si es para el establecimiento actual
         if (data.establecimientoId === this.establecimientoId) {
-          console.log('⏭️ Layout: Ejecutando skipToNext() automáticamente...');
-          
-          // Ejecutar el skip usando el QueueManager que maneja toda la lógica
           await this.queueManager.skipToNext();
         }
       });
@@ -227,45 +203,32 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   async restorePlayback() {
     try {
-      // Obtener el establecimiento actual
+      this.isChangingTrack = true;
+      
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
-        console.log('🔄 Establecimiento ID obtenido:', this.establecimientoId);
         
-        // Inicializar el reproductor de Spotify
         let isInitialized = false;
         this.playbackService.isInitialized$.subscribe(value => {
           isInitialized = value;
         }).unsubscribe();
         
         if (!isInitialized) {
-          console.log('🔄 Initializing playback service...');
           await this.playbackService.initialize(this.establecimientoId);
-          
-          // Inicializar el gestor de cola
-          console.log('🔄 Initializing queue manager...');
           await this.queueManager.initialize(this.establecimientoId);
-          
-          // Configurar listener de skip DESPUÉS de inicializar el playback service
           this.setupSkipListener();
         } else {
-          // Ya estaba inicializado, solo configurar el listener
           this.setupSkipListener();
         }
         
-        // Buscar si hay una canción actualmente en reproducción
-        console.log('🔍 Checking for current playing song...');
         const response = await this.spotifyService.getCurrentPlaying(this.establecimientoId).toPromise();
         
         if (response?.success && response.currentPlaying) {
           const currentSong = response.currentPlaying;
-          console.log('✅ Found current playing song:', currentSong.titulo);
           
-          // ✅ ACTIVAR MODO RESTAURACIÓN (desactiva la lógica automática del QueueManager)
           this.queueManager.setRestoringMode(true);
           
-          // Crear objeto SpotifyTrack
           const track: SpotifyTrack = {
             spotify_id: currentSong.spotify_id,
             titulo: currentSong.titulo,
@@ -277,27 +240,23 @@ export class LayoutComponent implements OnInit, OnDestroy {
             preview_url: currentSong.preview_url
           };
           
-          // Establecer el ID actual en el queue manager
           this.queueManager.setCurrentQueueItem(currentSong.id);
           
-          // Reproducir la canción (sin activar lógica de cola)
-          console.log('🎵 Restoring playback...');
           await this.playbackService.playTrack(currentSong.spotify_id, track);
           
-          // ✅ Esperar un poco y DESACTIVAR MODO RESTAURACIÓN
           setTimeout(() => {
             this.queueManager.setRestoringMode(false);
-            console.log('✅ Playback restored successfully!');
-          }, 2000); // Esperar 2 segundos antes de reactivar la lógica automática
-          
+          }, 2000);
         } else {
-          console.log('ℹ️ No current playing song found');
+          this.isChangingTrack = false;
         }
+      } else {
+        this.isChangingTrack = false;
       }
     } catch (error) {
-      console.error('❌ Error restoring playback:', error);
-      // Asegurarse de desactivar el modo restauración en caso de error
+      console.error('Error restoring playback:', error);
       this.queueManager.setRestoringMode(false);
+      this.isChangingTrack = false;
     }
   }
 
@@ -386,11 +345,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Mostrar loader mientras cambia la canción
     this.isChangingTrack = true;
     
     try {
-      // Usar el QueueManager para saltar a la siguiente canción de la cola de la base de datos
       await this.queueManager.skipToNext();
     } catch (error) {
       console.error('Error al cambiar de canción:', error);
@@ -399,49 +356,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   async previousTrack() {
-    if (!this.currentTrack || !this.establecimientoId) {
+    if (!this.currentTrack) {
       return;
     }
 
-    // Mostrar loader mientras cambia la canción
-    this.isChangingTrack = true;
-
     try {
-      // Obtener el historial de reproducción
-      const historyResponse = await this.spotifyService.getHistory(this.establecimientoId, 1).toPromise();
-      
-      if (historyResponse?.success && historyResponse.history && historyResponse.history.length > 0) {
-        const previousSong = historyResponse.history[0]; // La última canción reproducida
-        
-        console.log('⏮️ Reproduciendo canción anterior del historial:', previousSong.titulo);
-        
-        // Crear objeto SpotifyTrack
-        const track: SpotifyTrack = {
-          spotify_id: previousSong.spotify_id,
-          titulo: previousSong.titulo,
-          artista: previousSong.artista,
-          album: previousSong.album,
-          duracion: previousSong.duracion,
-          imagen_url: previousSong.imagen_url,
-          genero: previousSong.genero,
-          preview_url: previousSong.preview_url
-        };
-        
-        // Agregar la canción al principio de la cola y reproducirla inmediatamente
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser && currentUser.id) {
-          await this.spotifyService.addToQueueAndPlayNow(track, this.establecimientoId, currentUser.id).toPromise();
-        } else {
-          console.error('❌ No se pudo obtener el usuario actual para reproducir canción anterior');
-          this.isChangingTrack = false;
-        }
-      } else {
-        console.log('ℹ️ No hay canciones anteriores en el historial');
-        this.isChangingTrack = false;
+      await this.playbackService.seek(0);
+      const currentState = this.playbackService.getCurrentState();
+      if (!currentState.isPlaying) {
+        await this.playbackService.resume();
       }
     } catch (error) {
-      console.error('❌ Error al reproducir canción anterior:', error);
-      this.isChangingTrack = false;
+      console.error('Error al reiniciar canción:', error);
     }
   }
 

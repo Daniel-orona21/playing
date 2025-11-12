@@ -331,39 +331,26 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     event.stopPropagation();
     
     try {
-      console.log('Playing song:', song.titulo);
-      
-      // Verificar si es la misma canción que está reproduciéndose
       const currentState = this.playbackService.getCurrentState();
       const isSameTrack = currentState.currentTrack?.spotify_id === song.spotify_id;
       
-      // Si es la misma canción, simplemente reiniciarla desde el principio
       if (isSameTrack) {
-        console.log('Same track selected, restarting from beginning');
         await this.playbackService.seek(0);
-        // Asegurarse de que esté reproduciendo
         if (!currentState.isPlaying) {
           await this.playbackService.resume();
         }
-        return; // No hacer la petición al backend
+        return;
       }
       
-      // Si es una canción diferente, mostrar loader y hacer la petición
-      // Emitir evento para mostrar loader en layout
       window.dispatchEvent(new CustomEvent('trackChanging', { detail: { spotifyId: song.spotify_id } }));
       
-      // Primero, agregar la canción a la cola y obtener su ID
       const response = await this.agregarALaColaYReproducir(song);
       
-      if (response) {
-        console.log('Song playing successfully');
-      } else {
-        // Si falla, ocultar el loader
+      if (!response) {
         window.dispatchEvent(new CustomEvent('trackChangeFailed'));
       }
     } catch (error) {
       console.error('Error playing song:', error);
-      // Ocultar el loader en caso de error
       window.dispatchEvent(new CustomEvent('trackChangeFailed'));
       alert('Error al reproducir la canción. Asegúrate de que Spotify esté conectado.');
     }

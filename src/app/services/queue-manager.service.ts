@@ -26,36 +26,25 @@ export class QueueManagerService {
    * Inicializa el gestor de cola
    */
   async initialize(establecimientoId: number): Promise<void> {
-    console.log('🎵 QueueManager: Initializing for establecimiento', establecimientoId);
     this.establecimientoId = establecimientoId;
 
-    // Suscribirse a cambios en el estado de reproducción
     this.playbackService.playbackState$.subscribe(state => {
       if (state.currentTrack && state.isPlaying) {
-        if (!this.isPlaying) {
-          console.log('🎵 QueueManager: Playback started');
-        }
         this.isPlaying = true;
         this.hasStartedPlaying = true;
         this.lastPosition = state.position;
       }
     });
 
-    // Suscribirse a playback_update para reproducir nuevas canciones
     this.musicaSocketService.on('playback_update', async (data: any) => {
       if (data.currentTrack && data.establecimientoId === this.establecimientoId) {
-        // Verificar si es una canción diferente
         const newTrackColaId = data.currentTrack.cola_id || data.currentTrack.id;
         
         if (newTrackColaId && newTrackColaId !== this.currentQueueItemId) {
-          console.log('🎵 QueueManager: Nueva canción detectada vía playback_update:', data.currentTrack.titulo);
-          
-          // Actualizar el ID de la canción actual
           this.currentQueueItemId = newTrackColaId;
           this.hasStartedPlaying = false;
           this.lastPosition = 0;
           
-          // Crear objeto SpotifyTrack
           const track: SpotifyTrack = {
             spotify_id: data.currentTrack.spotify_id,
             titulo: data.currentTrack.titulo,
@@ -67,8 +56,6 @@ export class QueueManagerService {
             preview_url: data.currentTrack.preview_url
           };
           
-          // Reproducir la canción en Spotify
-          console.log('▶️ QueueManager: Reproduciendo en Spotify:', track.titulo);
           await this.playbackService.playTrack(data.currentTrack.spotify_id, track);
         }
       }
@@ -100,22 +87,11 @@ export class QueueManagerService {
         this.isPlaying = true;
       }
       
-      // Si la canción está cerca del final (últimos 2 segundos)
-      if (state.isPlaying && state.duration > 0) {
-        const timeRemaining = state.duration - state.position;
-        if (timeRemaining <= 2000 && timeRemaining > 0) {
-          console.log('🎵 QueueManager: Song is about to end, preparing next song');
-        }
-      }
-
-      // ✅ Detectar fin de canción: debe cumplir TODAS estas condiciones
       if (!state.isPlaying && 
           state.position === 0 && 
           this.isPlaying && 
-          this.lastPosition > 1000 && // La canción debe haber avanzado al menos 1 segundo
-          this.currentQueueItemId) {   // Debe haber una canción actual
-        
-        console.log('🎵 QueueManager: Detected song end (position was', this.lastPosition, ')');
+          this.lastPosition > 1000 &&
+          this.currentQueueItemId) {
         this.isPlaying = false;
         this.hasStartedPlaying = false;
         this.lastPosition = 0;
@@ -128,26 +104,22 @@ export class QueueManagerService {
    * Maneja el evento cuando una canción termina
    */
   private async onSongEnded(): Promise<void> {
-    // ✅ No hacer nada si estamos restaurando
     if (this.isRestoring) {
-      console.log('🎵 QueueManager: Skipping onSongEnded (restoring)');
       return;
     }
 
-    console.log('🎵 QueueManager: Song ended, getting next song from queue');
-
     try {
-      // Mover la canción actual al historial
+      window.dispatchEvent(new CustomEvent('trackChanging', { detail: { automatic: true } }));
+      
       if (this.currentQueueItemId) {
-        console.log('🎵 QueueManager: Moving current song to history:', this.currentQueueItemId);
         await this.spotifyService.moveToHistory(this.currentQueueItemId).toPromise();
         this.currentQueueItemId = null;
       }
 
-      // Obtener la siguiente canción de la cola
       await this.playNextInQueue();
     } catch (error) {
-      console.error('🎵 QueueManager: Error handling song end:', error);
+      console.error('Error handling song end:', error);
+      window.dispatchEvent(new CustomEvent('trackChangeFailed'));
     }
   }
 
@@ -155,7 +127,6 @@ export class QueueManagerService {
    * Salta a la siguiente canción (usado para skip automático por votos)
    */
   async skipToNext(): Promise<void> {
-    console.log('⏭️ QueueManager: Skip manual/automático activado');
     await this.onSongEnded();
   }
 
@@ -164,27 +135,21 @@ export class QueueManagerService {
    */
   async playNextInQueue(): Promise<void> {
     if (!this.establecimientoId) {
-      console.error('🎵 QueueManager: No establecimiento ID available');
+      console.error('No establecimiento ID available');
       return;
     }
 
     try {
-      // Obtener la cola
       const response = await this.spotifyService.getQueue(this.establecimientoId).toPromise();
       
       if (response?.success && response.queue.length > 0) {
-        const nextSong = response.queue[0]; // Primera canción pendiente
+        const nextSong = response.queue[0];
         
-        console.log('🎵 QueueManager: Playing next song:', nextSong.titulo);
-
-        // Usar el nuevo endpoint que marca como playing (y mueve las anteriores al historial)
         await this.spotifyService.setCurrentPlaying(nextSong.id, this.establecimientoId).toPromise();
         this.currentQueueItemId = nextSong.id;
-        // Reset flags para la nueva canción
         this.hasStartedPlaying = false;
         this.lastPosition = 0;
 
-        // Crear objeto SpotifyTrack
         const track: SpotifyTrack = {
           spotify_id: nextSong.spotify_id,
           titulo: nextSong.titulo,
@@ -196,19 +161,15 @@ export class QueueManagerService {
           preview_url: nextSong.preview_url
         };
 
-        // Reproducir la canción
         await this.playbackService.playTrack(nextSong.spotify_id, track);
 
-        // Emitir evento para que otros componentes actualicen
-        window.dispatchEvent(new CustomEvent('queueUpdated'));
-        window.dispatchEvent(new CustomEvent('spotifyTrackPlayed', { detail: track }));
-
-        console.log('🎵 QueueManager: Successfully started playing next song');
-      } else {
-        console.log('🎵 QueueManager: No more songs in queue');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('queueUpdated'));
+          window.dispatchEvent(new CustomEvent('spotifyTrackPlayed', { detail: track }));
+        }, 0);
       }
     } catch (error) {
-      console.error('🎵 QueueManager: Error playing next song:', error);
+      console.error('Error playing next song:', error);
     }
   }
 
@@ -232,9 +193,7 @@ export class QueueManagerService {
    * Establece el ID del elemento actual de la cola
    */
   setCurrentQueueItem(queueItemId: number): void {
-    console.log('🎵 QueueManager: Setting current queue item:', queueItemId);
     this.currentQueueItemId = queueItemId;
-    // Reset flags cuando se establece una nueva canción
     this.hasStartedPlaying = false;
     this.lastPosition = 0;
   }
@@ -244,7 +203,6 @@ export class QueueManagerService {
    */
   setRestoringMode(isRestoring: boolean): void {
     this.isRestoring = isRestoring;
-    console.log(`🎵 QueueManager: Restoring mode ${isRestoring ? 'ENABLED' : 'DISABLED'}`);
   }
 }
 

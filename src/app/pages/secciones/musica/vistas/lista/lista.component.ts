@@ -239,25 +239,28 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       this.loading = false;
     }
 
-    // Escuchar eventos de canción reproducida para recargar la cola Y el historial
     window.addEventListener('spotifyTrackPlayed', () => {
       if (!this.isDeleting) {
-        this.cargarCola();
-        this.cargarHistorial(); // Recargar historial solo cuando cambia la canción
+        setTimeout(() => {
+          this.cargarCola();
+          this.cargarHistorial();
+        }, 100);
       }
     });
 
-    // Escuchar eventos de actualización de cola (NO recargar historial)
     window.addEventListener('queueUpdated', () => {
       if (!this.isDeleting) {
-        this.cargarCola(); // Solo recargar la cola, no el historial
+        setTimeout(() => {
+          this.cargarCola();
+        }, 100);
       }
     });
 
-    // Escuchar eventos de actualización del historial
     window.addEventListener('historyUpdated', () => {
       if (!this.isDeleting) {
-        this.cargarHistorial(); // Solo recargar el historial, no la cola
+        setTimeout(() => {
+          this.cargarHistorial();
+        }, 100);
       }
     });
 
@@ -286,7 +289,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     }
 
     try {
-      console.log('Loading queue for establecimiento:', this.establecimientoId);
       const response = await this.spotifyService.getQueue(this.establecimientoId).toPromise();
       
       if (response?.success) {
@@ -306,7 +308,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           usuario_nombre: item.usuario_nombre,
           agregada_en: item.agregada_en
         }));
-        console.log('Queue loaded:', this.aContinuacion.length, 'songs');
         
         // Animaciones GSAP desactivadas
         // // Refrescar SOLO las animaciones de la cola/continuación
@@ -327,7 +328,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     }
 
     try {
-      console.log('Loading history for establecimiento:', this.establecimientoId);
       const response = await this.spotifyService.getHistory(this.establecimientoId, 100).toPromise();
       
       if (response?.success) {
@@ -341,7 +341,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           usuario_id: item.usuario_id,
           usuario_nombre: item.usuario_nombre
         }));
-        console.log('History loaded:', this.historial.length, 'songs');
         
         // Animaciones GSAP desactivadas
         // // Refrescar SOLO las animaciones del historial

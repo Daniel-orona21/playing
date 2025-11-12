@@ -559,11 +559,7 @@ export class PlaybackService {
    * Reproduce una canción usando su Spotify URI
    */
   async playTrack(spotifyId: string, track: SpotifyTrack): Promise<void> {
-    console.log('🎵 Playing:', track.titulo);
-
-    // Esperar a que el reproductor esté listo
     if (!this.isReadySubject.value) {
-      console.log('Waiting for player...');
       await this.waitForPlayerReady();
     }
 
@@ -593,10 +589,7 @@ export class PlaybackService {
           errorData = { message: errorText };
         }
         
-        // Si el error es que el dispositivo no está activo, transferir y reintentar
         if (response.status === 404 || (errorData.error?.reason === 'NO_ACTIVE_DEVICE')) {
-          console.log('Device not active, transferring playback...');
-          
           await fetch(`https://api.spotify.com/v1/me/player`, {
             method: 'PUT',
             body: JSON.stringify({ 
@@ -639,12 +632,9 @@ export class PlaybackService {
         isPaused: false
       });
 
-      // Iniciar emisión periódica de progreso
       this.startProgressEmission();
-      
-      console.log('✅ Playing');
     } catch (error) {
-      console.error('❌ Error playing:', error);
+      console.error('Error playing:', error);
       throw error;
     }
   }
