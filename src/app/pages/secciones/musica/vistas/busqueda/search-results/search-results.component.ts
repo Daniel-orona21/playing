@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, AfterViewInit, OnChanges, SimpleChanges, Inject, PLATFORM_ID, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnChanges, SimpleChanges, Inject, PLATFORM_ID, HostListener } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -23,10 +23,20 @@ gsap.registerPlugin(ScrollTrigger);
 })
 export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() searchTerm: string = '';
+  @Output() loadingChange = new EventEmitter<boolean>();
   songs: SpotifyTrack[] = [];
   artists: SpotifyArtist[] = [];
   selectedArtist: SpotifyArtist | null = null;
-  loading = true;
+  private _loading = true;
+  
+  get loading(): boolean {
+    return this._loading;
+  }
+  
+  set loading(value: boolean) {
+    this._loading = value;
+    this.loadingChange.emit(value);
+  }
   menuAbierto: number | null = null;
   menuArtistaAbierto: number | null = null;
   establecimientoId: number | null = null;
@@ -44,6 +54,8 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   ) {}
 
   async ngOnInit() {
+    this.loading = true;
+    
     // Obtener el establecimiento actual
     try {
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
@@ -59,10 +71,13 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento:', error);
+      this.loading = false;
     }
 
     if (this.searchTerm && this.establecimientoId) {
       await this.searchSongs();
+    } else {
+      this.loading = false;
     }
   }
 

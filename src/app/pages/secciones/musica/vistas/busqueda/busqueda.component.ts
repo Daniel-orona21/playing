@@ -26,6 +26,7 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
   searchTerm: string = ''; 
   generosMusicales: any[] = [];
   loading = true;
+  searchLoading = false;
   private searchTimeout: any;
 
   constructor(
@@ -69,7 +70,8 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
   }
 
   limpiarBuscador(){
-    this.searchTerm= '';
+    this.searchTerm = '';
+    this.searchLoading = false;
   }
 
   private _setupCategoryAnimations(): void {

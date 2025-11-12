@@ -10,6 +10,29 @@
     <button (click)="limpiarBuscador()" [class.activo]="searchTerm">
         <span  class="material-symbols-outlined">close</span>
     </button>
+    
+    <div *ngIf="searchLoading" class="loading-search">
+        <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+            <circle
+                class="active"
+                pathLength="360"
+                fill="transparent"
+                stroke-width="32"
+                cx="192"
+                cy="192"
+                r="176"
+            ></circle>
+            <circle
+                class="track"
+                pathLength="360"
+                fill="transparent"
+                stroke-width="32"
+                cx="192"
+                cy="192"
+                r="176"
+            ></circle>
+            </svg>
+    </div>
     </div>
 
     <div class="scroll">
@@ -46,6 +69,6 @@
         <app-canciones-categoria *ngIf="selectedCategory" [categoryName]="selectedCategory" (backToCategories)="clearCategory()"></app-canciones-categoria>
 
         <!-- Nueva vista para resultados de búsqueda -->
-        <app-search-results *ngIf="searchTerm && !selectedCategory" [searchTerm]="searchTerm"></app-search-results>
+        <app-search-results *ngIf="searchTerm && !selectedCategory" [searchTerm]="searchTerm" (loadingChange)="searchLoading = $event"></app-search-results>
     </div>
 </div>
