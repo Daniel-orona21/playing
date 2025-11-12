@@ -1,4 +1,5 @@
 @use '../../../../../../colores.scss' as *;
+@use "sass:color";
 
 .cuerpo {
     display: flex;
@@ -97,15 +98,17 @@
             top: 50%;
             transform: translateY(-50%);
             right: 3.5rem;
-
+            height: 35px;
+            
             .opcion {
-                border-radius: 10px;
+                border-radius: 99px;
+                min-height: 35px;
                 background-color: $botonFlotante;
                 border: none;
                 backdrop-filter: blur(10px);
                 display: flex;
                 gap: 10px;
-                padding: 5px 20px 5px 15px;
+                padding: 5px 25px 5px 15px;
                 align-items: center;
                 justify-content: center;
                 color: white;
@@ -117,19 +120,19 @@
                 }
 
                 &:hover:not(:disabled) {
-                    background-color: $botonFlotante;
-                    filter: brightness(1.2);
                     cursor: pointer;
+                }
+                &:hover {
+                    background-color: color.adjust($botonFlotante, $lightness: +55%) !important;
                 }
 
                 &:disabled {
-                    opacity: 0.7;
                     cursor: not-allowed;
                 }
 
                 .loader-small {
-                    width: 16px;
-                    height: 16px;
+                    width: 22px;
+                    height: 22px;
                     animation: rotate 1s linear infinite;
 
                     .active {
