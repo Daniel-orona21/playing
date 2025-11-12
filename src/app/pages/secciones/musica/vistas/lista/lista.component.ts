@@ -540,12 +540,31 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       return;
     }
     
-    console.log('🎵 Dropping:', draggedCancion.titulo, '(pos:', draggedCancion.posicion, ')');
-    console.log('🎵 Onto:', dropCancion.titulo, '(pos:', dropCancion.posicion, ')');
+    // Calcular la posición objetivo considerando que la posición 1 no se muestra
+    // Obtener todas las canciones visibles (sin la posición 1)
+    const visibleSongs = this.aContinuacion.filter(c => c.posicion !== 1);
+    const draggedIndex = visibleSongs.findIndex(c => c.id === this.draggedSongId);
+    const dropIndex = visibleSongs.findIndex(c => c.id === dropCancion.id);
+    
+    if (draggedIndex === -1 || dropIndex === -1) {
+      console.error('Invalid drag/drop indices');
+      this.draggedSongId = null;
+      this.dragOverSongId = null;
+      return;
+    }
+    
+    // Calcular la posición objetivo en BD
+    // Cuando soltamos una canción sobre otra, queremos que vaya a esa posición exacta
+    // El backend manejará correctamente el reordenamiento
+    const targetPosition = dropCancion.posicion;
+    
+    console.log('🎵 Dropping:', draggedCancion.titulo, '(pos BD:', draggedCancion.posicion, ', visual:', draggedIndex, ')');
+    console.log('🎵 Onto:', dropCancion.titulo, '(pos BD:', dropCancion.posicion, ', visual:', dropIndex, ')');
+    console.log('🎯 Target position in BD:', targetPosition);
 
     try {
       // Actualizar en el backend primero
-      await this.reordenarCola(draggedCancion.id, dropCancion.posicion);
+      await this.reordenarCola(draggedCancion.id, targetPosition);
       
       console.log('✅ Queue reordered successfully');
       
@@ -570,26 +589,35 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       throw new Error('No establecimiento ID');
     }
 
-    const response = await this.spotifyService.reorderQueue(
-      cancionId,
-      nuevaPosicion,
-      this.establecimientoId
-    ).toPromise();
+    try {
+      const response = await this.spotifyService.reorderQueue(
+        cancionId,
+        nuevaPosicion,
+        this.establecimientoId
+      ).toPromise();
 
-    if (!response?.success) {
-      throw new Error('Failed to reorder queue');
+      if (!response?.success) {
+        throw new Error(response?.error || 'Failed to reorder queue');
+      }
+
+      console.log('🔄 Queue reordered, reloading and refreshing animations...');
+      // Recargar para tener el orden correcto desde el backend
+      await this.cargarCola();
+      
+      // Emitir evento de socket para notificar a todos los clientes (incluyendo vista pública)
+      this.musicaSocketService.emitQueueUpdate(this.establecimientoId);
+      
+      // Disparar evento window para misma pestaña/ventana
+      window.dispatchEvent(new CustomEvent('queueUpdated'));
+      
+      console.log('✅ Queue updated events dispatched');
+    } catch (error: any) {
+      console.error('Error in reordenarCola:', error);
+      // Si el error tiene un mensaje, lanzarlo
+      if (error?.error?.error) {
+        throw new Error(error.error.error);
+      }
+      throw error;
     }
-
-    console.log('🔄 Queue reordered, reloading and refreshing animations...');
-    // Recargar para tener el orden correcto desde el backend
-    await this.cargarCola();
-    
-    // Emitir evento de socket para notificar a todos los clientes (incluyendo vista pública)
-    this.musicaSocketService.emitQueueUpdate(this.establecimientoId);
-    
-    // Disparar evento window para misma pestaña/ventana
-    window.dispatchEvent(new CustomEvent('queueUpdated'));
-    
-    console.log('✅ Queue updated events dispatched');
   }
 }
