@@ -78,7 +78,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 18px;
+            border-radius: 0px;
             position: relative;
             overflow: hidden;
             cursor: pointer;
@@ -165,19 +165,16 @@
             }
 
             .infoArtista {
-                padding: 0 5px;
-                min-width: 0;
-                flex: 1 1 0;
-                gap: 3px;
                 display: flex;
-                flex-direction: column;
                 justify-content: center;
+                align-items: center;
+                text-align: center;
+                width: 100%;
 
                 p {
-                    white-space: nowrap;
-                    text-align: center;      
-                    overflow: hidden;        
-                    text-overflow: ellipsis; 
+                    white-space: normal; 
+                    word-break: break-word; 
+                    margin: 0;
                 }
                 
                 .nombreArtista {
