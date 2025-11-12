@@ -12,7 +12,7 @@
                     <i class="fa-solid" [class.fa-play]="!isPlaying" [class.fa-pause]="isPlaying"></i>
                 </button>
             </div>
-            <button (click)="nextTrack()" [disabled]="!currentTrack">
+            <button (click)="nextTrack($event)" [disabled]="!currentTrack || isChangingTrack" [attr.aria-disabled]="!currentTrack || isChangingTrack">
                 <i class="fa-solid fa-forward"></i>
             </button>
         </div>

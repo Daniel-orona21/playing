@@ -73,8 +73,29 @@
                         (click)="$event.stopPropagation()">
                         <button 
                         class="opcion eliminar" 
-                        (click)="eliminarCancion(i)">
-                        <span class="material-symbols-outlined">close</span>
+                        (click)="eliminarCancion(i)"
+                        [disabled]="deletingIds.has(cancion.id)">
+                        <span *ngIf="!deletingIds.has(cancion.id)" class="material-symbols-outlined">close</span>
+                        <svg *ngIf="deletingIds.has(cancion.id)" class="loader-small" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                            <circle
+                                class="active"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="32"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                            <circle
+                                class="track"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="32"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                        </svg>
                         <span>Eliminar</span>
                         </button>
                     </div>

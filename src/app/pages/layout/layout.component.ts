@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
@@ -57,7 +57,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
     private ngZone: NgZone,
     private toastService: ToastService,
     private llamadasService: LlamadasService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   async ngOnInit() {
@@ -85,6 +86,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
           if (previousTrackId !== state.currentTrack.spotify_id || (state.isPlaying && previousTrackId === state.currentTrack.spotify_id)) {
             setTimeout(() => {
               this.isChangingTrack = false;
+              this.cdr.detectChanges();
             }, 500);
           }
         }
@@ -119,6 +121,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const trackChangeFailedHandler = () => {
       this.ngZone.run(() => {
         this.isChangingTrack = false;
+        this.cdr.detectChanges();
       });
     };
     
@@ -249,14 +252,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
           }, 2000);
         } else {
           this.isChangingTrack = false;
+          this.cdr.detectChanges();
         }
       } else {
         this.isChangingTrack = false;
+        this.cdr.detectChanges();
       }
     } catch (error) {
       console.error('Error restoring playback:', error);
       this.queueManager.setRestoringMode(false);
       this.isChangingTrack = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -340,19 +346,33 @@ export class LayoutComponent implements OnInit, OnDestroy {
     await this.playbackService.togglePlay();
   }
 
-  async nextTrack() {
-    if (!this.currentTrack) {
+  nextTrack(event?: Event) {
+    if (!this.currentTrack || this.isChangingTrack) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       return;
     }
 
-    this.isChangingTrack = true;
+    this.ngZone.run(() => {
+      this.isChangingTrack = true;
+      this.cdr.detectChanges();
+    });
     
-    try {
-      await this.queueManager.skipToNext();
-    } catch (error) {
-      console.error('Error al cambiar de canción:', error);
-      this.isChangingTrack = false;
-    }
+    this.ngZone.runOutsideAngular(() => {
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          if (this.isChangingTrack) {
+            this.queueManager.skipToNext().catch(error => {
+              console.error('Error al cambiar de canción:', error);
+              this.isChangingTrack = false;
+              this.cdr.detectChanges();
+            });
+          }
+        });
+      }, 10);
+    });
   }
 
   async previousTrack() {

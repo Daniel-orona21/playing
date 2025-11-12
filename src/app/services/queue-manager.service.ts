@@ -136,6 +136,7 @@ export class QueueManagerService {
   async playNextInQueue(): Promise<void> {
     if (!this.establecimientoId) {
       console.error('No establecimiento ID available');
+      window.dispatchEvent(new CustomEvent('trackChangeFailed'));
       return;
     }
 
@@ -167,9 +168,12 @@ export class QueueManagerService {
           window.dispatchEvent(new CustomEvent('queueUpdated'));
           window.dispatchEvent(new CustomEvent('spotifyTrackPlayed', { detail: track }));
         }, 0);
+      } else {
+        window.dispatchEvent(new CustomEvent('trackChangeFailed'));
       }
     } catch (error) {
       console.error('Error playing next song:', error);
+      window.dispatchEvent(new CustomEvent('trackChangeFailed'));
     }
   }
 
