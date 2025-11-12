@@ -152,7 +152,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
               trigger: element,
               scroller: scroller,
               start: "top 95%",
-              end: "top 90%",
+              end: "top 95%",
               scrub: 1,
               id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
             }
@@ -208,7 +208,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
             trigger: element,
             scroller: scroller,
             start: "top 95%",
-            end: "top 85%", // hasta dónde llega el efecto
+            end: "top 95%", // hasta dónde llega el efecto
             scrub: 1, // <- esta es la clave
             // markers: true,
             id: `historial-${Math.random()}`
