@@ -610,7 +610,7 @@
     font-weight: bold;
     display: flex;
     position: sticky;
-    background-color: white;
+    pointer-events: none;
     top: 0;
     z-index: 1;
     cursor: default;
