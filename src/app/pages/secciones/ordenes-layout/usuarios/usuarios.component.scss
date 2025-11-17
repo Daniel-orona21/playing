@@ -884,6 +884,11 @@ tr.llamando {
     border-radius: 0px;
     border-top: 1px solid rgba(128, 128, 128, 0.227);
     border-bottom: 1px solid rgba(128, 128, 128, 0.227);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
   }
 
   .alerta-info {
