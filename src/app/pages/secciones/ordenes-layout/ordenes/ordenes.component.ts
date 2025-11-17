@@ -219,7 +219,7 @@ export class OrdenesComponent implements OnInit, OnDestroy {
     return {
       id: orden.id_orden,
       mesa: parseInt(orden.mesa_numero),
-      usuario: orden.usuario_nombre,
+      usuario: orden.usuario_nombre || 'Anónimo',
       estado: estadoMap[orden.status] || orden.status,
       monto: orden.total_monto,
       tiempoEspera: tiempoRestante,

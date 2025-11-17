@@ -143,6 +143,36 @@ export class PublicaComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async reloadCurrentTrack(): Promise<void> {
+    if (!this.establecimientoId || !this.currentTrack) return;
+
+    try {
+      const headers: any = {};
+      if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+      const response = await this.http.get<any>(
+        `${environment.apiUrl}/musica/queue/current-playing?establecimientoId=${this.establecimientoId}`,
+        { headers }
+      ).toPromise();
+
+      if (response?.success && response.currentPlaying) {
+        // Actualizar solo el usuario_nombre si es la misma canción
+        if (this.currentTrack.spotify_id === response.currentPlaying.spotify_id) {
+          this.currentTrack = {
+            ...this.currentTrack,
+            usuario_nombre: response.currentPlaying.usuario_nombre || 'Anónimo'
+          };
+        } else {
+          // Si cambió la canción, actualizar completamente
+          this.currentTrack = response.currentPlaying;
+          this.loadLyrics(response.currentPlaying);
+        }
+      }
+    } catch (error) {
+      console.error('Error reloading current track:', error);
+    }
+  }
+
   private subscribeToSocketEvents(): void {
     const unsubPlaybackUpdate = this.musicaSocketService.on('playback_update', (data: any) => {
       this.ngZone.run(() => {
@@ -184,7 +214,11 @@ export class PublicaComponent implements OnInit, OnDestroy {
     });
 
     const unsubQueueUpdate = this.musicaSocketService.on('queue_update', (data: any) => {
-      this.ngZone.run(() => this.fetchNextTrack());
+      this.ngZone.run(() => {
+        this.fetchNextTrack();
+        // Recargar el track actual para obtener usuario_nombre actualizado
+        this.reloadCurrentTrack();
+      });
     });
 
     const unsubVotesUpdate = this.musicaSocketService.on('votes_update', (data: any) => {
@@ -340,7 +374,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
 
   getUserInitials(): string {
     const userName = this.currentTrack?.usuario_nombre;
-    if (userName && userName.trim().length > 0) {
+    if (userName && userName.trim().length > 0 && userName !== 'Anónimo') {
       const nombres = userName.trim().split(' ');
       if (nombres.length >= 2) {
         return nombres[0].charAt(0).toUpperCase() + nombres[1].charAt(0).toUpperCase();

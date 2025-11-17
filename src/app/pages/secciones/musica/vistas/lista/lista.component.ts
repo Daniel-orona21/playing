@@ -331,7 +331,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           preview_url: item.preview_url,
           posicion: item.posicion,
           status: item.status,
-          usuario_nombre: item.usuario_nombre,
+          usuario_nombre: item.usuario_nombre && item.usuario_nombre.trim() ? item.usuario_nombre.trim() : null,
           agregada_en: item.agregada_en
         }));
         
@@ -365,7 +365,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           album: item.album,
           imagen_url: item.imagen_url,
           usuario_id: item.usuario_id,
-          usuario_nombre: item.usuario_nombre
+          usuario_nombre: item.usuario_nombre && item.usuario_nombre.trim() ? item.usuario_nombre.trim() : null
         }));
         
         
