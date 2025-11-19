@@ -11,7 +11,9 @@
             </span>
             <p>{{ bloqueado ? 'Desbloquear género' : 'Bloquear género' }}</p>
         </button>
-        <button class="reproducirGenero">
+        <button class="reproducirGenero"
+                [disabled]="bloqueado || loading || !songs.length"
+                (click)="abrirModalReproduccionGenero()">
             <span class="material-symbols-outlined">
                 play_arrow
             </span>
@@ -90,6 +92,57 @@
                     <span>{{ isCancionBlocked(song.spotify_id) ? 'Canción bloqueada' : 'Bloquear canción' }}</span>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="mostrarModalGenero" (click)="cerrarModalGenero()">
+    <div class="modal-contenido" (click)="$event.stopPropagation()">
+        <button class="cerrar" (click)="cerrarModalGenero()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <div class="modal-header">
+            <span class="material-symbols-outlined play">playlist_add</span>
+            <div>
+                <h3>Reproducir género completo</h3>
+                <p>Se reemplazará la fila actual por {{ songs.length }} canciones de {{ categoryName }} en orden aleatorio.</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <ul>
+                <li>
+                    <span class="material-symbols-outlined">playlist_remove</span>
+                    Limpiarás la fila actual (incluye la canción que esté sonando).
+                </li>
+                <li>
+                    <span class="material-symbols-outlined">shuffle</span>
+                    Las canciones se mezclarán automáticamente.
+                </li>
+                <li>
+                    <span class="material-symbols-outlined">play_circle</span>
+                    La primera canción comenzará a reproducirse al instante.
+                </li>
+            </ul>
+            <p *ngIf="errorReproduccionGenero" class="error">
+                {{ errorReproduccionGenero }}
+            </p>
+            <label class="omit-confirm">
+                <input type="checkbox"
+                       [checked]="omitirConfirmacionGenero"
+                       (change)="onChangeOmitirConfirmacionGenero($event.target.checked)">
+                No volver a mostrar esta confirmación
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button class="btn cancelar" (click)="cerrarModalGenero()" [disabled]="procesandoReproduccionGenero">
+                Cancelar
+            </button>
+            <button class="btn confirmar"
+                    (click)="confirmarReproduccionGenero()"
+                    [disabled]="procesandoReproduccionGenero">
+                <span *ngIf="procesandoReproduccionGenero" class="spinner"></span>
+                <span>{{ procesandoReproduccionGenero ? 'Preparando...' : 'Confirmar' }}</span>
+            </button>
         </div>
     </div>
 </div>

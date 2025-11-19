@@ -270,6 +270,23 @@ export class SpotifyService {
     });
   }
 
+  // ✅ NUEVO: Reemplazar toda la cola con las canciones de un género
+  replaceQueueWithGenre(
+    tracks: SpotifyTrack[],
+    establecimientoId: number,
+    usuarioId: number,
+    genreName?: string,
+    randomize: boolean = true
+  ): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/replace-with-genre`, {
+      tracks,
+      establecimientoId,
+      usuarioId,
+      genreName,
+      randomize
+    });
+  }
+
   // Obtener la cola de canciones
   getQueue(establecimientoId: number): Observable<any> {
     return this.http.get(`${environment.apiUrl}/musica/queue`, {
@@ -280,6 +297,18 @@ export class SpotifyService {
   // Eliminar canción de la cola
   removeFromQueue(colaId: number): Observable<any> {
     return this.http.delete(`${environment.apiUrl}/musica/queue/${colaId}`);
+  }
+
+  shuffleQueue(establecimientoId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/shuffle`, {
+      establecimientoId
+    });
+  }
+
+  clearQueue(establecimientoId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/clear`, {
+      establecimientoId
+    });
   }
 
   // Actualizar estado de canción en la cola

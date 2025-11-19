@@ -31,6 +31,11 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
   private filtrosSubscription?: Subscription;
+  mostrarModalArtista = false;
+  procesandoReproduccionArtista = false;
+  errorReproduccionArtista: string | null = null;
+  omitirConfirmacionArtista = false;
+  private readonly PREF_OMITIR_MODAL_ARTISTA = 'playing.omitirConfirmacionArtista';
   
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -49,6 +54,8 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido:', this.establecimientoId);
         
+        this.cargarPreferenciaModalArtista();
+
         // Cargar filtros
         await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         
@@ -241,6 +248,115 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       console.error('Error loading songs by artist:', error);
     } finally {
       this.loading = false;
+    }
+  }
+
+  private cargarPreferenciaModalArtista() {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem(this.PREF_OMITIR_MODAL_ARTISTA);
+      this.omitirConfirmacionArtista = stored === 'true';
+    }
+  }
+
+  onChangeOmitirConfirmacionArtista(omit: boolean) {
+    this.omitirConfirmacionArtista = omit;
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.PREF_OMITIR_MODAL_ARTISTA, String(omit));
+    }
+  }
+
+  abrirModalReproduccionArtista() {
+    if (this.bloqueado || this.loading) {
+      return;
+    }
+
+    const hayCancionesDisponibles = this.songs.some(song => !this.isCancionBlocked(song.spotify_id));
+    if (!hayCancionesDisponibles) {
+      alert('No hay canciones disponibles para este artista.');
+      return;
+    }
+
+    if (this.omitirConfirmacionArtista) {
+      this.reproducirArtistaCompleto();
+      return;
+    }
+
+    this.errorReproduccionArtista = null;
+    this.mostrarModalArtista = true;
+  }
+
+  cerrarModalReproduccionArtista() {
+    if (this.procesandoReproduccionArtista) {
+      return;
+    }
+    this.mostrarModalArtista = false;
+    this.errorReproduccionArtista = null;
+  }
+
+  async confirmarReproduccionArtista() {
+    if (this.procesandoReproduccionArtista) {
+      return;
+    }
+    await this.reproducirArtistaCompleto();
+  }
+
+  private async reproducirArtistaCompleto() {
+    if (!this.establecimientoId || !this.artist) {
+      this.errorReproduccionArtista = 'Establecimiento o artista no disponible.';
+      return;
+    }
+
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.errorReproduccionArtista = 'Usuario no autenticado.';
+      return;
+    }
+
+    const cancionesDisponibles = this.songs.filter(song => !this.isCancionBlocked(song.spotify_id));
+    if (!cancionesDisponibles.length) {
+      this.errorReproduccionArtista = 'No hay canciones disponibles para este artista.';
+      return;
+    }
+
+    this.procesandoReproduccionArtista = true;
+    this.errorReproduccionArtista = null;
+
+    try {
+      const response = await this.spotifyService.replaceQueueWithGenre(
+        cancionesDisponibles,
+        this.establecimientoId,
+        user.id,
+        this.artist.nombre
+      ).toPromise();
+
+      if (!response?.success || !response.currentTrack || !response.playingQueueId) {
+        throw new Error('No se pudo preparar la reproducción del artista');
+      }
+
+      const track: SpotifyTrack = {
+        spotify_id: response.currentTrack.spotify_id,
+        titulo: response.currentTrack.titulo,
+        artista: response.currentTrack.artista,
+        album: response.currentTrack.album,
+        duracion: response.currentTrack.duracion,
+        imagen_url: response.currentTrack.imagen_url,
+        genero: response.currentTrack.genero,
+        preview_url: response.currentTrack.preview_url
+      };
+
+      window.dispatchEvent(new CustomEvent('trackChanging', { detail: { spotifyId: track.spotify_id } }));
+
+      this.queueManager.setCurrentQueueItem(response.playingQueueId);
+      await this.playbackService.playTrack(track.spotify_id, track);
+
+      window.dispatchEvent(new CustomEvent('queueUpdated'));
+      this.mostrarModalArtista = false;
+    } catch (error: any) {
+      console.error('Error reproduciendo artista completo:', error);
+      this.errorReproduccionArtista = error?.error?.error || error?.message || 'Error al reemplazar la fila de reproducción';
+      window.dispatchEvent(new CustomEvent('trackChangeFailed'));
+    } finally {
+      this.procesandoReproduccionArtista = false;
     }
   }
 

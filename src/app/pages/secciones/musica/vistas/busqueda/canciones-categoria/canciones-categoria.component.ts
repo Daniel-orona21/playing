@@ -31,6 +31,11 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
   private filtrosSubscription?: Subscription;
+  private readonly PREF_OMITIR_MODAL = 'playing.omitirConfirmacionGenero';
+  omitirConfirmacionGenero = false;
+  mostrarModalGenero = false;
+  procesandoReproduccionGenero = false;
+  errorReproduccionGenero: string | null = null;
   
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -44,6 +49,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   
   async ngOnInit() {
     try {
+      this.cargarPreferenciaModalGenero();
+
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
@@ -242,6 +249,116 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       this.loading = false;
     }
   }
+
+  private cargarPreferenciaModalGenero() {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem(this.PREF_OMITIR_MODAL);
+      this.omitirConfirmacionGenero = stored === 'true';
+    }
+  }
+
+  onChangeOmitirConfirmacionGenero(omit: boolean) {
+    this.omitirConfirmacionGenero = omit;
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.PREF_OMITIR_MODAL, String(omit));
+    }
+  }
+
+  abrirModalReproduccionGenero() {
+    if (this.bloqueado || this.loading) {
+      return;
+    }
+
+    const hayCancionesDisponibles = this.songs.some(song => !this.isCancionBlocked(song.spotify_id));
+    if (!hayCancionesDisponibles) {
+      alert('No hay canciones disponibles para este género.');
+      return;
+    }
+
+    if (this.omitirConfirmacionGenero) {
+      this.reproducirGeneroCompleto();
+      return;
+    }
+
+    this.errorReproduccionGenero = null;
+    this.mostrarModalGenero = true;
+  }
+
+  cerrarModalGenero() {
+    if (this.procesandoReproduccionGenero) {
+      return;
+    }
+    this.mostrarModalGenero = false;
+    this.errorReproduccionGenero = null;
+  }
+
+  async confirmarReproduccionGenero() {
+    if (this.procesandoReproduccionGenero) {
+      return;
+    }
+    await this.reproducirGeneroCompleto();
+  }
+
+  private async reproducirGeneroCompleto() {
+    if (!this.establecimientoId || !this.categoryName) {
+      this.errorReproduccionGenero = 'Establecimiento o género no disponible.';
+      return;
+    }
+
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.errorReproduccionGenero = 'Usuario no autenticado.';
+      return;
+    }
+
+    const cancionesDisponibles = this.songs.filter(song => !this.isCancionBlocked(song.spotify_id));
+    if (!cancionesDisponibles.length) {
+      this.errorReproduccionGenero = 'No hay canciones disponibles para este género.';
+      return;
+    }
+
+    this.procesandoReproduccionGenero = true;
+    this.errorReproduccionGenero = null;
+
+    try {
+      const response = await this.spotifyService.replaceQueueWithGenre(
+        cancionesDisponibles,
+        this.establecimientoId,
+        user.id,
+        this.categoryName
+      ).toPromise();
+
+      if (!response?.success || !response.currentTrack || !response.playingQueueId) {
+        throw new Error('No se pudo preparar la reproducción del género');
+      }
+
+      const track: SpotifyTrack = {
+        spotify_id: response.currentTrack.spotify_id,
+        titulo: response.currentTrack.titulo,
+        artista: response.currentTrack.artista,
+        album: response.currentTrack.album,
+        duracion: response.currentTrack.duracion,
+        imagen_url: response.currentTrack.imagen_url,
+        genero: response.currentTrack.genero,
+        preview_url: response.currentTrack.preview_url
+      };
+
+      window.dispatchEvent(new CustomEvent('trackChanging', { detail: { spotifyId: track.spotify_id } }));
+
+      this.queueManager.setCurrentQueueItem(response.playingQueueId);
+      await this.playbackService.playTrack(track.spotify_id, track);
+
+      window.dispatchEvent(new CustomEvent('queueUpdated'));
+      this.mostrarModalGenero = false;
+    } catch (error: any) {
+      console.error('Error reproduciendo género completo:', error);
+      this.errorReproduccionGenero = error?.error?.error || error?.message || 'Error al reemplazar la fila de reproducción';
+      window.dispatchEvent(new CustomEvent('trackChangeFailed'));
+    } finally {
+      this.procesandoReproduccionGenero = false;
+    }
+  }
+
   goBack() {
     this.backToCategories.emit();
   }

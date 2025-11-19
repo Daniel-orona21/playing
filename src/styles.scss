@@ -34,13 +34,14 @@ body.modal-open {
   overflow: visible;
   transform: rotate(-90deg);
   transform-origin: center;
-
   --active: #ffffff;
   --track: #ffffffa2;
-
   --duration: 8s;
-
   animation: spin 2s linear infinite;
+}
+
+.loader-shuffle {
+  width: 21px !important;
 }
 
 @keyframes spin {

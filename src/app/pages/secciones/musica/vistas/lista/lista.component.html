@@ -1,6 +1,64 @@
 <div class="cuerpo">
     <div class="side continuacion">
-        <h2>A continuación...</h2>
+        <div class="header">
+            <h2>A continuación...</h2>
+            <div class="botones">
+                <button 
+                    (click)="shuffleQueue()" 
+                    [disabled]="isShufflingQueue">
+                        <span *ngIf="!isShufflingQueue" class="material-symbols-outlined">
+                            shuffle
+                        </span>
+                         <svg *ngIf="isShufflingQueue" class="loader loader-shuffle" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                            <circle
+                                class="active"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="20"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                            <circle
+                                class="track"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="20"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                        </svg>
+                </button>
+                <button 
+                    (click)="clearQueue()" 
+                    [disabled]="isClearingQueue || !puedeLimpiarFila">
+                        <span *ngIf="!isClearingQueue" class="material-symbols-outlined">
+                            clear_all
+                        </span>
+                        <svg *ngIf="isClearingQueue" class="loader loader-clear" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                            <circle
+                                class="active"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="20"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                            <circle
+                                class="track"
+                                pathLength="360"
+                                fill="transparent"
+                                stroke-width="20"
+                                cx="192"
+                                cy="192"
+                                r="176"
+                            ></circle>
+                        </svg>
+                </button>
+            </div>
+        </div>
         <div class="canciones">
             <div *ngIf="loading" class="loading">
                 <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
@@ -156,6 +214,55 @@
                 <p>No hay historial de reproducción</p>
             </div>
             </ng-container>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" *ngIf="modalVisible">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>{{ modalTitle }}</h2>
+            <button class="cerrarmodal" (click)="closeModal()" [disabled]="modalLoading">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>{{ modalMessage }}</p>
+        </div>
+        <div class="modal-footer">
+            <button 
+                class="btn-secondary" 
+                *ngIf="modalMode === 'confirm'" 
+                (click)="closeModal()" 
+                [disabled]="modalLoading">
+                {{ modalCancelText }}
+            </button>
+            <button 
+                class="btn-primary" 
+                (click)="onModalConfirm()" 
+                [disabled]="modalLoading && modalMode === 'confirm'">
+                <span *ngIf="!modalLoading">{{ modalConfirmText }}</span>
+                <svg *ngIf="modalLoading" class="loader loader-modal" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+                    <circle
+                        class="active"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="20"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                    <circle
+                        class="track"
+                        pathLength="360"
+                        fill="transparent"
+                        stroke-width="20"
+                        cx="192"
+                        cy="192"
+                        r="176"
+                    ></circle>
+                </svg>
+            </button>
         </div>
     </div>
 </div>

@@ -25,14 +25,12 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
+export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() hidden: boolean = false;
   private animationsInitialized = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Detectar cuando el componente se vuelve visible
     if (changes['hidden'] && !changes['hidden'].currentValue && changes['hidden'].previousValue) {
-      // El componente acaba de volverse visible
       if (isPlatformBrowser(this.platformId)) {
         setTimeout(() => {
           this._refreshAnimations();
@@ -232,6 +230,16 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
   draggedSongId: number | null = null;
   dragOverSongId: number | null = null;
   dragLeaveTimeout: any = null;
+  isShufflingQueue = false;
+  isClearingQueue = false;
+  modalVisible = false;
+  modalMode: 'info' | 'confirm' = 'info';
+  modalTitle = '';
+  modalMessage = '';
+  modalConfirmText = 'Aceptar';
+  modalCancelText = 'Cancelar';
+  modalLoading = false;
+  private modalConfirmAction: (() => Promise<void>) | null = null;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -254,7 +262,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
 
         // Conectar al socket después de obtener el establecimiento
         this.musicaSocketService.connect(this.establecimientoId);
-        this.setupSocketListeners();
       }
     } catch (error) {
       console.error('Error obteniendo establecimiento en lista:', error);
@@ -265,7 +272,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     window.addEventListener('spotifyTrackPlayed', () => {
       if (!this.isDeleting) {
         setTimeout(() => {
-          this.cargarCola(false); // No refrescar animaciones al hacer skip
+          this.cargarCola(false); 
           this.cargarHistorial();
         }, 100);
       }
@@ -274,7 +281,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     window.addEventListener('queueUpdated', () => {
       if (!this.isDeleting) {
         setTimeout(() => {
-          this.cargarCola(false); // No refrescar animaciones al actualizar cola
+          this.cargarCola(false); 
         }, 100);
       }
     });
@@ -286,24 +293,9 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
         }, 100);
       }
     });
-
-    // El socket ya está conectado por el LayoutComponent/PlaybackService
-    // No debemos conectarnos ni desconectarnos aquí
   }
 
-  ngOnDestroy() {
-    // No desconectar el socket aquí porque es compartido entre componentes
-  }
 
-  private setupSocketListeners() {
-    // El socket service ya tiene listeners configurados en su conexión
-    // Los eventos ya se manejan en el servicio, solo necesitamos que se
-    // disparen los eventos window que ya están configurados
-    
-    // Nota: El backend ya emite queue_update y history_update via Socket.IO
-    // El MusicaSocketService ya tiene los listeners configurados
-    // Los componentes se actualizarán vía los window.dispatchEvent existentes
-  }
 
   async cargarCola(refreshAnimations: boolean = true) {
     if (!this.establecimientoId) {
@@ -384,6 +376,112 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
+  get puedeMezclarFila(): boolean {
+    return this.aContinuacion.filter(song => song.status === 'pending').length > 1;
+  }
+
+  get puedeLimpiarFila(): boolean {
+    return this.aContinuacion.some(song => song.status === 'pending');
+  }
+
+  async shuffleQueue() {
+    if (!this.establecimientoId || this.isShufflingQueue || !this.puedeMezclarFila) {
+      return;
+    }
+
+    this.isShufflingQueue = true;
+    try {
+      await this.spotifyService.shuffleQueue(this.establecimientoId).toPromise();
+      await this.cargarCola();
+    } catch (error) {
+      console.error('Error shuffling queue:', error);
+      this.openInfoModal('Error al mezclar', 'No se pudo mezclar la fila de reproducción. Inténtalo nuevamente.');
+    } finally {
+      this.isShufflingQueue = false;
+    }
+  }
+
+  clearQueue() {
+    if (!this.establecimientoId || this.isClearingQueue || !this.puedeLimpiarFila) {
+      return;
+    }
+
+    this.openConfirmModal({
+      title: 'Limpiar fila',
+      message: 'Se eliminarán todas las canciones pendientes de la fila de reproducción. Esta acción no se puede deshacer.',
+      confirmText: 'Limpiar fila',
+      cancelText: 'Cancelar',
+      action: () => this.executeClearQueue()
+    });
+  }
+
+  private async executeClearQueue() {
+    if (!this.establecimientoId) {
+      return;
+    }
+
+    this.isClearingQueue = true;
+    try {
+      await this.spotifyService.clearQueue(this.establecimientoId).toPromise();
+      await this.cargarCola();
+    } catch (error) {
+      console.error('Error clearing queue:', error);
+      throw new Error('No se pudo limpiar la fila de reproducción. Inténtalo nuevamente.');
+    } finally {
+      this.isClearingQueue = false;
+    }
+  }
+
+  private openInfoModal(title: string, message: string, confirmText: string = 'Aceptar') {
+    this.modalMode = 'info';
+    this.modalTitle = title;
+    this.modalMessage = message;
+    this.modalConfirmText = confirmText;
+    this.modalCancelText = 'Cancelar';
+    this.modalVisible = true;
+    this.modalConfirmAction = null;
+    this.modalLoading = false;
+  }
+
+  private openConfirmModal(config: { title: string; message: string; confirmText?: string; cancelText?: string; action: () => Promise<void> }) {
+    this.modalMode = 'confirm';
+    this.modalTitle = config.title;
+    this.modalMessage = config.message;
+    this.modalConfirmText = config.confirmText || 'Confirmar';
+    this.modalCancelText = config.cancelText || 'Cancelar';
+    this.modalVisible = true;
+    this.modalConfirmAction = config.action;
+    this.modalLoading = false;
+  }
+
+  closeModal(force: boolean = false) {
+    if (this.modalLoading && !force) {
+      return;
+    }
+    this.modalVisible = false;
+    this.modalConfirmAction = null;
+    this.modalMode = 'info';
+    this.modalLoading = false;
+  }
+
+  async onModalConfirm() {
+    if (this.modalMode === 'confirm' && this.modalConfirmAction) {
+      this.modalLoading = true;
+      try {
+        await this.modalConfirmAction();
+        this.closeModal(true);
+      } catch (error: any) {
+        this.modalLoading = false;
+        this.closeModal(true);
+        this.openInfoModal('Error', error?.message || 'Ocurrió un error al ejecutar la acción.');
+      } finally {
+        this.modalConfirmAction = null;
+      }
+    } else {
+      this.closeModal();
+    }
+  }
+
   async eliminarCancion(index: number) {
     const cancion = this.aContinuacion[index];
     if (!cancion) {
@@ -427,7 +525,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       
     } catch (error) {
       console.error('❌ Error removing song from queue:', error);
-      alert('Error al eliminar la canción de la cola');
+      this.openInfoModal('Error al eliminar', 'No se pudo eliminar la canción de la fila. Inténtalo nuevamente.');
       // Si hay error, recargar para tener el estado correcto
       await this.cargarCola();
     } finally {
