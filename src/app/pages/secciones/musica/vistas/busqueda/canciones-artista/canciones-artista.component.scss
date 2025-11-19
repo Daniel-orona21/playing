@@ -134,15 +134,16 @@
 }
 
 .modal-contenido {
-    background: $contenedor;
-    border-radius: 24px;
-    width: min(450px, 100%);
-    padding: 2rem;
+    background: white;
+    border-radius: 30px;
+    width: min(350px, 100%);
+    padding: 20px;
     position: relative;
-    color: $textoPrincipal;
+    color: black;
     display: flex;
+    gap: .5rem;
     flex-direction: column;
-    gap: 1.5rem;
+
     box-shadow: 0 25px 45px rgba(0, 0, 0, 0.35);
 
     .cerrar {
@@ -151,7 +152,6 @@
         right: 1rem;
         background: transparent;
         border: none;
-        color: $textoSecundario;
         cursor: pointer;
         border-radius: 999px;
         padding: .25rem;
@@ -165,32 +165,24 @@
     .modal-header {
         display: flex;
         gap: 1rem;
-        align-items: flex-start;
-
-        .material-symbols-outlined.play {
-            background: $colorSecundario;
-            color: #0f0f0f;
-            border-radius: 16px;
-            padding: .75rem;
-            font-size: 28px;
-        }
+        align-items: center;
+        justify-content: center;
+        // background-color: blue;
 
         h3 {
             margin: 0;
-            font-size: 1.4rem;
-        }
-
-        p {
-            margin: .25rem 0 0;
-            color: $textoSecundario;
-            font-size: .95rem;
+            font-size: 2rem;
+            text-align: center;
         }
     }
 
     .modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
         ul {
             list-style: none;
-            margin: 0 0 1rem;
+            // background-color: green;
             padding: 0;
             display: flex;
             flex-direction: column;
@@ -200,15 +192,8 @@
                 display: flex;
                 gap: .65rem;
                 align-items: center;
-                font-size: .95rem;
-                color: $textoSecundario;
-
-                span {
-                    background: rgba(255,255,255,0.08);
-                    padding: .35rem;
-                    border-radius: 12px;
-                    font-size: 1.1rem;
-                }
+                font-size: 1.2rem;
+                text-align: center;
             }
         }
 
@@ -219,41 +204,129 @@
         }
 
         .omit-confirm {
+            gap: 1rem;
             display: flex;
+            font-size: 1rem;
             align-items: center;
-            gap: .5rem;
-            font-size: .9rem;
-            color: $textoSecundario;
+            // background-color: red;
+            margin: .5rem 0;
 
-            input {
-                accent-color: $colorSecundario;
+            /* From Uiverse.io by WhiteNervosa */ 
+            /* Variation of work by @mrhyddenn for Radios */
+            .check {
+            cursor: pointer;
+            position: relative;
+            margin: 0;
+            width: 18px;
+            height: 18px;
+            -webkit-tap-highlight-color: transparent;
+            transform: translate3d(0, 0, 0);
+            }
+
+            .check:before {
+            content: "";
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(0, 53, 167, 0.03);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            }
+
+            .check svg {
+            position: relative;
+            z-index: 1;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke: #c8ccd4;
+            stroke-width: 1.5;
+            transform: translate3d(0, 0, 0);
+            transition: all 0.2s ease;
+            }
+
+            .check svg path {
+            stroke-dasharray: 60;
+            stroke-dashoffset: 0;
+            }
+
+            .check svg polyline {
+            stroke-dasharray: 22;
+            stroke-dashoffset: 66;
+            }
+
+            .check:hover:before {
+            opacity: 1;
+            }
+
+            .check:hover svg {
+            stroke: var(--accent-color, #000000);
+            }
+
+            #cbx2:checked + .check svg {
+            stroke: var(--accent-color, #000000);
+            }
+
+            #cbx2:checked + .check svg path {
+            stroke-dashoffset: 60;
+            transition: all 0.3s linear;
+            }
+
+            #cbx2:checked + .check svg polyline {
+            stroke-dashoffset: 42;
+            transition: all 0.2s linear;
+            transition-delay: 0.15s;
             }
         }
     }
 
     .modal-footer {
         display: flex;
-        justify-content: flex-end;
-        gap: .75rem;
+        justify-content: center;
+        // background-color: green;
+        gap: .5rem;
 
         .btn {
-            border-radius: 999px;
-            padding: .65rem 1.5rem;
+            border-radius: 99px;
+            padding: .5rem;
+            flex: 1;
             border: none;
             font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: .5rem;
+            justify-content: center;
+            transition: all .3s ease;
 
             &.cancelar {
-                background: rgba(255,255,255,0.08);
-                color: $textoSecundario;
+                color: black;
+                background-color: white;
+                border: .5px solid gray;
+
+                &:hover {
+                    background-color: #0000000a;
+                }
+
+                &:active {
+                    background-color: white;
+                    transition: none;
+                }
             }
 
             &.confirmar {
-                background: $colorSecundario;
-                color: #0f0f0f;
+                background: black;
+                color: white;
+                user-select: none;
+                outline: none;
+                -webkit-tap-highlight-color: transparent;
+
+                &:active {
+                    background: black;
+                }
             }
 
             &:disabled {

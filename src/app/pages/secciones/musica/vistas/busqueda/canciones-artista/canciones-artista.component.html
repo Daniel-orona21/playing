@@ -98,38 +98,38 @@
 <div class="modal-backdrop" *ngIf="mostrarModalArtista" (click)="cerrarModalReproduccionArtista()">
     <div class="modal-contenido" (click)="$event.stopPropagation()">
         <button class="cerrar" (click)="cerrarModalReproduccionArtista()">
-            <span class="material-symbols-outlined">close</span>
         </button>
         <div class="modal-header">
-            <span class="material-symbols-outlined play">playlist_add</span>
             <div>
-                <h3>Reproducir artista completo</h3>
-                <p>Se reemplazará la fila actual por {{ songs.length }} canciones de {{ artist?.nombre }} en orden aleatorio.</p>
+                <h3>Reproducir {{ artist?.nombre }}?</h3>
             </div>
         </div>
         <div class="modal-body">
             <ul>
                 <li>
-                    <span class="material-symbols-outlined">playlist_remove</span>
-                    Limpiarás la fila actual (incluye la canción que esté sonando).
-                </li>
-                <li>
-                    <span class="material-symbols-outlined">shuffle</span>
-                    Las canciones se mezclarán automáticamente.
-                </li>
-                <li>
-                    <span class="material-symbols-outlined">play_circle</span>
-                    La primera canción comenzará a reproducirse al instante.
-                </li>
+                    <p>Se reemplazará la fila actual por {{ songs.length }} canciones de {{ artist?.nombre }} en orden aleatorio.</p>
             </ul>
             <p *ngIf="errorReproduccionArtista" class="error">
                 {{ errorReproduccionArtista }}
             </p>
+
             <label class="omit-confirm">
-                <input type="checkbox"
-                       [checked]="omitirConfirmacionArtista"
-                       (change)="onChangeOmitirConfirmacionArtista($event.target.checked)">
-                No volver a mostrar esta confirmación
+                <input 
+                    type="checkbox" 
+                    id="cbx2"
+                    [checked]="omitirConfirmacionArtista"
+                    (change)="onChangeOmitirConfirmacionArtista($event.target.checked)"
+                    style="display: none;"
+                >
+
+                <label for="cbx2" class="check">
+                    <svg width="18px" height="18px" viewBox="0 0 18 18">
+                        <path d="M 1 9 L 1 9 c 0 -5 3 -8 8 -8 L 9 1 C 14 1 17 5 17 9 L 17 9 c 0 4 -4 8 -8 8 L 9 17 C 5 17 1 14 1 9 L 1 9 Z"></path>
+                        <polyline points="1 9 7 14 15 4"></polyline>
+                    </svg>
+                </label>
+
+                <span>No volver a mostrar</span>
             </label>
         </div>
         <div class="modal-footer">
@@ -137,8 +137,7 @@
                 Cancelar
             </button>
             <button class="btn confirmar"
-                    (click)="confirmarReproduccionArtista()"
-                    [disabled]="procesandoReproduccionArtista">
+                    (click)="confirmarReproduccionArtista()">
                 <span *ngIf="procesandoReproduccionArtista" class="spinner"></span>
                 <span>{{ procesandoReproduccionArtista ? 'Preparando...' : 'Confirmar' }}</span>
             </button>
