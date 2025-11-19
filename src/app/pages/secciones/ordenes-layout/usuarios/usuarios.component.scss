@@ -9,17 +9,19 @@
   
   .card {
     // background-color: #ffff;
+    gap: 20px;
+    margin-top: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
+    
   }
   
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 0 24px 0;
     flex-wrap: wrap;
     gap: 16px;
     

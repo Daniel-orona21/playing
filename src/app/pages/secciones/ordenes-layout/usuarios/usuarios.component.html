@@ -1,6 +1,6 @@
 <div class="container-fluid">
     <div class="card">
-      <div class="card-header">
+      <div *ngIf="users.length > 0" class="card-header">
         <div class="time-controls">
           <div class="time-periods">
             <button *ngFor="let estatus of estatus" 
@@ -40,7 +40,7 @@
         </div>
       </div>
       <div class="card-body">
-        <div class="alertas">
+        <div *ngIf="users.length > 0" class="alertas">
           <h1>Llamando a la mesa</h1>
           <div class="noAlertas" *ngIf="llamadasPendientes.length === 0">
             <img src="images/alerta.png" alt="">
