@@ -66,7 +66,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
   }
 
   private _refreshContinuacionAnimations(): void {
-    console.log('🔄 Refreshing CONTINUACION animations only');
     
     // Matar solo las animaciones de la cola/continuación
     ScrollTrigger.getAll().forEach(st => {
@@ -84,7 +83,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
   }
 
   private _refreshHistorialAnimations(): void {
-    console.log('🔄 Refreshing HISTORIAL animations only');
     
     // Matar solo las animaciones del historial
     ScrollTrigger.getAll().forEach(st => {
@@ -217,7 +215,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
       }
     });
     
-    console.log('✅ Historial animations setup complete');
   }
 
 

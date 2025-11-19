@@ -162,14 +162,9 @@ export class PlaybackService {
 
     try {
       this.establecimientoId = establecimientoId;
-      console.log('🔄 Step 1: Initializing Spotify Playback for establishment:', establecimientoId);
 
       // Obtener credenciales del establecimiento
-      console.log('🔄 Step 2: Getting credentials...');
       const credentials = await this.getEstablishmentCredentials(establecimientoId);
-      console.log('Credentials received:', credentials ? 'Yes' : 'No');
-      console.log('Credentials object:', credentials);
-      console.log('Credentials keys:', credentials ? Object.keys(credentials) : 'N/A');
       
       if (!credentials) {
         throw new Error('No se pudieron obtener las credenciales del establecimiento');
@@ -191,17 +186,13 @@ export class PlaybackService {
       console.log('✅ Step 2 complete: Access token obtained:', this.accessToken.substring(0, 20) + '...');
 
       // Esperar a que el SDK esté listo
-      console.log('🔄 Step 3: Loading Spotify SDK...');
       await this.waitForSpotifySDK();
-      console.log('✅ Step 3 complete: SDK loaded');
       
       // Crear el reproductor
-      console.log('🔄 Step 4: Creating player...');
       await this.createPlayer();
-      console.log('✅ Step 4 complete: Player created');
       
       this.isInitializedSubject.next(true);
-      console.log('✅✅✅ Spotify Playback initialized successfully! ✅✅✅');
+      console.log('Spotify Playback iniciado');
       console.log('Device ID:', this.deviceId);
       
       // Conectar al servicio de Socket para emitir eventos
@@ -210,7 +201,7 @@ export class PlaybackService {
       // Iniciar monitoreo de expiración del token
       this.startTokenRefreshMonitor();
     } catch (error) {
-      console.error('❌❌❌ Error initializing Spotify Playback:', error);
+      console.error(error);
       console.error('Error stack:', error);
       throw error;
     }
@@ -279,27 +270,20 @@ export class PlaybackService {
         
         // Si el token está expirado, intentar refrescarlo automáticamente
         if (response.needsRefresh || response.error === 'token_expired') {
-          console.log('🔄 Token expired detected, attempting automatic refresh...');
           const refreshedCredentials = await this.refreshTokenForCredentials();
           if (refreshedCredentials) {
-            console.log('✅ Token refreshed successfully during initialization');
             return refreshedCredentials;
           }
-          console.error('❌ Failed to refresh expired token');
         }
       }
 
-      console.error('No valid credentials format found in response');
       return null;
     } catch (error: any) {
-      console.error('Error getting establishment credentials:', error);
       
       // Si es un error 401 (no autorizado), intentar refrescar el token
       if (error.status === 401) {
-        console.log('🔄 Got 401 error, attempting automatic refresh...');
         const refreshedCredentials = await this.refreshTokenForCredentials();
         if (refreshedCredentials) {
-          console.log('✅ Token refreshed successfully after 401 error');
           return refreshedCredentials;
         }
       }
@@ -319,7 +303,6 @@ export class PlaybackService {
     this.isRefreshingToken = true;
 
     try {
-      console.log('🔄 Refreshing access token for initialization...');
       const response = await this.http.post<any>(
         `${environment.apiUrl}/spotify-establecimiento/refresh/${this.establecimientoId}`,
         {}
@@ -347,7 +330,7 @@ export class PlaybackService {
 
       return null;
     } catch (error) {
-      console.error('❌ Error refreshing token for credentials:', error);
+      // console.error('❌ Error refreshing token for credentials:', error);
       return null;
     } finally {
       this.isRefreshingToken = false;
@@ -363,16 +346,13 @@ export class PlaybackService {
       
       // Si ya está disponible, resolver inmediatamente
       if (w.Spotify) {
-        console.log('Spotify SDK already loaded');
         resolve();
         return;
       }
 
-      console.log('Loading Spotify SDK dynamically...');
       
       // Definir el callback ANTES de cargar el script
       w.onSpotifyWebPlaybackSDKReady = () => {
-        console.log('Spotify Web Playback SDK is ready');
         resolve();
       };
 
@@ -515,9 +495,9 @@ export class PlaybackService {
         // Connect to the player
         this.player.connect().then((success: boolean) => {
           if (success) {
-            console.log('✅ The Web Playback SDK successfully connected to Spotify!');
+            console.log('Web Playback SDK listo!');
           } else {
-            console.error('❌ The Web Playback SDK could not connect to Spotify');
+            console.error('The Web Playback SDK could not connect to Spotify');
             reject(new Error('Could not connect to Spotify'));
           }
         });
