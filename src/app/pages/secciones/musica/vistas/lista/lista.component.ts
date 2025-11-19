@@ -44,7 +44,6 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
     gsap.registerPlugin(ScrollTrigger);
 
     if (isPlatformBrowser(this.platformId)) {
-      // Solo configurar animaciones si el componente está visible
       setTimeout(() => {
         if (!this.hidden) {
           this._setupContinuacionAnimations();
