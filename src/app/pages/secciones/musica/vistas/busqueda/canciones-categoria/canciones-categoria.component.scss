@@ -81,6 +81,11 @@
         gap: 10px;
     }
 
+    .reproducirGenero {
+        color: white !important;
+        gap: .8rem;
+    }
+
     button {
         display: flex;
         align-items: center;
@@ -326,4 +331,9 @@
         }
     }
 }
+}
+
+.botones {
+    display: flex;
+    gap: 1rem;
 }
