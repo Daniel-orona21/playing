@@ -4,7 +4,7 @@
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>{{ categoryName }}</h2>
         </div>
-        <div class="botones">
+        <div *ngIf="!loading" class="botones">
             <button (click)="toggleBloqueo()" [class.bloqueado]="bloqueado">
             <span class="material-symbols-outlined">
                 block
@@ -12,7 +12,7 @@
             <p>{{ bloqueado ? 'Desbloquear género' : 'Bloquear género' }}</p>
         </button>
         <button class="reproducirGenero"
-                [disabled]="bloqueado || loading || !songs.length"
+                [disabled]="loading || !songs.length"
                 (click)="abrirModalReproduccionGenero()">
             <span class="material-symbols-outlined">
                 play_arrow

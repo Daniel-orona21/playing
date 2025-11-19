@@ -455,22 +455,22 @@
 }
 
 .modal-content {
-    background: $contenedor;
-    border-radius: 24px;
+    background: white;
+    border-radius: 30px;
     width: min(420px, 100%);
-    padding: 1.75rem;
-    color: $textoPrincipal;
+    padding: 1rem;
+    color: black;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: .75rem;
     box-shadow: 0 25px 45px rgba(0, 0, 0, 0.35);
 }
 
 .modal-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    justify-content: center;
+    // background-color: red;
 
     h2 {
         margin: 0;
@@ -501,17 +501,20 @@
 }
 
 .modal-body {
+    // background-color: green;
     p {
         margin: 0;
-        color: $textoSecundario;
+        color: rgba(0, 0, 0, 0.66);
         line-height: 1.5;
+        text-align: center;
     }
 }
 
 .modal-footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: .75rem;
+    // background-color: red;
 
     .btn-secondary,
     .btn-primary {
@@ -519,11 +522,14 @@
         border-radius: 999px;
         padding: .65rem 1.5rem;
         font-weight: 600;
+        font-size: 1rem;
         cursor: pointer;
-        display: inline-flex;
+        display: flex;
+        justify-content: center;
         align-items: center;
         gap: .5rem;
         transition: opacity .2s ease;
+        flex: 1;
 
         &:disabled {
             opacity: 0.6;
@@ -532,12 +538,13 @@
     }
 
     .btn-secondary {
-        background: rgba(255, 255, 255, 0.08);
-        color: $textoSecundario;
+        background: rgb(255, 255, 255);
+        color: black;
+        border: .5px solid gray;
     }
 
     .btn-primary {
-        background: $colorSecundario;
-        color: #0f0f0f;
+        background: black;
+        color: white;
     }
 }

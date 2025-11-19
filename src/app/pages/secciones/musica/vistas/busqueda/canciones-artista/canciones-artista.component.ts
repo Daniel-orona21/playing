@@ -266,7 +266,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   abrirModalReproduccionArtista() {
-    if (this.bloqueado || this.loading) {
+    if (this.loading) {
       return;
     }
 

@@ -4,7 +4,7 @@
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>{{ artist?.nombre }}</h2>
         </div>
-        <div class="acciones">
+        <div *ngIf="!loading" class="acciones">
             <button (click)="toggleBloqueo()" [class.bloqueado]="bloqueado">
                 <span class="material-symbols-outlined">
                     block
@@ -12,7 +12,7 @@
                 <p>{{ bloqueado ? 'Desbloquear artista' : 'Bloquear artista' }}</p>
             </button>
             <button class="reproducirArtista"
-                    [disabled]="bloqueado || loading || !songs.length"
+                    [disabled]="loading || !songs.length"
                     (click)="abrirModalReproduccionArtista()">
                 <span class="material-symbols-outlined">
                     play_arrow

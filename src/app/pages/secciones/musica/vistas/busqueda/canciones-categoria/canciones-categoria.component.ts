@@ -265,7 +265,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   }
 
   abrirModalReproduccionGenero() {
-    if (this.bloqueado || this.loading) {
+    if (this.loading) {
       return;
     }
 
