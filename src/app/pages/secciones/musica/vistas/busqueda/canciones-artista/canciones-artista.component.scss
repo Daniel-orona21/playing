@@ -7,6 +7,14 @@
     gap: 2rem;
     width: 100%;
     min-height: 80vh;
+    position: relative;
+}
+
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 900;
 }
 
 .header {
@@ -444,7 +452,7 @@
         overflow: hidden;
         cursor: pointer;
         opacity: 0;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.4s ease;
         
         &.visible {
             opacity: 1;

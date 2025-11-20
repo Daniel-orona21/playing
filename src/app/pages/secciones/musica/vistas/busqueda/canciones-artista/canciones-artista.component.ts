@@ -141,6 +141,24 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
 
+  isMenuOverlayVisible(): boolean {
+    return this.menuAbierto !== null || this.menuCerrando !== null;
+  }
+
+  handleMenuOverlayInteraction(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.forceCloseMenu();
+  }
+
+  private forceCloseMenu() {
+    if (this.menuAbierto !== null) {
+      this.cerrarMenu(this.menuAbierto);
+    } else if (this.menuCerrando !== null) {
+      this.menuCerrando = null;
+    }
+  }
+
   @HostListener('document:click', ['$event']) onDocumentClick(event: Event) {
     if (this.menuAbierto !== null) {
       const clickedElement = event.target as HTMLElement;
@@ -148,7 +166,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!menuButton && !menuFlotante) {
-        this.cerrarMenu(this.menuAbierto);
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -160,7 +178,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!cancion && !menuFlotante) {
-        this.cerrarMenu(this.menuAbierto);
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -412,7 +430,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     
     this.menuPosition = {
       top: event.clientY,
-      left: event.clientX - 200
+      left: event.clientX - 250
     };
   }
 

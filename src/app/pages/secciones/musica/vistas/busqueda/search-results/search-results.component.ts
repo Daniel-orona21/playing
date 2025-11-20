@@ -175,10 +175,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!menuButton && !menuFlotante) {
-        if (this.menuAbierto !== null) {
-          this.cerrarMenu(this.menuAbierto);
-        }
-        this.menuArtistaAbierto = null;
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -190,7 +187,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!cancion && !menuFlotante) {
-        this.cerrarMenu(this.menuAbierto);
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -225,6 +222,29 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
         this.menuCerrando = null;
       }, 150); // Duración de la animación de salida
     }
+  }
+
+  isMenuOverlayVisible(): boolean {
+    return (
+      this.menuAbierto !== null ||
+      this.menuCerrando !== null ||
+      this.menuArtistaAbierto !== null
+    );
+  }
+
+  handleMenuOverlayInteraction(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.closeAllMenus();
+  }
+
+  private closeAllMenus() {
+    if (this.menuAbierto !== null) {
+      this.cerrarMenu(this.menuAbierto);
+    } else if (this.menuCerrando !== null) {
+      this.menuCerrando = null;
+    }
+    this.menuArtistaAbierto = null;
   }
 
   abrirMenu(index: number, event: Event) {
@@ -280,7 +300,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     
       this.menuArtistaPosition = {
         top: rect.bottom + 5, 
-        left: rect.right - 200 
+        left: rect.right - 250
       };
     }
   }

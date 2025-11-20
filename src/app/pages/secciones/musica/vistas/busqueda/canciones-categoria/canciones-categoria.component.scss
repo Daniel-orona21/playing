@@ -41,6 +41,14 @@
     gap: 1.5rem;
     width: 100%;
     min-height: 100% !important;
+    position: relative;
+}
+
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 900;
 }
 
 .header {

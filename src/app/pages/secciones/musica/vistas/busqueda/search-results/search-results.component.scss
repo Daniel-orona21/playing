@@ -42,6 +42,13 @@
     position: relative;
 }
 
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 900;
+}
+
 .canciones-artista-wrapper {
     opacity: 0;
     transform: none;

@@ -1,4 +1,10 @@
 <div class="search-results-container">
+    <div 
+        class="menu-overlay" 
+        *ngIf="isMenuOverlayVisible()" 
+        (click)="handleMenuOverlayInteraction($event)" 
+        (contextmenu)="handleMenuOverlayInteraction($event)">
+    </div>
     <!-- Vista de canciones de artista -->
     <div class="canciones-artista-wrapper" [class.visible]="selectedArtist">
         <app-canciones-artista 

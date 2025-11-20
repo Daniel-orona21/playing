@@ -138,7 +138,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!menuButton && !menuFlotante) {
-        this.cerrarMenu(this.menuAbierto);
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -150,7 +150,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!cancion && !menuFlotante) {
-        this.cerrarMenu(this.menuAbierto);
+        this.handleMenuOverlayInteraction(event);
       }
     }
   }
@@ -381,6 +381,24 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
     }
   }
 
+  isMenuOverlayVisible(): boolean {
+    return this.menuAbierto !== null || this.menuCerrando !== null;
+  }
+
+  handleMenuOverlayInteraction(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.forceCloseMenu();
+  }
+
+  private forceCloseMenu() {
+    if (this.menuAbierto !== null) {
+      this.cerrarMenu(this.menuAbierto);
+    } else if (this.menuCerrando !== null) {
+      this.menuCerrando = null;
+    }
+  }
+
   abrirMenu(index: number, event: Event) {
     event.stopPropagation();
     
@@ -412,7 +430,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
     
     this.menuPosition = {
       top: event.clientY,
-      left: event.clientX - 200
+      left: event.clientX - 250
     };
   }
 

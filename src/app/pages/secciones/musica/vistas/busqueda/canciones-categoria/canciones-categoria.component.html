@@ -1,4 +1,10 @@
 <div class="categoria-container">
+    <div 
+        class="menu-overlay"
+        *ngIf="isMenuOverlayVisible()"
+        (click)="handleMenuOverlayInteraction($event)"
+        (contextmenu)="handleMenuOverlayInteraction($event)">
+    </div>
     <div class="header">
         <div class="izq">
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
@@ -78,21 +84,20 @@
                 <button 
                     class="opcion"
                     [disabled]="isCancionBlocked(song.spotify_id)"
-                    (click)="agregarALaCola(song, true); cerrarMenu(i)">
-                    <span class="material-symbols-outlined">
-                        playlist_play
-                        </span>
-                    <span class="textoBoton">Agregar a la fila</span>
-                </button>
-                <div class="linea"></div>
-                <button 
-                    class="opcion"
-                    [disabled]="isCancionBlocked(song.spotify_id)"
                     (click)="agregarSiguiente(song, true)">
                     <span class="material-symbols-outlined">
                         skip_next
                         </span>
                     <span class="textoBoton">Reproducir siguiente</span>
+                </button>
+                <button 
+                    class="opcion"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
+                    (click)="agregarALaCola(song, true); cerrarMenu(i)">
+                    <span class="material-symbols-outlined">
+                        playlist_play
+                        </span>
+                    <span class="textoBoton">Agregar a la fila</span>
                 </button>
                 <div class="linea"></div>
                 <button 

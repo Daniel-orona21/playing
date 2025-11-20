@@ -1,4 +1,10 @@
 <div class="artista-container">
+    <div 
+        class="menu-overlay"
+        *ngIf="isMenuOverlayVisible()"
+        (click)="handleMenuOverlayInteraction($event)"
+        (contextmenu)="handleMenuOverlayInteraction($event)">
+    </div>
     <div class="header">
         <div class="artista-imagen" *ngIf="artist">
             <img *ngIf="artist.imagen_url" [src]="artist.imagen_url" [alt]="artist.nombre">
@@ -82,21 +88,20 @@
                 <button 
                     class="opcion"
                     [disabled]="isCancionBlocked(song.spotify_id)"
-                    (click)="agregarALaCola(song, true); cerrarMenu(i)">
-                    <span class="material-symbols-outlined">
-                        playlist_play
-                        </span>
-                    <span class="textoBoton">Agregar a la fila</span>
-                </button>
-                <div class="linea"></div>
-                <button 
-                    class="opcion"
-                    [disabled]="isCancionBlocked(song.spotify_id)"
                     (click)="agregarSiguiente(song, true)">
                     <span class="material-symbols-outlined">
                         skip_next
                         </span>
                     <span class="textoBoton">Reproducir siguiente</span>
+                </button>
+                <button 
+                    class="opcion"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
+                    (click)="agregarALaCola(song, true); cerrarMenu(i)">
+                    <span class="material-symbols-outlined">
+                        playlist_play
+                        </span>
+                    <span class="textoBoton">Agregar a la fila</span>
                 </button>
                 <div class="linea"></div>
                 <button 
