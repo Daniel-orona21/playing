@@ -28,6 +28,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
   songs: SpotifyTrack[] = [];
   loading = true;
   menuAbierto: number | null = null;
+  menuCerrando: number | null = null;
   establecimientoId: number | null = null;
   menuPosition = { top: 0, left: 0 }; // Posición del menú flotante
   private filtrosSubscription?: Subscription;
@@ -128,6 +129,16 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
   
+  cerrarMenu(index: number) {
+    if (this.menuAbierto === index) {
+      this.menuCerrando = index;
+      setTimeout(() => {
+        this.menuAbierto = null;
+        this.menuCerrando = null;
+      }, 150); // Duración de la animación de salida
+    }
+  }
+
   @HostListener('document:click', ['$event']) onDocumentClick(event: Event) {
     if (this.menuAbierto !== null) {
       const clickedElement = event.target as HTMLElement;
@@ -135,7 +146,19 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       const menuFlotante = clickedElement.closest('.menu-flotante');
       
       if (!menuButton && !menuFlotante) {
-        this.menuAbierto = null;
+        this.cerrarMenu(this.menuAbierto);
+      }
+    }
+  }
+
+  @HostListener('document:contextmenu', ['$event']) onDocumentContextMenu(event: MouseEvent) {
+    if (this.menuAbierto !== null) {
+      const clickedElement = event.target as HTMLElement;
+      const cancion = clickedElement.closest('.cancion');
+      const menuFlotante = clickedElement.closest('.menu-flotante');
+      
+      if (!cancion && !menuFlotante) {
+        this.cerrarMenu(this.menuAbierto);
       }
     }
   }
@@ -368,20 +391,39 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     event.stopPropagation();
     
     if (this.menuAbierto === index) {
-      this.menuAbierto = null;
+      this.cerrarMenu(index);
     } else {
+      // Si hay un menú abierto, cerrarlo primero
+      if (this.menuAbierto !== null && this.menuAbierto !== index) {
+        this.cerrarMenu(this.menuAbierto);
+      }
+      
       this.menuAbierto = index;
+      this.menuCerrando = null;
       
       // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
-      // Posicionar el menú justo debajo del botón
+      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + 5,
-        left: rect.right - 200
+        top: rect.bottom + window.scrollY + 5,
+        left: rect.right + window.scrollX - 200
       };
     }
+  }
+
+  abrirMenuContextual(index: number, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.menuAbierto = index;
+    
+    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
+    this.menuPosition = {
+      top: event.pageY + 5,
+      left: event.pageX - 200
+    };
   }
 
   eliminarCancion(index: number) {
@@ -410,7 +452,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
 
       if (response?.success) {
         // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
-        this.menuAbierto = null;
+        this.cerrarMenu(this.menuAbierto!);
         
         // Actualizar los filtros locales
         await this.filtrosService.getFiltros(this.establecimientoId).toPromise();

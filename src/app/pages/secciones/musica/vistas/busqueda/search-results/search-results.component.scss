@@ -106,21 +106,64 @@
                 gap: 5px;
                 white-space: nowrap;
                 background-color: $contenedor;
-                backdrop-filter: blur(5px);
+                backdrop-filter: blur(25px);
+                transform-origin: top right;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.207);
+                animation: menuAppear 0.2s ease-out forwards;
+                align-items: center;
+                
+
+                
+                &.cerrando {
+                    animation: menuDisappear 0.15s ease-in forwards;
+                }
+                
+                @keyframes menuAppear {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.8);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                
+                @keyframes menuDisappear {
+                    from {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: scale(0.8);
+                    }
+                }
+
+                .linea {
+                    width: 90%;
+                    height: 1px;
+                    background-color: rgba(255, 255, 255, 0.207);
+                }
 
                 .opcion {
-                    border-radius: 99px;
+                    width: 100%;
+                    border-radius: 15px;
                     background-color: transparent;
                     border: none;
-                    backdrop-filter: blur(10px);
                     display: flex;
                     gap: 10px;
                     padding: 5px 20px 5px 15px;
                     align-items: center;
                     justify-content: center;
                     color: white;
-                    font-size: 14px;
+                    font-size: 18px;
                     font-weight: 100;
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
 
                     span {
                         font-weight: 100;
@@ -264,6 +307,8 @@
     }
 
     .cancion {
+        user-select: none;
+        color: red;
         background-color: $contenedor;
         display: flex;
         border-radius: 18px;
@@ -294,21 +339,69 @@
             gap: 5px;
             white-space: nowrap;
             background-color: $contenedor;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(25px);
+            transform-origin: top right;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.207);
+            animation: menuAppear 0.2s ease-out forwards;
+            align-items: center;
+            
+            &.cerrando {
+                animation: menuDisappear 0.15s ease-in forwards;
+            }
+            
+            @keyframes menuAppear {
+                from {
+                    opacity: 0;
+                    transform: scale(0.8);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+            
+            @keyframes menuDisappear {
+                from {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                to {
+                    opacity: 0;
+                    transform: scale(0.8);
+                }
+            }
+
+            .linea {
+                width: 90%;
+                height: 1px;
+                background-color: rgba(255, 255, 255, 0.207);
+            }
 
             .opcion {
-                border-radius: 99px;
+               width: 100%;
+                border-radius: 15px;
                 background-color: transparent;
                 border: none;
-                backdrop-filter: blur(10px);
                 display: flex;
                 gap: 10px;
-                padding: 5px 20px 5px 15px;
+                padding: 5px 10px;
                 align-items: center;
-                justify-content: center;
+                justify-content: space-between;
                 color: white;
-                font-size: 14px;
+                font-size: 18px;
                 font-weight: 100;
+                position: relative;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+
+
+                 .textoBoton {
+                    flex: 1;
+                    text-align: center;
+                }
 
                 span {
                     font-weight: 100;

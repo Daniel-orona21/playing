@@ -53,7 +53,8 @@
              *ngFor="let song of songs; let i = index" 
              [class.menu-abierto]="menuAbierto === i" 
              [class.bloqueada]="isCancionBlocked(song.spotify_id)"
-             (click)="reproducirCancion(song, $event)">
+             (click)="reproducirCancion(song, $event)"
+             (contextmenu)="abrirMenuContextual(i, $event)">
             <div class="portada">
                 <img *ngIf="song.imagen_url" [src]="song.imagen_url" [alt]="song.titulo">
                 <i *ngIf="!song.imagen_url" class="fa-solid fa-music"></i>
@@ -67,20 +68,22 @@
             </div>
             <button class="mas" (click)="abrirMenu(i, $event)"><i class="fa-solid fa-ellipsis"></i></button>
             <div 
-                *ngIf="menuAbierto === i" 
+                *ngIf="menuAbierto === i || menuCerrando === i" 
                 class="menu-flotante"
+                [class.cerrando]="menuCerrando === i"
                 [style.top.px]="menuPosition.top"
                 [style.left.px]="menuPosition.left"
                 (click)="$event.stopPropagation()">
                 <button 
                     class="opcion"
                     [disabled]="isCancionBlocked(song.spotify_id)"
-                    (click)="agregarALaCola(song, true); menuAbierto = null">
+                    (click)="agregarALaCola(song, true); cerrarMenu(i)">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>
-                    <span>Agregar a la fila</span>
+                    <span class="textoBoton">Agregar a la fila</span>
                 </button>
+                <div class="linea"></div>
                 <button 
                     class="opcion"
                     [class.eliminar]="!isCancionBlocked(song.spotify_id)"
@@ -89,7 +92,7 @@
                     <span class="material-symbols-outlined">
                         block
                         </span>
-                    <span>{{ isCancionBlocked(song.spotify_id) ? 'Canción bloqueada' : 'Bloquear canción' }}</span>
+                    <span class="textoBoton">{{ isCancionBlocked(song.spotify_id) ? 'Canción bloqueada' : 'Bloquear canción' }}</span>
                 </button>
             </div>
         </div>
