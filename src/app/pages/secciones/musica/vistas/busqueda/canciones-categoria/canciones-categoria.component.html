@@ -4,7 +4,7 @@
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>{{ categoryName }}</h2>
         </div>
-        <div *ngIf="!loading" class="botones">
+        <div *ngIf="!loading" class="botones" [class.visible]="buttonsVisible">
             <button (click)="toggleBloqueo()" [class.bloqueado]="bloqueado">
             <span class="material-symbols-outlined">
                 block
@@ -53,6 +53,7 @@
              *ngFor="let song of songs; let i = index" 
              [class.menu-abierto]="menuAbierto === i" 
              [class.bloqueada]="isCancionBlocked(song.spotify_id)"
+             [class.visible]="isSongVisible(i)"
              (click)="reproducirCancion(song, $event)"
              (contextmenu)="abrirMenuContextual(i, $event)">
             <div class="portada">
@@ -77,20 +78,21 @@
                 <button 
                     class="opcion"
                     [disabled]="isCancionBlocked(song.spotify_id)"
-                    (click)="agregarSiguiente(song, true)">
-                    <span class="material-symbols-outlined">
-                        skip_next
-                        </span>
-                    <span class="textoBoton">Reproducir siguiente</span>
-                </button>
-                <button 
-                    class="opcion"
-                    [disabled]="isCancionBlocked(song.spotify_id)"
                     (click)="agregarALaCola(song, true); cerrarMenu(i)">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>
                     <span class="textoBoton">Agregar a la fila</span>
+                </button>
+                <div class="linea"></div>
+                <button 
+                    class="opcion"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
+                    (click)="agregarSiguiente(song, true)">
+                    <span class="material-symbols-outlined">
+                        skip_next
+                        </span>
+                    <span class="textoBoton">Reproducir siguiente</span>
                 </button>
                 <div class="linea"></div>
                 <button 

@@ -26,6 +26,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   @Output() backToCategories = new EventEmitter<void>();
   bloqueado = false;
   songs: SpotifyTrack[] = [];
+  visibleSongs: Set<number> = new Set(); // Índices de canciones visibles
+  buttonsVisible = false; // Estado de visibilidad de los botones
   loading = true;
   menuAbierto: number | null = null;
   menuCerrando: number | null = null;
@@ -162,6 +164,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       }
 
       if (this.bloqueado) {
+        // Desbloquear: buscar el filtro y eliminarlo
         const filtro = this.filtrosService.getFiltroByTipoAndValor('genero', this.categoryName.toLowerCase());
         
         if (filtro) {
@@ -171,7 +174,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
           
           if (response?.success) {
             this.bloqueado = false;
-            // alert(`Género "${this.categoryName}" desbloqueado exitosamente.`);
           }
         } else {
           this.bloqueado = false;
@@ -196,6 +198,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (error.status === 409) {
         alert('Este género ya está bloqueado');
         this.bloqueado = true;
+        // Actualizar filtros por si acaso
         if (this.establecimientoId) {
           await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         }
@@ -206,41 +209,13 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   }
 
   ngAfterViewInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => {
-        const scroller = document.querySelector(".scroll");
-        if (!scroller) {
-          console.warn("Scroller element not found for animations in CancionesCategoriaComponent.");
-          return;
-        }
-
-        gsap.utils.toArray(".songs-grid .cancion").forEach((element: any) => {
-          if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-            gsap.set(element, { opacity: 0, scale: 0.65 });
-          }
-          gsap.to(element,
-            {
-              opacity: 1,
-              scale: 1,
-              duration: 0.7,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: element,
-                scroller: scroller,
-                start: "top 100%",
-                toggleActions: "play none none reverse",
-              }
-            }
-          );
-        });
-        ScrollTrigger.refresh();
-      }, 0);
-    }
   }
 
   async loadSongsByGenre() {
     try {
       this.loading = true;
+      this.visibleSongs.clear();
+      this.buttonsVisible = false; 
       if (!this.establecimientoId) {
         console.error('No establecimiento ID available');
         return;
@@ -250,12 +225,37 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (response?.success) {
         this.songs = response.tracks;
         console.log('Songs loaded:', this.songs.length);
+        this.animateSongsSequentially();
       }
     } catch (error) {
       console.error('Error loading songs by genre:', error);
     } finally {
       this.loading = false;
     }
+  }
+
+  private animateSongsSequentially() {
+    if (!isPlatformBrowser(this.platformId)) {
+      this.songs.forEach((_, index) => this.visibleSongs.add(index));
+      this.buttonsVisible = true;
+      return;
+    }
+
+    setTimeout(() => {
+      this.buttonsVisible = true;
+    }, 100);
+
+    setTimeout(() => {
+      this.songs.forEach((_, index) => {
+        setTimeout(() => {
+          this.visibleSongs.add(index);
+        }, index * 0); 
+      });
+    }, 0);
+  }
+
+  isSongVisible(index: number): boolean {
+    return this.visibleSongs.has(index);
   }
 
   private cargarPreferenciaModalGenero() {
@@ -382,11 +382,12 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   }
 
   abrirMenu(index: number, event: Event) {
-    event.stopPropagation(); 
+    event.stopPropagation(); // Prevent the click from propagating to the song container
     
     if (this.menuAbierto === index) {
       this.cerrarMenu(index);
     } else {
+      // Si hay un menú abierto, cerrarlo primero
       if (this.menuAbierto !== null && this.menuAbierto !== index) {
         this.cerrarMenu(this.menuAbierto);
       }
@@ -394,12 +395,14 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       this.menuAbierto = index;
       this.menuCerrando = null;
       
+      // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
+      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + window.scrollY + 5, 
-        left: rect.right + window.scrollX - 200 
+        top: rect.bottom + window.scrollY + 5, // 5px debajo del botón
+        left: rect.right + window.scrollX - 200 // Alineado a la derecha (asumiendo ancho de menú ~200px)
       };
     }
   }
@@ -410,9 +413,10 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
     
     this.menuAbierto = index;
     
+    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
       top: event.pageY + 5,
-      left: event.pageX - 250
+      left: event.pageX - 200
     };
   }
 
@@ -441,8 +445,10 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       }).toPromise();
 
       if (response?.success) {
+        // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
         this.cerrarMenu(this.menuAbierto!);
         
+        // Actualizar los filtros locales
         await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
       }
     } catch (error: any) {
@@ -450,6 +456,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (error.status === 409) {
         alert('Esta canción ya está bloqueada');
         this.menuAbierto = null;
+        // Actualizar filtros por si acaso
         if (this.establecimientoId) {
           await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         }
@@ -498,6 +505,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
 
       console.log('Adding song to queue and playing:', song.titulo);
       
+      // ✅ Usar el nuevo endpoint que agrega al principio y reproduce inmediatamente
       const response = await this.spotifyService.addToQueueAndPlayNow(
         song,
         this.establecimientoId,
@@ -507,8 +515,13 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (response?.success && response.queueId) {
         console.log('Song added at position 1 and playing with ID:', response.queueId);
         
+        // Establecer el ID actual en el queue manager
         this.queueManager.setCurrentQueueItem(response.queueId);
+        
+        // Reproducir la canción
         await this.playbackService.playTrack(song.spotify_id, song);
+        
+        // Emitir evento
         window.dispatchEvent(new CustomEvent('queueUpdated'));
         
         return true;
@@ -546,6 +559,7 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
           // alert(`"${song.titulo}" agregada a la cola en posición ${response.position}`);
         }
         
+        // Emitir evento personalizado para que otros componentes sepan que se agregó una canción
         window.dispatchEvent(new CustomEvent('queueUpdated'));
       } else {
         throw new Error('Failed to add song to queue');
