@@ -19,6 +19,23 @@
     max-width: 50% !important;
     flex: 1;
 
+    &:after {
+        z-index: 1;
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 5%; /* ajuste de altura del degradado */
+    pointer-events: none;
+
+    /* sombra de abajo hacia arriba */
+    background: linear-gradient(
+        to top,
+        $fondo,
+        rgba(0, 0, 0, 0)
+    );
+}
 
     &:last-child {
         border: none;
