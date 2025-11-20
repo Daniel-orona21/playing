@@ -1,4 +1,4 @@
-import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, HostListener, AfterViewInit, Inject, PLATFORM_ID, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -25,7 +25,7 @@ interface Cancion {
   templateUrl: './lista.component.html',
   styleUrl: './lista.component.scss'
 })
-export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
+export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   @Input() hidden: boolean = false;
   private animationsInitialized = false;
 
@@ -146,8 +146,8 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
             scrollTrigger: {
               trigger: element,
               scroller: scroller,
-              start: "top 93%",
-              end: "top 93%",
+              start: "top 95%",
+              end: "top 95%",
               scrub: 1,
               id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
             }
@@ -202,8 +202,8 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
           scrollTrigger: {
             trigger: element,
             scroller: scroller,
-            start: "top 100%",
-            end: "top 100%", // hasta dónde llega el efecto
+            start: "top 95%",
+            end: "top 95%", // hasta dónde llega el efecto
             scrub: 1, // <- esta es la clave
             // markers: true,
             id: `historial-${Math.random()}`
@@ -217,19 +217,26 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
 
   aContinuacion: any[] = [];
   establecimientoId: number | null = null;
-  loading = true; // Solo para la carga inicial
+  loading = true;
 
   historial: Cancion[] = [];
 
   menuAbierto: number | null = null;
-  isDeleting = false; // ✅ Flag para evitar recargas durante eliminación
-  deletingIds: Set<number> = new Set(); // ✅ IDs de canciones que se están eliminando
+  isDeleting = false; 
+  deletingIds: Set<number> = new Set(); 
   
-  // Variables para drag and drop
   draggedSongId: number | null = null;
   dragOverSongId: number | null = null;
   dragLeaveTimeout: any = null;
   isShufflingQueue = false;
+  
+  @ViewChild('cancionesContainer', { static: false }) cancionesContainer!: ElementRef<HTMLElement>;
+  private autoScrollInterval: any = null;
+  private currentScrollDistance: number = 0;
+  private lastDragEvent: DragEvent | null = null;
+  private readonly SCROLL_THRESHOLD = 100; 
+  private readonly SCROLL_SPEED = 10; 
+  private readonly SCROLL_INTERVAL = 16; 
   isClearingQueue = false;
   modalVisible = false;
   modalMode: 'info' | 'confirm' = 'info';
@@ -248,18 +255,15 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
   ) {}
 
   async ngOnInit() {
-    // Obtener el establecimiento actual
     try {
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
       if (establecimientoResponse?.establecimiento) {
         this.establecimientoId = establecimientoResponse.establecimiento.id_establecimiento;
         console.log('Establecimiento ID obtenido en lista:', this.establecimientoId);
         
-        // Cargar la cola y el historial iniciales
         await this.cargarCola();
         await this.cargarHistorial();
 
-        // Conectar al socket después de obtener el establecimiento
         this.musicaSocketService.connect(this.establecimientoId);
       }
     } catch (error) {
@@ -574,6 +578,9 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
       this.dragLeaveTimeout = null;
     }
     
+    // Detener auto-scroll
+    this.stopAutoScroll();
+    
     console.log('🎵 Drag ended');
   }
 
@@ -597,6 +604,9 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
         this.dragLeaveTimeout = null;
       }
     }
+    
+    // Verificar si necesitamos auto-scroll
+    this.checkAutoScroll(event);
   }
 
   onDragEnter(event: DragEvent, cancion: any) {
@@ -701,7 +711,134 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
         clearTimeout(this.dragLeaveTimeout);
         this.dragLeaveTimeout = null;
       }
+      
+      // Detener auto-scroll
+      this.stopAutoScroll();
     }
+  }
+
+  // ===== AUTO-SCROLL METHODS =====
+  
+  onContainerDragOver(event: DragEvent) {
+    if (this.draggedSongId !== null) {
+      this.checkAutoScroll(event);
+    }
+  }
+  
+  onContainerDragLeave(event: DragEvent) {
+    // Solo detener el scroll si realmente salimos del contenedor
+    if (this.cancionesContainer?.nativeElement) {
+      const rect = this.cancionesContainer.nativeElement.getBoundingClientRect();
+      const mouseX = event.clientX;
+      const mouseY = event.clientY;
+      
+      // Si el mouse está fuera del contenedor, detener el scroll
+      if (mouseX < rect.left || mouseX > rect.right || 
+          mouseY < rect.top || mouseY > rect.bottom) {
+        this.stopAutoScroll();
+      }
+    }
+  }
+  
+  checkAutoScroll(event: DragEvent) {
+    if (!this.cancionesContainer?.nativeElement || this.draggedSongId === null) {
+      this.stopAutoScroll();
+      return;
+    }
+    
+    // Guardar el último evento para recalcular en el intervalo
+    this.lastDragEvent = event;
+    
+    const container = this.cancionesContainer.nativeElement;
+    const rect = container.getBoundingClientRect();
+    const mouseY = event.clientY;
+    
+    // Calcular distancia desde el top y bottom del contenedor
+    const distanceFromTop = mouseY - rect.top;
+    const distanceFromBottom = rect.bottom - mouseY;
+    
+    // Verificar si estamos cerca de los bordes
+    const nearTop = distanceFromTop < this.SCROLL_THRESHOLD && distanceFromTop > 0;
+    const nearBottom = distanceFromBottom < this.SCROLL_THRESHOLD && distanceFromBottom > 0;
+    
+    if (nearTop || nearBottom) {
+      // Calcular la velocidad de scroll basada en qué tan cerca estamos del borde
+      this.currentScrollDistance = nearTop 
+        ? -this.SCROLL_SPEED * (1 - distanceFromTop / this.SCROLL_THRESHOLD)
+        : this.SCROLL_SPEED * (1 - distanceFromBottom / this.SCROLL_THRESHOLD);
+      
+      this.startAutoScroll();
+    } else {
+      this.currentScrollDistance = 0;
+      this.stopAutoScroll();
+    }
+  }
+  
+  startAutoScroll() {
+    // Si ya hay un intervalo activo, no crear otro
+    if (this.autoScrollInterval !== null) {
+      return;
+    }
+    
+    this.autoScrollInterval = setInterval(() => {
+      if (!this.cancionesContainer?.nativeElement || this.draggedSongId === null) {
+        this.stopAutoScroll();
+        return;
+      }
+      
+      // Recalcular la velocidad de scroll si tenemos un evento reciente
+      if (this.lastDragEvent) {
+        const container = this.cancionesContainer.nativeElement;
+        const rect = container.getBoundingClientRect();
+        const mouseY = this.lastDragEvent.clientY;
+        
+        const distanceFromTop = mouseY - rect.top;
+        const distanceFromBottom = rect.bottom - mouseY;
+        
+        const nearTop = distanceFromTop < this.SCROLL_THRESHOLD && distanceFromTop > 0;
+        const nearBottom = distanceFromBottom < this.SCROLL_THRESHOLD && distanceFromBottom > 0;
+        
+        if (nearTop || nearBottom) {
+          this.currentScrollDistance = nearTop 
+            ? -this.SCROLL_SPEED * (1 - distanceFromTop / this.SCROLL_THRESHOLD)
+            : this.SCROLL_SPEED * (1 - distanceFromBottom / this.SCROLL_THRESHOLD);
+        } else {
+          this.currentScrollDistance = 0;
+          this.stopAutoScroll();
+          return;
+        }
+      }
+      
+      // Si no hay distancia de scroll, detener
+      if (this.currentScrollDistance === 0) {
+        this.stopAutoScroll();
+        return;
+      }
+      
+      const container = this.cancionesContainer.nativeElement;
+      const currentScrollTop = container.scrollTop;
+      const maxScrollTop = container.scrollHeight - container.clientHeight;
+      
+      // Verificar si podemos hacer scroll en la dirección deseada
+      const canScrollUp = currentScrollTop > 0 && this.currentScrollDistance < 0;
+      const canScrollDown = currentScrollTop < maxScrollTop && this.currentScrollDistance > 0;
+      
+      if (canScrollUp || canScrollDown) {
+        container.scrollTop += this.currentScrollDistance;
+      } else {
+        // Si no podemos hacer más scroll, detener
+        this.stopAutoScroll();
+      }
+    }, this.SCROLL_INTERVAL);
+  }
+  
+  stopAutoScroll() {
+    if (this.autoScrollInterval !== null) {
+      clearInterval(this.autoScrollInterval);
+      this.autoScrollInterval = null;
+    }
+    this.currentScrollDistance = 0;
+    this.lastDragEvent = null;
   }
 
   async reordenarCola(cancionId: number, nuevaPosicion: number) {
@@ -738,6 +875,14 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges {
         throw new Error(error.error.error);
       }
       throw error;
+    }
+  }
+  
+  ngOnDestroy() {
+    // Limpiar intervalos y timeouts al destruir el componente
+    this.stopAutoScroll();
+    if (this.dragLeaveTimeout) {
+      clearTimeout(this.dragLeaveTimeout);
     }
   }
 }

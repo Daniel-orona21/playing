@@ -59,7 +59,7 @@
                 </button>
             </div>
         </div>
-        <div class="canciones">
+        <div class="canciones" #cancionesContainer (dragover)="onContainerDragOver($event)" (dragleave)="onContainerDragLeave($event)">
             <div *ngIf="loading" class="loading">
                 <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
                     <circle
