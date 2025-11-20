@@ -57,6 +57,7 @@
              *ngFor="let song of songs; let i = index" 
              [class.menu-abierto]="menuAbierto === i" 
              [class.bloqueada]="isCancionBlocked(song.spotify_id)"
+             [class.visible]="isSongVisible(i)"
              (click)="reproducirCancion(song, $event)"
              (contextmenu)="abrirMenuContextual(i, $event)">
             <div class="portada">

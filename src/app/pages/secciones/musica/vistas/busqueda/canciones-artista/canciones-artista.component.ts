@@ -26,6 +26,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
   @Output() backToResults = new EventEmitter<void>();
   bloqueado = false;
   songs: SpotifyTrack[] = [];
+  visibleSongs: Set<number> = new Set(); // Índices de canciones visibles
   loading = true;
   menuAbierto: number | null = null;
   menuCerrando: number | null = null;
@@ -222,41 +223,14 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   ngAfterViewInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => {
-        const scroller = document.querySelector(".scroll");
-        if (!scroller) {
-          console.warn("Scroller element not found for animations in CancionesArtistaComponent.");
-          return;
-        }
-
-        gsap.utils.toArray(".songs-grid .cancion").forEach((element: any) => {
-          if (!this._isElementInScrollerViewport(element, scroller as HTMLElement)) {
-            gsap.set(element, { opacity: 0, scale: 0.65 });
-          }
-          gsap.to(element,
-            {
-              opacity: 1,
-              scale: 1,
-              duration: 0.7,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: element,
-                scroller: scroller,
-                start: "top 100%",
-                toggleActions: "play none none reverse",
-              }
-            }
-          );
-        });
-        ScrollTrigger.refresh();
-      }, 0);
-    }
+    // Las animaciones secuenciales se manejan en loadSongsByArtist
+    // No necesitamos las animaciones de GSAP aquí ya que usamos transiciones CSS
   }
 
   async loadSongsByArtist() {
     try {
       this.loading = true;
+      this.visibleSongs.clear(); // Limpiar canciones visibles
       if (!this.establecimientoId || !this.artist) {
         console.error('No establecimiento ID or artist available');
         return;
@@ -266,12 +240,31 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       if (response?.success) {
         this.songs = response.tracks;
         console.log('Songs loaded:', this.songs.length);
+        this.animateSongsSequentially();
       }
     } catch (error) {
       console.error('Error loading songs by artist:', error);
     } finally {
       this.loading = false;
     }
+  }
+
+  private animateSongsSequentially() {
+    if (!isPlatformBrowser(this.platformId)) {
+      this.songs.forEach((_, index) => this.visibleSongs.add(index));
+      return;
+    }
+    setTimeout(() => {
+      this.songs.forEach((_, index) => {
+        setTimeout(() => {
+          this.visibleSongs.add(index);
+        }, index * 0);
+      });
+    }, 10);
+  }
+
+  isSongVisible(index: number): boolean {
+    return this.visibleSongs.has(index);
   }
 
   private cargarPreferenciaModalArtista() {
@@ -408,7 +401,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
         top: rect.bottom + window.scrollY + 5,
-        left: rect.right + window.scrollX - 250
+        left: rect.right + window.scrollX - 200
       };
     }
   }

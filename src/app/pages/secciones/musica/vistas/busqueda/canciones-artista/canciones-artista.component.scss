@@ -443,6 +443,12 @@
         position: relative;
         overflow: hidden;
         cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        
+        &.visible {
+            opacity: 1;
+        }
 
         &.bloqueado {
             pointer-events: none;
