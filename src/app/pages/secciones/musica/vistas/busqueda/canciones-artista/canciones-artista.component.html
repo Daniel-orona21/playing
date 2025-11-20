@@ -1,6 +1,11 @@
 <div class="artista-container">
     <div class="header">
-        <div class="izq">
+        <div class="artista-imagen" *ngIf="artist">
+            <img *ngIf="artist.imagen_url" [src]="artist.imagen_url" [alt]="artist.nombre">
+            <i *ngIf="!artist.imagen_url" class="fa-solid fa-user"></i>
+        </div>
+        <div class="contenedor">
+            <div class="izq">
             <button class="back-button" (click)="goBack()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>{{ artist?.nombre }}</h2>
         </div>
@@ -9,7 +14,7 @@
                 <span class="material-symbols-outlined">
                     block
                 </span>
-                <p>{{ bloqueado ? 'Desbloquear artista' : 'Bloquear artista' }}</p>
+                <!-- <p>{{ bloqueado ? 'Desbloquear artista' : 'Bloquear artista' }}</p> -->
             </button>
             <button class="reproducirArtista"
                     [disabled]="loading || !songs.length"
@@ -17,8 +22,8 @@
                 <span class="material-symbols-outlined">
                     play_arrow
                 </span>
-                <p>Reproducir</p>
             </button>
+        </div>
         </div>
     </div>
 
@@ -76,20 +81,21 @@
                 <button 
                     class="opcion"
                     [disabled]="isCancionBlocked(song.spotify_id)"
-                    (click)="agregarSiguiente(song, true)">
-                    <span class="material-symbols-outlined">
-                        skip_next
-                        </span>
-                    <span class="textoBoton">Reproducir siguiente</span>
-                </button>
-                <button 
-                    class="opcion"
-                    [disabled]="isCancionBlocked(song.spotify_id)"
                     (click)="agregarALaCola(song, true); cerrarMenu(i)">
                     <span class="material-symbols-outlined">
                         playlist_play
                         </span>
                     <span class="textoBoton">Agregar a la fila</span>
+                </button>
+                <div class="linea"></div>
+                <button 
+                    class="opcion"
+                    [disabled]="isCancionBlocked(song.spotify_id)"
+                    (click)="agregarSiguiente(song, true)">
+                    <span class="material-symbols-outlined">
+                        skip_next
+                        </span>
+                    <span class="textoBoton">Reproducir siguiente</span>
                 </button>
                 <div class="linea"></div>
                 <button 

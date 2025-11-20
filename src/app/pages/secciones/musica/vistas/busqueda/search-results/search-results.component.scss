@@ -39,6 +39,50 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    position: relative;
+}
+
+.canciones-artista-wrapper {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    height: 0;
+    overflow: hidden;
+    
+    &.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: all;
+        position: relative;
+        height: auto;
+        overflow: visible;
+    }
+}
+
+.search-results-wrapper {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    position: relative;
+    height: auto;
+    overflow: visible;
+    
+    &:not(.visible) {
+        opacity: 0;
+        transform: translateY(-20px);
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+        height: 0;
+        overflow: hidden;
+    }
 }
 
 .header {

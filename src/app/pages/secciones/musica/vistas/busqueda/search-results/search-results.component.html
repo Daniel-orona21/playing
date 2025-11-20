@@ -1,13 +1,15 @@
 <div class="search-results-container">
     <!-- Vista de canciones de artista -->
-    <app-canciones-artista 
-        *ngIf="selectedArtist" 
-        [artist]="selectedArtist" 
-        (backToResults)="clearArtist()">
-    </app-canciones-artista>
+    <div class="canciones-artista-wrapper" [class.visible]="selectedArtist">
+        <app-canciones-artista 
+            *ngIf="selectedArtist" 
+            [artist]="selectedArtist" 
+            (backToResults)="clearArtist()">
+        </app-canciones-artista>
+    </div>
 
     <!-- Vista de resultados de búsqueda -->
-    <div *ngIf="!selectedArtist">
+    <div class="search-results-wrapper" [class.visible]="!selectedArtist">
         <div class="header">
             <h3>Resultados de búsqueda para: <strong>{{ searchTerm }}</strong></h3>
         </div>
@@ -48,14 +50,12 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Sección de Canciones -->
-    
-    <div class="songs-section" *ngIf="songs.length > 0">
-        <h4 class="section-title">Canciones</h4>
-    </div>
-    <div class="songs-grid">
+        <!-- Sección de Canciones -->
+        <div class="songs-section" *ngIf="songs.length > 0">
+            <h4 class="section-title">Canciones</h4>
+        </div>
+        <div class="songs-grid">
         <div class="cancion" 
              *ngFor="let song of songs; let i = index" 
              [class.menu-abierto]="menuAbierto === i" 

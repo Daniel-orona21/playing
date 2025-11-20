@@ -28,6 +28,7 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
   loading = true;
   searchLoading = false;
   private searchTimeout: any;
+  artistSelected = false;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -72,6 +73,8 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
   limpiarBuscador(){
     this.searchTerm = '';
     this.searchLoading = false;
+    // Resetear el estado del artista seleccionado cuando se limpia el buscador
+    this.artistSelected = false;
   }
 
   private _setupCategoryAnimations(): void {

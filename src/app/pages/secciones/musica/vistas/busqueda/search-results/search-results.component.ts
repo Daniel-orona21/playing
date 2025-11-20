@@ -24,6 +24,7 @@ gsap.registerPlugin(ScrollTrigger);
 export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() searchTerm: string = '';
   @Output() loadingChange = new EventEmitter<boolean>();
+  @Output() artistSelected = new EventEmitter<boolean>();
   songs: SpotifyTrack[] = [];
   artists: SpotifyArtist[] = [];
   selectedArtist: SpotifyArtist | null = null;
@@ -57,6 +58,9 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   async ngOnInit() {
     this.loading = true;
     
+    // Sincronizar el estado inicial del artista seleccionado
+    this.emitArtistSelectedState();
+    
     // Obtener el establecimiento actual
     try {
       const establecimientoResponse = await this.estService.getMiEstablecimiento().toPromise();
@@ -80,6 +84,9 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     } else {
       this.loading = false;
     }
+    
+    // Sincronizar el estado después de cargar
+    this.emitArtistSelectedState();
   }
 
   async initializePlayback() {
@@ -112,13 +119,22 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
 
   async ngOnChanges(changes: SimpleChanges) {
     // Este método se ejecutará cuando cambie el searchTerm
-    if (changes['searchTerm'] && this.searchTerm && this.establecimientoId) {
-      console.log('Search term changed, searching for:', this.searchTerm);
-      await this.searchSongs();
+    if (changes['searchTerm']) {
+      // Si se limpia el término de búsqueda, limpiar también el artista seleccionado
+      if (!this.searchTerm || this.searchTerm.trim().length === 0) {
+        this.selectedArtist = null;
+        this.emitArtistSelectedState();
+      } else if (this.searchTerm && this.establecimientoId) {
+        console.log('Search term changed, searching for:', this.searchTerm);
+        await this.searchSongs();
+      }
     }
   }
 
   ngAfterViewInit(): void {
+    // Sincronizar el estado después de que la vista se inicialice
+    this.emitArtistSelectedState();
+    
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => {
         const scroller = document.querySelector(".scroll");
@@ -245,7 +261,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
       top: event.pageY + 5,
-      left: event.pageX - 250
+      left: event.pageX - 200
     };
   }
 
@@ -364,6 +380,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
 
   selectArtist(artist: SpotifyArtist) {
     this.selectedArtist = artist;
+    this.emitArtistSelectedState();
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => {
         const scroller = document.querySelector(".scroll");
@@ -376,6 +393,7 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
 
   clearArtist() {
     this.selectedArtist = null;
+    this.emitArtistSelectedState();
     if (isPlatformBrowser(this.platformId)) {
       setTimeout(() => {
         const scroller = document.querySelector(".scroll");
@@ -384,6 +402,11 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
         }
       }, 0);
     }
+  }
+
+  private emitArtistSelectedState() {
+    // Emitir el estado actual del artista seleccionado
+    this.artistSelected.emit(this.selectedArtist !== null);
   }
 
   async reproducirCancion(song: SpotifyTrack, event: Event) {
