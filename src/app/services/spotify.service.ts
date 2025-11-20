@@ -270,6 +270,22 @@ export class SpotifyService {
     });
   }
 
+  // ✅ NUEVO: Agregar canción justo después de la que está reproduciéndose (siguiente)
+  addToQueueNext(track: SpotifyTrack, establecimientoId: number, usuarioId: number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/musica/queue/next`, {
+      spotify_id: track.spotify_id,
+      titulo: track.titulo,
+      artista: track.artista,
+      album: track.album,
+      duracion: track.duracion,
+      imagen_url: track.imagen_url,
+      genero: track.genero,
+      preview_url: track.preview_url,
+      establecimientoId,
+      usuarioId
+    });
+  }
+
   // ✅ NUEVO: Reemplazar toda la cola con las canciones de un género
   replaceQueueWithGenre(
     tracks: SpotifyTrack[],

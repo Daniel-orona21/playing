@@ -162,7 +162,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       }
 
       if (this.bloqueado) {
-        // Desbloquear: buscar el filtro y eliminarlo
         const filtro = this.filtrosService.getFiltroByTipoAndValor('genero', this.categoryName.toLowerCase());
         
         if (filtro) {
@@ -175,11 +174,9 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
             // alert(`Género "${this.categoryName}" desbloqueado exitosamente.`);
           }
         } else {
-          // Si no se encuentra el filtro, actualizar el estado
           this.bloqueado = false;
         }
       } else {
-        // Bloquear: crear nuevo filtro
         console.log('Bloqueando género:', this.categoryName);
         
         const response = await this.filtrosService.addFiltro({
@@ -192,7 +189,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
 
         if (response?.success) {
           this.bloqueado = true;
-          // alert(`Género "${this.categoryName}" bloqueado exitosamente.`);
         }
       }
     } catch (error: any) {
@@ -200,7 +196,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (error.status === 409) {
         alert('Este género ya está bloqueado');
         this.bloqueado = true;
-        // Actualizar filtros por si acaso
         if (this.establecimientoId) {
           await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         }
@@ -387,12 +382,11 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   }
 
   abrirMenu(index: number, event: Event) {
-    event.stopPropagation(); // Prevent the click from propagating to the song container
+    event.stopPropagation(); 
     
     if (this.menuAbierto === index) {
       this.cerrarMenu(index);
     } else {
-      // Si hay un menú abierto, cerrarlo primero
       if (this.menuAbierto !== null && this.menuAbierto !== index) {
         this.cerrarMenu(this.menuAbierto);
       }
@@ -400,14 +394,12 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       this.menuAbierto = index;
       this.menuCerrando = null;
       
-      // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
-      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + window.scrollY + 5, // 5px debajo del botón
-        left: rect.right + window.scrollX - 200 // Alineado a la derecha (asumiendo ancho de menú ~200px)
+        top: rect.bottom + window.scrollY + 5, 
+        left: rect.right + window.scrollX - 200 
       };
     }
   }
@@ -418,10 +410,9 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
     
     this.menuAbierto = index;
     
-    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
       top: event.pageY + 5,
-      left: event.pageX - 200
+      left: event.pageX - 250
     };
   }
 
@@ -450,10 +441,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       }).toPromise();
 
       if (response?.success) {
-        // alert(`Canción "${song.titulo}" bloqueada exitosamente`);
         this.cerrarMenu(this.menuAbierto!);
         
-        // Actualizar los filtros locales
         await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
       }
     } catch (error: any) {
@@ -461,7 +450,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (error.status === 409) {
         alert('Esta canción ya está bloqueada');
         this.menuAbierto = null;
-        // Actualizar filtros por si acaso
         if (this.establecimientoId) {
           await this.filtrosService.getFiltros(this.establecimientoId).toPromise();
         }
@@ -510,7 +498,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
 
       console.log('Adding song to queue and playing:', song.titulo);
       
-      // ✅ Usar el nuevo endpoint que agrega al principio y reproduce inmediatamente
       const response = await this.spotifyService.addToQueueAndPlayNow(
         song,
         this.establecimientoId,
@@ -520,13 +507,8 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       if (response?.success && response.queueId) {
         console.log('Song added at position 1 and playing with ID:', response.queueId);
         
-        // Establecer el ID actual en el queue manager
         this.queueManager.setCurrentQueueItem(response.queueId);
-        
-        // Reproducir la canción
         await this.playbackService.playTrack(song.spotify_id, song);
-        
-        // Emitir evento
         window.dispatchEvent(new CustomEvent('queueUpdated'));
         
         return true;
@@ -564,7 +546,6 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
           // alert(`"${song.titulo}" agregada a la cola en posición ${response.position}`);
         }
         
-        // Emitir evento personalizado para que otros componentes sepan que se agregó una canción
         window.dispatchEvent(new CustomEvent('queueUpdated'));
       } else {
         throw new Error('Failed to add song to queue');
@@ -573,6 +554,42 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       console.error('Error adding song to queue:', error);
       if (showAlert) {
         alert('Error al agregar la canción a la cola');
+      }
+    }
+  }
+
+  async agregarSiguiente(song: SpotifyTrack, showAlert: boolean = true) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        console.error('No user or establecimiento available');
+        if (showAlert) {
+          alert('Error: Usuario o establecimiento no disponible');
+        }
+        return;
+      }
+
+      console.log('Adding song to queue next:', song.titulo);
+      
+      const response = await this.spotifyService.addToQueueNext(
+        song,
+        this.establecimientoId,
+        user.id
+      ).toPromise();
+
+      if (response?.success) {
+        console.log('Song added to queue next successfully at position', response.position);
+        
+        window.dispatchEvent(new CustomEvent('queueUpdated'));
+        this.cerrarMenu(this.menuAbierto!);
+      } else {
+        throw new Error('Failed to add song to queue next');
+      }
+    } catch (error: any) {
+      console.error('Error adding song to queue next:', error);
+      if (showAlert) {
+        const errorMessage = error?.error?.error || 'Error al agregar la canción a la cola';
+        alert(errorMessage);
       }
     }
   }

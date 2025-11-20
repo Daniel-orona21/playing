@@ -408,7 +408,7 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
         top: rect.bottom + window.scrollY + 5,
-        left: rect.right + window.scrollX - 200
+        left: rect.right + window.scrollX - 250
       };
     }
   }
@@ -566,6 +566,42 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       console.error('Error adding song to queue:', error);
       if (showAlert) {
         alert('Error al agregar la canción a la cola');
+      }
+    }
+  }
+
+  async agregarSiguiente(song: SpotifyTrack, showAlert: boolean = true) {
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user || !this.establecimientoId) {
+        console.error('No user or establecimiento available');
+        if (showAlert) {
+          alert('Error: Usuario o establecimiento no disponible');
+        }
+        return;
+      }
+
+      console.log('Adding song to queue next:', song.titulo);
+      
+      const response = await this.spotifyService.addToQueueNext(
+        song,
+        this.establecimientoId,
+        user.id
+      ).toPromise();
+
+      if (response?.success) {
+        console.log('Song added to queue next successfully at position', response.position);
+        
+        window.dispatchEvent(new CustomEvent('queueUpdated'));
+        this.cerrarMenu(this.menuAbierto!);
+      } else {
+        throw new Error('Failed to add song to queue next');
+      }
+    } catch (error: any) {
+      console.error('Error adding song to queue next:', error);
+      if (showAlert) {
+        const errorMessage = error?.error?.error || 'Error al agregar la canción a la cola';
+        alert(errorMessage);
       }
     }
   }
