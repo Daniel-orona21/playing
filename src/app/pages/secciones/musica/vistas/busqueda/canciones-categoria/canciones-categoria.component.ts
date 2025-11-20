@@ -382,12 +382,11 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
   }
 
   abrirMenu(index: number, event: Event) {
-    event.stopPropagation(); // Prevent the click from propagating to the song container
+    event.stopPropagation();
     
     if (this.menuAbierto === index) {
       this.cerrarMenu(index);
     } else {
-      // Si hay un menú abierto, cerrarlo primero
       if (this.menuAbierto !== null && this.menuAbierto !== index) {
         this.cerrarMenu(this.menuAbierto);
       }
@@ -395,14 +394,12 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
       this.menuAbierto = index;
       this.menuCerrando = null;
       
-      // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
-      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + window.scrollY + 5, // 5px debajo del botón
-        left: rect.right + window.scrollX - 200 // Alineado a la derecha (asumiendo ancho de menú ~200px)
+        top: rect.bottom,
+        left: rect.right - 200
       };
     }
   }
@@ -413,10 +410,9 @@ export class CancionesCategoriaComponent implements OnInit, AfterViewInit, OnDes
     
     this.menuAbierto = index;
     
-    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
-      top: event.pageY + 5,
-      left: event.pageX - 200
+      top: event.clientY,
+      left: event.clientX - 200
     };
   }
 

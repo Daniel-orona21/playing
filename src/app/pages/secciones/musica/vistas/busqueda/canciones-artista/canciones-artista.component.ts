@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, AfterViewInit, Inject, PLATFORM_ID, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -46,7 +46,8 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     private playbackService: PlaybackService,
     private authService: AuthService,
     private queueManager: QueueManagerService,
-    private filtrosService: FiltrosService
+    private filtrosService: FiltrosService,
+    private cdr: ChangeDetectorRef
   ) {}
   
   async ngOnInit() {
@@ -386,7 +387,6 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     if (this.menuAbierto === index) {
       this.cerrarMenu(index);
     } else {
-      // Si hay un menú abierto, cerrarlo primero
       if (this.menuAbierto !== null && this.menuAbierto !== index) {
         this.cerrarMenu(this.menuAbierto);
       }
@@ -394,14 +394,12 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
       this.menuAbierto = index;
       this.menuCerrando = null;
       
-      // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
-      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + window.scrollY + 5,
-        left: rect.right + window.scrollX - 200
+        top: rect.bottom,
+        left: rect.right - 200
       };
     }
   }
@@ -412,10 +410,9 @@ export class CancionesArtistaComponent implements OnInit, AfterViewInit, OnDestr
     
     this.menuAbierto = index;
     
-    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
-      top: event.pageY + 5,
-      left: event.pageX - 200
+      top: event.clientY,
+      left: event.clientX - 200
     };
   }
 

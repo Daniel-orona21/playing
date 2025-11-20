@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnChanges, SimpleChanges, Inject, PLATFORM_ID, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnChanges, SimpleChanges, Inject, PLATFORM_ID, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -52,7 +52,8 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     private playbackService: PlaybackService,
     private authService: AuthService,
     private queueManager: QueueManagerService,
-    private filtrosService: FiltrosService
+    private filtrosService: FiltrosService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   async ngOnInit() {
@@ -232,7 +233,6 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     if (this.menuAbierto === index) {
       this.cerrarMenu(index);
     } else {
-      // Si hay un menú abierto, cerrarlo primero
       if (this.menuAbierto !== null && this.menuAbierto !== index) {
         this.cerrarMenu(this.menuAbierto);
       }
@@ -240,14 +240,12 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
       this.menuAbierto = index;
       this.menuCerrando = null;
       
-      // Calcular posición del botón
       const button = event.target as HTMLElement;
       const rect = button.getBoundingClientRect();
       
-      // Convertir coordenadas del viewport a coordenadas del documento (incluye scroll)
       this.menuPosition = {
-        top: rect.bottom + window.scrollY + 5, // 5px debajo del botón
-        left: rect.right + window.scrollX - 200 // Alineado a la derecha (asumiendo ancho de menú ~200px)
+        top: rect.bottom,
+        left: rect.right - 200
       };
     }
   }
@@ -258,10 +256,9 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
     
     this.menuAbierto = index;
     
-    // Usar pageX y pageY para coordenadas relativas al documento (incluye scroll)
     this.menuPosition = {
-      top: event.pageY + 5,
-      left: event.pageX - 200
+      top: event.clientY,
+      left: event.clientX - 200
     };
   }
 

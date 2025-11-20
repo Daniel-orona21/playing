@@ -44,7 +44,7 @@
 
 .canciones-artista-wrapper {
     opacity: 0;
-    transform: translateY(20px);
+    transform: none;
     transition: opacity 0.5s ease, transform 0.5s ease;
     pointer-events: none;
     position: absolute;
@@ -56,17 +56,21 @@
     
     &.visible {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
         pointer-events: all;
         position: relative;
         height: auto;
         overflow: visible;
     }
+
+    &:not(.visible) {
+        transform: translateY(20px);
+    }
 }
 
 .search-results-wrapper {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
     transition: opacity 0.5s ease, transform 0.5s ease;
     position: relative;
     height: auto;
