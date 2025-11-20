@@ -136,7 +136,7 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           gsap.set(element, { opacity: 1, y: 0, scale: 1 });
         } else {
           // Si no está visible, configurar animación que se activará con scroll
-          gsap.set(element, { opacity: 0, y: 50, scale: 0.65 });
+          gsap.set(element, { opacity: 0, y: 5, scale: 0.65 });
 
           gsap.to(element, {
             opacity: 1,
@@ -146,8 +146,8 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
             scrollTrigger: {
               trigger: element,
               scroller: scroller,
-              start: "top 95%",
-              end: "top 95%",
+              start: "top 100%",
+              end: "top 100%",
               scrub: 1,
               id: `continuacion-${element.getAttribute('data-song-id') || Math.random()}`
             }
@@ -182,17 +182,14 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
     elementos.forEach((element: any) => {
       gsap.killTweensOf(element);
 
-      // Verificar si el elemento ya está visible en el viewport
       const elementRect = element.getBoundingClientRect();
       const scrollerRect = (scroller as HTMLElement).getBoundingClientRect();
       const isAlreadyVisible = elementRect.top < scrollerRect.bottom && elementRect.bottom > scrollerRect.top;
 
       if (isAlreadyVisible) {
-        // Si ya está visible, establecer directamente en estado final sin animación
         gsap.set(element, { opacity: 1, y: 0, scale: 1 });
       } else {
-        // Si no está visible, configurar animación que se activará con scroll
-        gsap.set(element, { opacity: 0, y: 50, scale: 0.65 });
+        gsap.set(element, { opacity: 0, y: 0, scale: 0.65 });
 
         gsap.to(element, {
           opacity: 1,
@@ -202,10 +199,9 @@ export class ListaComponent implements OnInit, AfterViewInit, OnChanges, OnDestr
           scrollTrigger: {
             trigger: element,
             scroller: scroller,
-            start: "top 95%",
-            end: "top 95%", // hasta dónde llega el efecto
-            scrub: 1, // <- esta es la clave
-            // markers: true,
+            start: "top 100%",
+            end: "top 100%",
+            scrub: 1,
             id: `historial-${Math.random()}`
           }
         });
