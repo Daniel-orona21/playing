@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
@@ -36,9 +36,24 @@ export class PublicaComponent implements OnInit, OnDestroy {
   plainLyrics: string[] = [];
   isSynced: boolean = false;
   loading: boolean = false;
-  currentLineIndex: number = 0;
+  currentLineIndex: number = -1; // -1 significa que estamos antes de la primera línea
   private loadedTrackId: string | null = null;
   private readonly LYRICS_OFFSET = -1.8;
+
+  // Background colors from album cover
+  backgroundColors: string[] = [];
+  backgroundGradient: string = '';
+  previousBackgroundGradient: string = '';
+  isTransitioningBackground: boolean = false;
+  shouldFadeOut: boolean = false;
+
+  // Cover image transitions
+  currentCoverUrl: string = '';
+  previousCoverUrl: string = '';
+  shouldFadeOutCurrentCover: boolean = false;
+  nextCoverUrl: string = '';
+  previousNextCoverUrl: string = '';
+  shouldFadeOutNextCover: boolean = false;
 
   currentDate: Date = new Date();
   establecimientoId: number | null = null;
@@ -51,7 +66,8 @@ export class PublicaComponent implements OnInit, OnDestroy {
     private lyricsService: LyricsService,
     private http: HttpClient,
     private ngZone: NgZone,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -106,6 +122,9 @@ export class PublicaComponent implements OnInit, OnDestroy {
         this.currentTime = 0;
         this.totalDuration = response.currentPlaying.duracion || 0;
         this.isPlaying = true;
+        this.extractColorsFromCover(response.currentPlaying.imagen_url);
+        // Inicializar la portada actual sin transición la primera vez
+        this.currentCoverUrl = response.currentPlaying.imagen_url || '';
       }
       await this.fetchNextTrack();
     } catch (error) {
@@ -128,15 +147,31 @@ export class PublicaComponent implements OnInit, OnDestroy {
           track.spotify_id !== this.currentTrack?.spotify_id
         );
         
+        let newNextTrack = null;
         if (queue.length === 0 && response.queue.length > 0) {
-          this.nextTrack = response.queue[0];
+          newNextTrack = response.queue[0];
         } else if (queue.length === response.queue.length && queue.length > 1) {
-          this.nextTrack = response.queue[1];
+          newNextTrack = response.queue[1];
         } else {
-          this.nextTrack = queue.length > 0 ? queue[0] : null;
+          newNextTrack = queue.length > 0 ? queue[0] : null;
+        }
+        
+        // Actualizar nextTrack y hacer transición si cambió
+        if (newNextTrack?.spotify_id !== this.nextTrack?.spotify_id) {
+          this.nextTrack = newNextTrack;
+          if (this.nextCoverUrl === '') {
+            // Primera vez, inicializar sin transición
+            this.nextCoverUrl = newNextTrack?.imagen_url || '';
+          } else {
+            // Transición suave
+            this.updateNextCoverWithTransition(newNextTrack?.imagen_url);
+          }
         }
       } else {
-        this.nextTrack = null;
+        if (this.nextTrack !== null) {
+          this.nextTrack = null;
+          this.updateNextCoverWithTransition(undefined);
+        }
       }
     } catch (error) {
       console.error('Error fetching next track:', error);
@@ -166,6 +201,8 @@ export class PublicaComponent implements OnInit, OnDestroy {
           // Si cambió la canción, actualizar completamente
           this.currentTrack = response.currentPlaying;
           this.loadLyrics(response.currentPlaying);
+          this.extractColorsFromCover(response.currentPlaying.imagen_url);
+          this.updateCurrentCoverWithTransition(response.currentPlaying.imagen_url);
         }
       }
     } catch (error) {
@@ -180,6 +217,8 @@ export class PublicaComponent implements OnInit, OnDestroy {
           if (this.loadedTrackId !== data.currentTrack.spotify_id) {
             this.currentTrack = data.currentTrack;
             this.loadLyrics(data.currentTrack);
+            this.extractColorsFromCover(data.currentTrack.imagen_url);
+            this.updateCurrentCoverWithTransition(data.currentTrack.imagen_url);
           }
           this.isPlaying = data.isPlaying || false;
           this.currentTime = Math.floor((data.position || 0) / 1000);
@@ -260,7 +299,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
 
     this.loadedTrackId = track.spotify_id;
     this.loading = true;
-    this.currentLineIndex = 0;
+    this.currentLineIndex = -1; // Empezar antes de la primera línea
 
     setTimeout(() => {
       const container = document.querySelector('.letrasContenido') as HTMLElement;
@@ -278,7 +317,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
         if (response.success && response.synced) {
             this.lyrics = response.lyrics as LyricLine[];
             this.isSynced = true;
-            this.currentLineIndex = 0;
+            this.currentLineIndex = -1; // Empezar antes de la primera línea
         } else {
           this.lyrics = [];
           this.isSynced = false;
@@ -294,8 +333,29 @@ export class PublicaComponent implements OnInit, OnDestroy {
   }
 
   private updateCurrentLyricLine(): void {
-    if (!this.isSynced || this.lyrics.length === 0 || !this.isPlaying) return;
+    if (!this.isSynced || this.lyrics.length === 0) return;
+    
+    // Si no está reproduciéndose, mantener el índice actual o establecerlo a -1 si es necesario
+    if (!this.isPlaying) {
+      const adjustedTime = this.currentTime - this.LYRICS_OFFSET;
+      if (adjustedTime < this.lyrics[0].time && this.currentLineIndex !== -1) {
+        this.currentLineIndex = -1;
+      }
+      return;
+    }
+    
     const adjustedTime = this.currentTime - this.LYRICS_OFFSET;
+    
+    // Si el tiempo es menor que la primera línea, estar antes de la primera línea
+    if (adjustedTime < this.lyrics[0].time) {
+      if (this.currentLineIndex !== -1) {
+        this.currentLineIndex = -1;
+        this.scrollToCurrentLine();
+      }
+      return;
+    }
+    
+    // Buscar la línea actual
     let newIndex = 0;
     for (let i = 0; i < this.lyrics.length; i++) {
       if (this.lyrics[i].time <= adjustedTime) {
@@ -304,6 +364,7 @@ export class PublicaComponent implements OnInit, OnDestroy {
         break;
       }
     }
+    
     if (newIndex !== this.currentLineIndex) {
       this.currentLineIndex = newIndex;
       this.scrollToCurrentLine();
@@ -312,8 +373,17 @@ export class PublicaComponent implements OnInit, OnDestroy {
 
   private scrollToCurrentLine(): void {
     const container = document.querySelector('.letrasContenido') as HTMLElement;
+    if (!container) return;
+    
+    // Si estamos antes de la primera línea, hacer scroll al inicio
+    if (this.currentLineIndex === -1) {
+      this.animateScroll(container, container.scrollTop, 0, 800);
+      return;
+    }
+    
     const currentLine = document.querySelector('.lyricLine.current') as HTMLElement;
-    if (!container || !currentLine) return;
+    if (!currentLine) return;
+    
     const containerRect = container.getBoundingClientRect();
     const lineRect = currentLine.getBoundingClientRect();
     const scrollOffset = lineRect.top - containerRect.top;
@@ -372,6 +442,10 @@ export class PublicaComponent implements OnInit, OnDestroy {
     return this.isSynced && index === this.currentLineIndex;
   }
 
+  isBeforeFirstLine(): boolean {
+    return this.isSynced && this.currentLineIndex === -1;
+  }
+
   getUserInitials(): string {
     const userName = this.currentTrack?.usuario_nombre;
     if (userName && userName.trim().length > 0 && userName !== 'Anónimo') {
@@ -399,5 +473,324 @@ export class PublicaComponent implements OnInit, OnDestroy {
 
   hasValidLyrics(): boolean {
     return this.isSynced && this.lyrics.length > 0;
+  }
+
+  /**
+   * Extrae colores dominantes de la portada del álbum y los aplica como fondo
+   */
+  private extractColorsFromCover(imageUrl: string | undefined): void {
+    if (!imageUrl) {
+      this.backgroundColors = [];
+      this.backgroundGradient = '';
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) return;
+
+        // Reducir tamaño para mejor rendimiento
+        const size = 100;
+        canvas.width = size;
+        canvas.height = size;
+        
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        // Obtener datos de píxeles
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const pixels = imageData.data;
+        
+        // Agrupar colores similares
+        const colorMap = new Map<string, number>();
+        
+        for (let i = 0; i < pixels.length; i += 4) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          const a = pixels[i + 3];
+          
+          // Ignorar píxeles muy transparentes o muy oscuros/claros
+          if (a < 128) continue;
+          
+          // Agrupar colores similares (reducir precisión)
+          const rGroup = Math.floor(r / 16) * 16;
+          const gGroup = Math.floor(g / 16) * 16;
+          const bGroup = Math.floor(b / 16) * 16;
+          
+          const key = `${rGroup},${gGroup},${bGroup}`;
+          colorMap.set(key, (colorMap.get(key) || 0) + 1);
+        }
+        
+        // Ordenar por frecuencia y obtener los más comunes
+        const sortedColors = Array.from(colorMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([color]) => {
+            const [r, g, b] = color.split(',').map(Number);
+            return `rgb(${r}, ${g}, ${b})`;
+          });
+        
+        // Filtrar colores muy similares y asegurar contraste
+        const uniqueColors = this.filterSimilarColors(sortedColors);
+        
+        // Si no hay suficientes colores, generar variaciones
+        if (uniqueColors.length < 2) {
+          if (uniqueColors.length === 1) {
+            const baseColor = uniqueColors[0];
+            const [r, g, b] = this.extractRGB(baseColor);
+            // Crear variaciones más oscuras y más claras
+            uniqueColors.push(`rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`);
+            uniqueColors.push(`rgb(${Math.min(255, r + 30)}, ${Math.min(255, g + 30)}, ${Math.min(255, b + 30)})`);
+          } else {
+            // Fallback a colores neutros
+            uniqueColors.push('rgb(30, 30, 30)', 'rgb(50, 50, 50)');
+          }
+        }
+        
+        this.backgroundColors = uniqueColors;
+        this.createGradientWithTransition();
+      } catch (error) {
+        console.error('Error extracting colors:', error);
+        this.backgroundColors = [];
+        this.backgroundGradient = '';
+      }
+    };
+    
+    img.onerror = () => {
+      this.backgroundColors = [];
+      this.createGradientWithTransition();
+    };
+    
+    img.src = imageUrl;
+  }
+
+  /**
+   * Filtra colores muy similares para obtener una paleta más variada
+   */
+  private filterSimilarColors(colors: string[]): string[] {
+    const filtered: string[] = [];
+    const threshold = 40; // Diferencia mínima entre colores
+    
+    for (const color of colors) {
+      const [r, g, b] = this.extractRGB(color);
+      let isSimilar = false;
+      
+      for (const existingColor of filtered) {
+        const [er, eg, eb] = this.extractRGB(existingColor);
+        const distance = Math.sqrt(
+          Math.pow(r - er, 2) + Math.pow(g - eg, 2) + Math.pow(b - eb, 2)
+        );
+        
+        if (distance < threshold) {
+          isSimilar = true;
+          break;
+        }
+      }
+      
+      if (!isSimilar) {
+        filtered.push(color);
+      }
+      
+      if (filtered.length >= 3) break; // Máximo 3 colores
+    }
+    
+    return filtered.length > 0 ? filtered : colors.slice(0, 2);
+  }
+
+  /**
+   * Extrae valores RGB de un string rgb(r, g, b)
+   */
+  private extractRGB(color: string): [number, number, number] {
+    const match = color.match(/\d+/g);
+    if (match && match.length >= 3) {
+      return [parseInt(match[0]), parseInt(match[1]), parseInt(match[2])];
+    }
+    return [0, 0, 0];
+  }
+
+  /**
+   * Crea un gradiente a partir de los colores extraídos
+   */
+  private createGradient(): string {
+    if (this.backgroundColors.length === 0) {
+      return '';
+    }
+    
+    if (this.backgroundColors.length === 1) {
+      return this.backgroundColors[0];
+    }
+    
+    // Crear gradiente radial similar a Apple Music con múltiples capas
+    const colors = this.backgroundColors;
+    
+    if (colors.length === 2) {
+      // Gradiente simple de dos colores
+      return `radial-gradient(circle at 30% 50%, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    } else {
+      // Gradiente con múltiples colores
+      const gradientStops = colors
+        .map((color, index) => {
+          const position = (index / (colors.length - 1)) * 100;
+          return `${color} ${position}%`;
+        })
+        .join(', ');
+      
+      return `radial-gradient(ellipse at top left, ${gradientStops})`;
+    }
+  }
+
+  /**
+   * Crea el gradiente con transición suave desde el anterior
+   */
+  private createGradientWithTransition(): void {
+    const newGradient = this.createGradient();
+    
+    // Si hay un gradiente anterior y es diferente, hacer transición
+    if (this.backgroundGradient && this.backgroundGradient !== newGradient && this.backgroundGradient !== '') {
+      // Guardar el gradiente anterior ANTES de cambiar el actual
+      const oldGradient = this.backgroundGradient;
+      
+      // Paso 1: Establecer la capa anterior visible (sin fade-out)
+      this.previousBackgroundGradient = oldGradient;
+      this.shouldFadeOut = false;
+      this.isTransitioningBackground = true;
+      
+      // Forzar detección de cambios para renderizar la capa anterior
+      this.cdr.detectChanges();
+      
+      // Paso 2: Esperar a que el navegador renderice la capa anterior
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Paso 3: Ahora actualizar el gradiente actual (debajo de la capa anterior)
+          this.backgroundGradient = newGradient;
+          this.cdr.detectChanges();
+          
+          // Paso 4: Esperar un frame más para asegurar que el nuevo fondo esté renderizado
+          requestAnimationFrame(() => {
+            // Paso 5: Iniciar la transición de opacidad aplicando la clase fade-out
+            setTimeout(() => {
+              this.shouldFadeOut = true;
+              this.cdr.detectChanges();
+              
+              // Paso 6: Limpiar después de la transición
+              setTimeout(() => {
+                this.isTransitioningBackground = false;
+                this.previousBackgroundGradient = '';
+                this.shouldFadeOut = false;
+                this.cdr.detectChanges();
+              }, 1600); // Un poco más que la duración de la transición CSS (1.5s)
+            }, 16); // ~1 frame a 60fps
+          });
+        });
+      });
+    } else {
+      // Primera vez o mismo gradiente
+      this.backgroundGradient = newGradient;
+      this.previousBackgroundGradient = '';
+      this.shouldFadeOut = false;
+    }
+  }
+
+  /**
+   * Obtiene el estilo de fondo para aplicar al componente
+   */
+  getBackgroundStyle(): { [key: string]: string } {
+    return {};
+  }
+
+  /**
+   * Actualiza la portada actual con transición suave
+   */
+  private updateCurrentCoverWithTransition(newUrl: string | undefined): void {
+    const url = newUrl || '';
+    
+    if (this.currentCoverUrl && this.currentCoverUrl !== url && this.currentCoverUrl !== '') {
+      // Guardar la portada anterior
+      this.previousCoverUrl = this.currentCoverUrl;
+      this.shouldFadeOutCurrentCover = false;
+      
+      // Forzar detección de cambios
+      this.cdr.detectChanges();
+      
+      // Esperar a que se renderice la capa anterior
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Actualizar la portada actual
+          this.currentCoverUrl = url;
+          this.cdr.detectChanges();
+          
+          // Iniciar la transición
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              this.shouldFadeOutCurrentCover = true;
+              this.cdr.detectChanges();
+              
+              // Limpiar después de la transición
+              setTimeout(() => {
+                this.previousCoverUrl = '';
+                this.shouldFadeOutCurrentCover = false;
+                this.cdr.detectChanges();
+              }, 1500);
+            }, 16);
+          });
+        });
+      });
+    } else {
+      // Primera vez o mismo URL
+      this.currentCoverUrl = url;
+      this.previousCoverUrl = '';
+      this.shouldFadeOutCurrentCover = false;
+    }
+  }
+
+  /**
+   * Actualiza la portada siguiente con transición suave
+   */
+  private updateNextCoverWithTransition(newUrl: string | undefined): void {
+    const url = newUrl || '';
+    
+    if (this.nextCoverUrl && this.nextCoverUrl !== url && this.nextCoverUrl !== '') {
+      // Guardar la portada anterior
+      this.previousNextCoverUrl = this.nextCoverUrl;
+      this.shouldFadeOutNextCover = false;
+      
+      // Forzar detección de cambios
+      this.cdr.detectChanges();
+      
+      // Esperar a que se renderice la capa anterior
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Actualizar la portada siguiente
+          this.nextCoverUrl = url;
+          this.cdr.detectChanges();
+          
+          // Iniciar la transición
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              this.shouldFadeOutNextCover = true;
+              this.cdr.detectChanges();
+              
+              // Limpiar después de la transición
+              setTimeout(() => {
+                this.previousNextCoverUrl = '';
+                this.shouldFadeOutNextCover = false;
+                this.cdr.detectChanges();
+              }, 1500);
+            }, 16);
+          });
+        });
+      });
+    } else {
+      // Primera vez o mismo URL
+      this.nextCoverUrl = url;
+      this.previousNextCoverUrl = '';
+      this.shouldFadeOutNextCover = false;
+    }
   }
 }

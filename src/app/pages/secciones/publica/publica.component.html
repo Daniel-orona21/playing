@@ -1,14 +1,27 @@
-<div class="contenido">
-    <img class="logoApp" src="images/logo-2.png" alt="">
+<div class="contenido" [ngStyle]="getBackgroundStyle()">
+    <div class="backgroundLayer previous" 
+         *ngIf="previousBackgroundGradient" 
+         [ngStyle]="{'background': previousBackgroundGradient}"
+         [class.fade-out]="shouldFadeOut"></div>
+    <div class="backgroundLayer current" [ngStyle]="{'background': backgroundGradient || '#121212'}"></div>
+    <!-- <img class="logoApp" src="images/logo-2.png" alt=""> -->
     <img class="logoEstablecimiento" src="images/wings.png" alt="">
     <div class="overlay"></div>
     <div class="cuerpo" [class.sin-letras]="!hasValidLyrics()">
         <div class="cont izq">
             <div class="blur cancion cuadrado">
-                <img *ngIf="currentTrack?.imagen_url" 
-                     [src]="currentTrack!.imagen_url" 
-                     alt="portada_cancion_actual">
-                <div *ngIf="!currentTrack?.imagen_url" class="no-image">
+                <!-- Capa anterior de la portada actual -->
+                <img *ngIf="previousCoverUrl" 
+                     [src]="previousCoverUrl" 
+                     alt="portada_anterior"
+                     class="coverLayer previous"
+                     [class.fade-out]="shouldFadeOutCurrentCover">
+                <!-- Capa actual de la portada -->
+                <img *ngIf="currentCoverUrl" 
+                     [src]="currentCoverUrl" 
+                     alt="portada_cancion_actual"
+                     class="coverLayer current">
+                <div *ngIf="!currentCoverUrl" class="no-image">
                     <span class="material-symbols-outlined">music_note</span>
                 </div>
                 
@@ -59,10 +72,18 @@
                 </div>
                 <div class="blur siguiente cuadrado">
                     <ng-container *ngIf="nextTrack; else noNextTrack">
-                        <img *ngIf="nextTrack.imagen_url" 
-                             [src]="nextTrack.imagen_url" 
-                             alt="siguiente_cancion">
-                        <div *ngIf="!nextTrack.imagen_url" class="no-image">
+                        <!-- Capa anterior de la portada siguiente -->
+                        <img *ngIf="previousNextCoverUrl" 
+                             [src]="previousNextCoverUrl" 
+                             alt="siguiente_anterior"
+                             class="coverLayer previous"
+                             [class.fade-out]="shouldFadeOutNextCover">
+                        <!-- Capa actual de la portada siguiente -->
+                        <img *ngIf="nextCoverUrl" 
+                             [src]="nextCoverUrl" 
+                             alt="siguiente_cancion"
+                             class="coverLayer current">
+                        <div *ngIf="!nextCoverUrl" class="no-image">
                             <span class="material-symbols-outlined">music_note</span>
                         </div>
                         <div class="overlaySiguiente">
@@ -81,7 +102,7 @@
             </div>
         </div>
 
-        <div class="cont der blur letrasPanel" *ngIf="hasValidLyrics()">
+        <div class="cont der blur letrasPanel" *ngIf="hasValidLyrics() || loading">
             <div class="letrasHeader">
                 <div *ngIf="currentTrack" class="trackInfo">
                     <p class="trackTitle">{{ currentTrack.titulo }}</p>
@@ -90,33 +111,19 @@
             </div>
             <div class="letrasContenido">
                 <div *ngIf="loading" class="loadingContainer">
-                     <!-- <svg class="loader" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
-            <circle
-                class="active"
-                pathLength="360"
-                fill="transparent"
-                stroke-width="32"
-                cx="192"
-                cy="192"
-                r="176"
-            ></circle>
-            <circle
-                class="track"
-                pathLength="360"
-                fill="transparent"
-                stroke-width="32"
-                cx="192"
-                cy="192"
-                r="176"
-            ></circle>
-            </svg> -->
+                    <div class="loader"></div>
                 </div>
 
                 <div *ngIf="!loading && isSynced" class="letras synced">
+                    <!-- Línea inicial antes de que empiece la primera línea -->
+                    <p *ngIf="isBeforeFirstLine()" 
+                       class="lyricLine current">
+                        ...
+                    </p>
                     <p *ngFor="let line of lyrics; let i = index" 
                        [class.current]="isCurrentLine(i)"
                        [class.past]="i < currentLineIndex"
-                       [class.future]="i > currentLineIndex"
+                       [class.future]="i > currentLineIndex || isBeforeFirstLine()"
                        class="lyricLine">
                         {{ line.text }}
                     </p>
@@ -136,7 +143,7 @@
         </div>
 
         <!-- Panel derecho alternativo cuando NO hay letras -->
-        <div class="cont der panelAlternativo" *ngIf="!hasValidLyrics()">
+        <div class="cont der panelAlternativo" *ngIf="!hasValidLyrics() && !loading">
             <div class="blur hora horaHorizontal cuadrado">
                 <div class="horas">
                     <h1>{{ getFormattedTime().hours }}</h1>
@@ -167,10 +174,18 @@
             
             <div class="blur siguiente cuadrado">
                 <ng-container *ngIf="nextTrack; else noNextTrack2">
-                    <img *ngIf="nextTrack.imagen_url" 
-                         [src]="nextTrack.imagen_url" 
-                         alt="siguiente_cancion">
-                    <div *ngIf="!nextTrack.imagen_url" class="no-image">
+                    <!-- Capa anterior de la portada siguiente -->
+                    <img *ngIf="previousNextCoverUrl" 
+                         [src]="previousNextCoverUrl" 
+                         alt="siguiente_anterior"
+                         class="coverLayer previous"
+                         [class.fade-out]="shouldFadeOutNextCover">
+                    <!-- Capa actual de la portada siguiente -->
+                    <img *ngIf="nextCoverUrl" 
+                         [src]="nextCoverUrl" 
+                         alt="siguiente_cancion"
+                         class="coverLayer current">
+                    <div *ngIf="!nextCoverUrl" class="no-image">
                         <span class="material-symbols-outlined">music_note</span>
                     </div>
                     <div class="overlaySiguiente">
