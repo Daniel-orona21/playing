@@ -23,8 +23,8 @@
         </button>
     </div>
     <div class="tab">
-        <app-lista [class.visible]="selectedTab === 'lista'" [class.hidden]="selectedTab !== 'lista'"></app-lista>
-        <app-busqueda [class.visible]="selectedTab === 'busqueda'" [class.hidden]="selectedTab !== 'busqueda'"></app-busqueda>
-        <app-filtro [class.visible]="selectedTab === 'filtro'" [class.hidden]="selectedTab !== 'filtro'"></app-filtro>
+        <app-lista [class.visible]="selectedTab === 'lista'" [class.hidden]="selectedTab !== 'lista'" [hidden]="selectedTab !== 'lista'"></app-lista>
+        <app-busqueda [class.visible]="selectedTab === 'busqueda'" [class.hidden]="selectedTab !== 'busqueda'" [hidden]="selectedTab !== 'busqueda'"></app-busqueda>
+        <app-filtro [class.visible]="selectedTab === 'filtro'" [class.hidden]="selectedTab !== 'filtro'" [hidden]="selectedTab !== 'filtro'"></app-filtro>
     </div>
 </div>

@@ -23,6 +23,7 @@ gsap.registerPlugin(ScrollTrigger);
 })
 export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() searchTerm: string = '';
+  @Input() hidden: boolean = false;
   @Output() loadingChange = new EventEmitter<boolean>();
   @Output() artistSelected = new EventEmitter<boolean>();
   songs: SpotifyTrack[] = [];
@@ -119,6 +120,12 @@ export class SearchResultsComponent implements OnInit, AfterViewInit, OnChanges 
   }
 
   async ngOnChanges(changes: SimpleChanges) {
+    // Detectar cuando el componente se oculta
+    if (changes['hidden'] && changes['hidden'].currentValue && !changes['hidden'].previousValue) {
+      // El componente acaba de ocultarse - limpiar estado del artista
+      this.clearArtist();
+    }
+    
     // Este método se ejecutará cuando cambie el searchTerm
     if (changes['searchTerm']) {
       // Si se limpia el término de búsqueda, limpiar también el artista seleccionado

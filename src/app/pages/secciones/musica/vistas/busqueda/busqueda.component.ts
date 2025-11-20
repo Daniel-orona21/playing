@@ -36,6 +36,12 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    // Detectar cuando el componente se oculta
+    if (changes['hidden'] && changes['hidden'].currentValue && !changes['hidden'].previousValue) {
+      // El componente acaba de ocultarse - limpiar estado
+      this.clearStateOnHide();
+    }
+    
     // Detectar cuando el componente se vuelve visible
     if (changes['hidden'] && !changes['hidden'].currentValue && changes['hidden'].previousValue) {
       // El componente acaba de volverse visible
@@ -45,6 +51,15 @@ export class BusquedaComponent implements OnInit, AfterViewInit, OnChanges {
         }, 100);
       }
     }
+  }
+
+  private clearStateOnHide() {
+    // Limpiar el estado del artista seleccionado cuando se oculta el componente
+    // Esto asegura que cuando vuelvas a la vista de búsqueda, no haya un artista seleccionado
+    this.artistSelected = false;
+    // También limpiar el término de búsqueda y categoría si es necesario
+    // (opcional, dependiendo de si quieres mantener el estado)
+    // Nota: No limpiamos searchTerm ni selectedCategory para mantener el estado cuando vuelves
   }
 
   async ngOnInit() {

@@ -52,7 +52,7 @@
 .canciones-artista-wrapper {
     opacity: 0;
     transform: none;
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: none;
     position: absolute;
     width: 100%;
@@ -60,6 +60,7 @@
     left: 0;
     height: 0;
     overflow: hidden;
+    z-index: 1;
     
     &.visible {
         opacity: 1;
@@ -72,13 +73,15 @@
 
     &:not(.visible) {
         transform: translateY(20px);
+        // Asegurar que esté completamente oculto cuando no es visible
+        visibility: hidden;
     }
 }
 
 .search-results-wrapper {
     opacity: 1;
     transform: none;
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     position: relative;
     height: auto;
     overflow: visible;
@@ -93,6 +96,8 @@
         left: 0;
         height: 0;
         overflow: hidden;
+        // Asegurar que esté completamente oculto cuando no es visible
+        visibility: hidden;
     }
 }
 

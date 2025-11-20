@@ -69,6 +69,6 @@
         <app-canciones-categoria *ngIf="selectedCategory" [categoryName]="selectedCategory" (backToCategories)="clearCategory()"></app-canciones-categoria>
 
         <!-- Nueva vista para resultados de búsqueda -->
-        <app-search-results *ngIf="searchTerm && !selectedCategory" [searchTerm]="searchTerm" (loadingChange)="searchLoading = $event" (artistSelected)="artistSelected = $event"></app-search-results>
+        <app-search-results *ngIf="searchTerm && !selectedCategory" [searchTerm]="searchTerm" [hidden]="hidden" (loadingChange)="searchLoading = $event" (artistSelected)="artistSelected = $event"></app-search-results>
     </div>
 </div>
