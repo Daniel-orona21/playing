@@ -458,19 +458,41 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   abrirVista() {
-  if (this.establecimientoId) {
-    const token = localStorage.getItem('token');
-    const url = token
-      ? `/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`
-      : `/vista/${this.establecimientoId}`;
+    if (this.establecimientoId) {
+      const token = localStorage.getItem('token');
+      const relativeUrl = token
+        ? `/vista/${this.establecimientoId}?token=${encodeURIComponent(token)}`
+        : `/vista/${this.establecimientoId}`;
+      
+      // Construir URL completa con el hostname actual (funciona con IP local)
+      const fullUrl = `${window.location.origin}${relativeUrl}`;
+      
+      // Imprimir en consola
+      console.log('🔗 URL de la vista pública:');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(fullUrl);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📋 URL copiada al portapapeles');
+      
+      // Copiar al portapapeles
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        // Mostrar toast de confirmación
+        // this.toastService.show('URL copiada al portapapeles', 'success');
+      }).catch((err) => {
+        console.error('Error al copiar al portapapeles:', err);
+        // Si falla, mostrar la URL en un alert como fallback
+        alert(`URL de la vista:\n\n${fullUrl}\n\n(Copia manualmente desde la consola)`);
+      });
 
-    window.open(
-      url,
-      'VistaNueva', 
-      'width=900,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
-    );
-  } else {
-    console.error('No hay establecimientoId disponible');
+      // Abrir la ventana
+      window.open(
+        relativeUrl,
+        'VistaNueva', 
+        'width=900,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
+      );
+    } else {
+      console.error('No hay establecimientoId disponible');
+      // this.toastService.show('Error: No hay establecimiento disponible', 'error');
+    }
   }
-}
 }

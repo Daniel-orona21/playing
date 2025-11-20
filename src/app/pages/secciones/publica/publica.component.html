@@ -103,6 +103,9 @@
         </div>
 
         <div class="cont der blur letrasPanel" *ngIf="hasValidLyrics() || loading">
+            <div *ngIf="loading" class="loadingContainer">
+                    <div class="loader"></div>
+                </div>
             <div class="letrasHeader">
                 <div *ngIf="currentTrack" class="trackInfo">
                     <p class="trackTitle">{{ currentTrack.titulo }}</p>
@@ -110,9 +113,9 @@
                 </div>
             </div>
             <div class="letrasContenido">
-                <div *ngIf="loading" class="loadingContainer">
+                <!-- <div *ngIf="loading" class="loadingContainer">
                     <div class="loader"></div>
-                </div>
+                </div> -->
 
                 <div *ngIf="!loading && isSynced" class="letras synced">
                     <!-- Línea inicial antes de que empiece la primera línea -->
